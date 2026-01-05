@@ -36,6 +36,7 @@ class HotelController extends Controller
             'name' => 'required|string|max:255',
             'location' => 'required|string|max:255',
             'location_url' => 'nullable|url|max:500',
+            'duration' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'website' => 'nullable|url|max:255',
             'rating' => 'nullable|numeric|min:0|max:5',
@@ -48,6 +49,7 @@ class HotelController extends Controller
         $hotel->name = $validated['name'];
         $hotel->location = $validated['location'];
         $hotel->location_url = $validated['location_url'] ?? null;
+        $hotel->duration = $validated['duration'] ?? null;
         $hotel->description = $validated['description'] ?? null;
         $hotel->website = $validated['website'] ?? null;
         $hotel->rating = $validated['rating'] ?? null;
@@ -83,6 +85,7 @@ class HotelController extends Controller
             'name' => 'required|string|max:255',
             'location' => 'required|string|max:255',
             'location_url' => 'nullable|url|max:500',
+            'duration' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'website' => 'nullable|url|max:255',
             'rating' => 'nullable|numeric|min:0|max:5',
@@ -93,6 +96,7 @@ class HotelController extends Controller
         $hotel->name = $validated['name'];
         $hotel->location = $validated['location'];
         $hotel->location_url = $validated['location_url'] ?? null;
+        $hotel->duration = $validated['duration'] ?? null;
         $hotel->description = $validated['description'] ?? null;
         $hotel->website = $validated['website'] ?? null;
         $hotel->rating = $validated['rating'] ?? null;

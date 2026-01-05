@@ -1,9 +1,9 @@
 <div>
     {{-- Success/Error Messages --}}
     @if (session()->has('message'))
-        <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-lg" role="alert">
-            <span class="block sm:inline">{{ session('message') }}</span>
-        </div>
+        <x-alert type="success" class="mb-6">
+            {{ session('message') }}
+        </x-alert>
     @endif
 
     {{-- Toggle Create Form --}}

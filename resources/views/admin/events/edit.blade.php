@@ -6,6 +6,13 @@
         <h1 class="text-4xl font-bold">{{ __('Edit Event') }}</h1>
     </div>
 
+    <div class="mb-4">
+        <a href="{{ route('admin.events.index') }}" class="text-logo-link hover:underline inline-flex items-center">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+            {{ __('Back to Events') }}
+        </a>
+    </div>
+
     <x-shadcn.card class="shadow-lg">
         <x-shadcn.card-content class="p-6">
                     <form method="POST" action="{{ route('admin.events.update', $event) }}" enctype="multipart/form-data">
@@ -23,6 +30,20 @@
                             <x-text-input id="venue" class="block mt-1 w-full" type="text" name="venue" :value="old('venue', $event->venue)" placeholder="e.g., Dakhla" />
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('venue_hint') }}</p>
                             <x-input-error :messages="$errors->get('venue')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
+                            <x-input-label for="location" :value="__('Location')" />
+                            <x-text-input id="location" class="block mt-1 w-full" type="text" name="location" :value="old('location', $event->location)" placeholder="e.g., Convention Center, Street Address" />
+                            <p class="mt-1 text-sm text-gray-500">Full address or location name</p>
+                            <x-input-error :messages="$errors->get('location')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
+                            <x-input-label for="google_maps_url" :value="__('Google Maps URL')" />
+                            <x-text-input id="google_maps_url" class="block mt-1 w-full" type="url" name="google_maps_url" :value="old('google_maps_url', $event->google_maps_url)" placeholder="https://maps.google.com/..." />
+                            <p class="mt-1 text-sm text-gray-500">Link to Google Maps location</p>
+                            <x-input-error :messages="$errors->get('google_maps_url')" class="mt-2" />
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -93,9 +114,9 @@
 
                         <div class="mb-4">
                             <div class="flex items-center justify-between">
-                                <x-input-label :value="__('Content Pages')" />
+                                <x-input-label :value="__('pages')" />
                                 <a href="{{ route('admin.events.content.index', $event) }}" class="text-logo-link hover:underline text-sm">
-                                    Manage Content Pages →
+                                    {{ __('manage_pages') }} →
                                 </a>
                             </div>
                             <p class="mt-1 text-sm text-gray-500">Manage Conditions, Informations, and FAQ pages separately.</p>

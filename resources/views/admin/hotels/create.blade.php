@@ -40,6 +40,13 @@
                         </div>
 
                         <div class="mb-4">
+                            <x-input-label for="duration" :value="__('Duration')" />
+                            <x-text-input id="duration" class="block mt-1 w-full" type="text" name="duration" :value="old('duration')" placeholder="e.g., 15 min, 30 minutes, 1 hour" />
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Duration from hotel to event venue (optional)') }}</p>
+                            <x-input-error :messages="$errors->get('duration')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
                             <x-input-label for="rating" :value="__('rating')" />
                             <x-text-input id="rating" class="block mt-1 w-full" type="number" name="rating" :value="old('rating')" step="0.1" min="0" max="5" placeholder="4.5" />
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Rating from 0 to 5 (optional)') }}</p>

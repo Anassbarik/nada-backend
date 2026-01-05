@@ -38,6 +38,11 @@ class HotelImage extends Model
      */
     public function getUrlAttribute()
     {
-        return $this->path ? Storage::disk('public')->url($this->path) : null;
+        if (!$this->path) {
+            return null;
+        }
+        
+        $baseUrl = config('app.url', 'http://localhost');
+        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->path, '/');
     }
 }

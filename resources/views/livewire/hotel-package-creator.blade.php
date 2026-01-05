@@ -1,8 +1,8 @@
 <div>
     @if (session()->has('success'))
-        <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg dark:bg-green-900 dark:border-green-600 dark:text-green-200" role="alert">
-            <span class="block sm:inline">{{ session('success') }}</span>
-        </div>
+        <x-alert type="success" class="mb-4">
+            {{ session('success') }}
+        </x-alert>
     @endif
     
     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">{{ __('new_package') }}</h3>

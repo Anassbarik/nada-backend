@@ -48,7 +48,7 @@
             <x-shadcn.table-head>Event</x-shadcn.table-head>
             <x-shadcn.table-head>Hotel</x-shadcn.table-head>
             <x-shadcn.table-head>Package</x-shadcn.table-head>
-            <x-shadcn.table-head>Price</x-shadcn.table-head>
+            <x-shadcn.table-head>Price (HT/TTC)</x-shadcn.table-head>
             <x-shadcn.table-head>Status</x-shadcn.table-head>
             <x-shadcn.table-head>Date</x-shadcn.table-head>
             <x-shadcn.table-head>Actions</x-shadcn.table-head>
@@ -70,8 +70,30 @@
               <x-shadcn.table-cell>{{ $booking->event->name ?? 'N/A' }}</x-shadcn.table-cell>
               <x-shadcn.table-cell>{{ $booking->hotel->name ?? 'N/A' }}</x-shadcn.table-cell>
               <x-shadcn.table-cell>{{ $booking->package->nom_package ?? 'N/A' }}</x-shadcn.table-cell>
-              <x-shadcn.table-cell class="font-semibold text-green-600">
-                {{ $booking->price ? number_format($booking->price, 2) . ' MAD' : ($booking->package->prix_ttc ? number_format($booking->package->prix_ttc, 2) . ' MAD' : 'N/A') }}
+              <x-shadcn.table-cell>
+                @php
+                  $bookingPrice = $booking->price ?? ($booking->package->prix_ttc ?? null);
+                  $packageHT = $booking->package->prix_ht ?? null;
+                  $packageTTC = $booking->package->prix_ttc ?? null;
+                  
+                  // Format price without trailing .00
+                  $formatPrice = function($price) {
+                    if ($price === null) return 'N/A';
+                    $formatted = rtrim(rtrim(number_format($price, 2, '.', ''), '0'), '.');
+                    return $formatted . ' MAD';
+                  };
+                @endphp
+                @if($bookingPrice)
+                  <div class="font-semibold text-green-600">{{ $formatPrice($bookingPrice) }}</div>
+                @endif
+                @if($packageHT && $packageTTC)
+                  <div class="text-xs text-gray-600">
+                    <span>{{ $formatPrice($packageHT) }} HT</span> / 
+                    <span>{{ $formatPrice($packageTTC) }} TTC</span>
+                  </div>
+                @else
+                  <div class="text-xs text-gray-500">N/A</div>
+                @endif
               </x-shadcn.table-cell>
               <x-shadcn.table-cell>
                 <x-shadcn.badge variant="{{ $booking->status === 'confirmed' ? 'default' : ($booking->status === 'pending' ? 'secondary' : 'destructive') }}">
@@ -130,7 +152,29 @@
                     <div><span class="font-medium">Check-in Date:</span> {{ $booking->checkin_date ? $booking->checkin_date->format('Y-m-d') : 'N/A' }}</div>
                     <div><span class="font-medium">Check-out Date:</span> {{ $booking->checkout_date ? $booking->checkout_date->format('Y-m-d') : 'N/A' }}</div>
                     <div><span class="font-medium">Guests Count:</span> {{ $booking->guests_count ?? 'N/A' }}</div>
-                    <div><span class="font-medium">Price:</span> <span class="font-semibold text-green-600">{{ $booking->price ? number_format($booking->price, 2) . ' MAD' : ($booking->package->prix_ttc ? number_format($booking->package->prix_ttc, 2) . ' MAD' : 'N/A') }}</span></div>
+                    @php
+                      $bookingPrice = $booking->price ?? ($booking->package->prix_ttc ?? null);
+                      $packageHT = $booking->package->prix_ht ?? null;
+                      $packageTTC = $booking->package->prix_ttc ?? null;
+                      
+                      // Format price without trailing .00
+                      $formatPrice = function($price) {
+                        if ($price === null) return 'N/A';
+                        $formatted = rtrim(rtrim(number_format($price, 2, '.', ''), '0'), '.');
+                        return $formatted . ' MAD';
+                      };
+                    @endphp
+                    <div>
+                      <span class="font-medium">Booking Price:</span> 
+                      <span class="font-semibold text-green-600">{{ $bookingPrice ? $formatPrice($bookingPrice) : 'N/A' }}</span>
+                    </div>
+                    @if($packageHT && $packageTTC)
+                      <div>
+                        <span class="font-medium">Package Prices:</span> 
+                        <span>{{ $formatPrice($packageHT) }} HT</span> / 
+                        <span>{{ $formatPrice($packageTTC) }} TTC</span>
+                      </div>
+                    @endif
                   </div>
 
                   {{-- Event & Hotel --}}

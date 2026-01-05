@@ -35,6 +35,8 @@ class EventController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'venue' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:500',
+            'google_maps_url' => 'nullable|url|max:500',
             'start_date' => 'nullable|date|before_or_equal:end_date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'website_url' => 'nullable|url|max:500',
@@ -51,6 +53,8 @@ class EventController extends Controller
         $event = new Event();
         $event->name = $validated['name'];
         $event->venue = $validated['venue'] ?? null;
+        $event->location = $validated['location'] ?? null;
+        $event->google_maps_url = $validated['google_maps_url'] ?? null;
         $event->start_date = $validated['start_date'] ?? null;
         $event->end_date = $validated['end_date'] ?? null;
         $event->website_url = $validated['website_url'] ?? null;
@@ -99,6 +103,8 @@ class EventController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'venue' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:500',
+            'google_maps_url' => 'nullable|url|max:500',
             'start_date' => 'nullable|date|before_or_equal:end_date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'website_url' => 'nullable|url|max:500',
@@ -114,6 +120,8 @@ class EventController extends Controller
 
         $event->name = $validated['name'];
         $event->venue = $validated['venue'] ?? null;
+        $event->location = $validated['location'] ?? null;
+        $event->google_maps_url = $validated['google_maps_url'] ?? null;
         $event->start_date = $validated['start_date'] ?? null;
         $event->end_date = $validated['end_date'] ?? null;
         $event->website_url = $validated['website_url'] ?? null;

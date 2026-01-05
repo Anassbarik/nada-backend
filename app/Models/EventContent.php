@@ -31,6 +31,11 @@ class EventContent extends Model
      */
     public function getHeroImageUrlAttribute()
     {
-        return $this->hero_image ? Storage::disk('public')->url($this->hero_image) : null;
+        if (!$this->hero_image) {
+            return null;
+        }
+        
+        $baseUrl = config('app.url', 'http://localhost');
+        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->hero_image, '/');
     }
 }

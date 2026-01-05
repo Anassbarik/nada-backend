@@ -37,6 +37,8 @@ class EventController extends Controller
                 'name' => $event->name,
                 'slug' => $event->slug,
                 'venue' => $event->venue,
+                'location' => $event->location,
+                'google_maps_url' => $event->google_maps_url,
                 'start_date' => $event->start_date?->format('Y-m-d'),
                 'end_date' => $event->end_date?->format('Y-m-d'),
                 'formatted_dates' => $event->formatted_dates,
@@ -112,6 +114,10 @@ class EventController extends Controller
         $event->organizer_logo_path = $organizerLogoPath;
         $event->logo_url = $event->logo_url;
         $event->banner_url = $event->banner_url;
+        
+        // Ensure location and google_maps_url are included
+        $event->location = $event->location;
+        $event->google_maps_url = $event->google_maps_url;
         
         // Add formatted dates for convenience
         $event->formatted_dates = $event->formatted_dates;

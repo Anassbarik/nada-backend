@@ -29,7 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Admin Routes
-    Route::middleware(\App\Http\Middleware\SetLocale::class)->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(\App\Http\Middleware\SetLocale::class)->name('admin.')->group(function () {
         // Events
         Route::resource('events', EventController::class);
         

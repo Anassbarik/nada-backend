@@ -13,6 +13,8 @@ class Event extends Model
         'name',
         'slug',
         'venue',
+        'location',
+        'google_maps_url',
         'start_date',
         'end_date',
         'website_url',
@@ -129,7 +131,12 @@ class Event extends Model
      */
     public function getLogoUrlAttribute()
     {
-        return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
+        if (!$this->logo_path) {
+            return null;
+        }
+        
+        $baseUrl = config('app.url', 'http://localhost');
+        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->logo_path, '/');
     }
 
     /**
@@ -137,7 +144,12 @@ class Event extends Model
      */
     public function getBannerUrlAttribute()
     {
-        return $this->banner_path ? Storage::disk('public')->url($this->banner_path) : null;
+        if (!$this->banner_path) {
+            return null;
+        }
+        
+        $baseUrl = config('app.url', 'http://localhost');
+        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->banner_path, '/');
     }
 
     /**
@@ -145,6 +157,11 @@ class Event extends Model
      */
     public function getOrganizerLogoUrlAttribute()
     {
-        return $this->organizer_logo ? Storage::disk('public')->url($this->organizer_logo) : null;
+        if (!$this->organizer_logo) {
+            return null;
+        }
+        
+        $baseUrl = config('app.url', 'http://localhost');
+        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->organizer_logo, '/');
     }
 }

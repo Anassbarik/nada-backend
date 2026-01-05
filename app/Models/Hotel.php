@@ -15,6 +15,7 @@ class Hotel extends Model
         'slug',
         'location',
         'location_url',
+        'duration',
         'description',
         'website',
         'rating',

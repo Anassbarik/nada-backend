@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\BookingNotification;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\Hotel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
@@ -53,6 +56,8 @@ class BookingController extends Controller
                     'name' => $booking->event->name,
                     'slug' => $booking->event->slug,
                     'venue' => $booking->event->venue,
+                    'location' => $booking->event->location,
+                    'google_maps_url' => $booking->event->google_maps_url,
                     'start_date' => $booking->event->start_date?->format('Y-m-d'),
                     'end_date' => $booking->event->end_date?->format('Y-m-d'),
                 ] : null,
@@ -218,6 +223,17 @@ class BookingController extends Controller
         $package->save();
 
         $booking->load(['event', 'hotel', 'package']);
+
+        // Send email notification to admin
+        try {
+            $adminEmail = config('mail.admin_email', config('mail.from.address'));
+            if ($adminEmail) {
+                Mail::to($adminEmail)->send(new BookingNotification($booking));
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the booking creation
+            Log::error('Failed to send booking notification email: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,

@@ -25,6 +25,11 @@ class Partner extends Model
      */
     public function getLogoUrlAttribute()
     {
-        return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
+        if (!$this->logo_path) {
+            return null;
+        }
+        
+        $baseUrl = config('app.url', 'http://localhost');
+        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->logo_path, '/');
     }
 }

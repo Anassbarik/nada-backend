@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('Contenu des Pages') }}: {{ $event->name }}</h1>
+        <h1 class="text-4xl font-bold">{{ __('pages') }}: {{ $event->name }}</h1>
     </div>
 
     <div class="mb-4">
@@ -15,7 +15,7 @@
 
     <x-shadcn.card class="shadow-lg">
         <x-shadcn.card-content class="p-6">
-            <h3 class="text-lg font-medium mb-6">{{ $event->name }} → Contenu des Pages</h3>
+            <h3 class="text-lg font-medium mb-6">{{ $event->name }} → {{ __('pages') }}</h3>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <a href="{{ route('admin.events.content.edit', [$event, 'conditions']) }}" class="block p-6 border-2 border-gray-300 rounded-lg hover:border-logo-link transition-colors">

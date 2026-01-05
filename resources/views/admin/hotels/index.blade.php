@@ -24,6 +24,7 @@
           <x-shadcn.table-row>
             <x-shadcn.table-head>{{ __('name') }}</x-shadcn.table-head>
             <x-shadcn.table-head>{{ __('location') }}</x-shadcn.table-head>
+            <x-shadcn.table-head>{{ __('Duration') }}</x-shadcn.table-head>
             <x-shadcn.table-head>{{ __('pricing') }}</x-shadcn.table-head>
             <x-shadcn.table-head>{{ __('status') }}</x-shadcn.table-head>
             <x-shadcn.table-head>{{ __('Actions') }}</x-shadcn.table-head>
@@ -60,6 +61,13 @@
                 @endif
               </x-shadcn.table-cell>
               <x-shadcn.table-cell>
+                @if($hotel->duration)
+                  <span class="text-gray-700">{{ $hotel->duration }}</span>
+                @else
+                  <span class="text-gray-400">—</span>
+                @endif
+              </x-shadcn.table-cell>
+              <x-shadcn.table-cell>
                 @if($hotel->packages->where('disponibilite', true)->count() > 0)
                   <span class="text-logo-link">{{ $hotel->packages->where('disponibilite', true)->count() }} package(s) disponible(s)</span>
                 @else
@@ -92,7 +100,7 @@
             </x-shadcn.table-row>
           @empty
             <x-shadcn.table-row>
-              <x-shadcn.table-cell colspan="5" class="text-center text-muted-foreground">{{ __('no_hotels') }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell colspan="6" class="text-center text-muted-foreground">{{ __('no_hotels') }}</x-shadcn.table-cell>
             </x-shadcn.table-row>
           @endforelse
         </x-shadcn.table-body>

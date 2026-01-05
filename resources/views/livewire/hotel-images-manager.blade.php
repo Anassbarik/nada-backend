@@ -5,9 +5,9 @@
         </h3>
         
         @error('delete')
-            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <x-alert type="error" class="mb-4">
                 {{ $message }}
-            </div>
+            </x-alert>
         @enderror
         
         @if($hotel->images->count() < 10)

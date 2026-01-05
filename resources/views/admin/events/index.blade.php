@@ -48,7 +48,7 @@
             </x-shadcn.table-cell>
             <x-shadcn.table-cell class="space-x-2">
               <a href="{{ route('admin.events.edit', $event) }}" class="text-logo-link hover:underline">Edit</a>
-              <a href="{{ route('admin.events.content.index', $event) }}" class="text-purple-600 hover:underline" title="{{ __('content') }}">Content</a>
+              <a href="{{ route('admin.events.content.index', $event) }}" class="text-purple-600 hover:underline" title="{{ __('pages') }}">{{ __('pages') }}</a>
               <a href="{{ route('admin.events.hotels.index', $event) }}" class="text-indigo-600 hover:underline">{{ __('hotels') }}</a>
               <form action="{{ route('admin.events.destroy', $event) }}" method="POST" class="inline">
                 @csrf @method('DELETE')
