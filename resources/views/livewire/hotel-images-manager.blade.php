@@ -1,6 +1,6 @@
 <div>
     <div class="mb-4">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
             Hotel Images ({{ $hotel->images->count() }}/10)
         </h3>
         
@@ -12,35 +12,35 @@
         
         @if($hotel->images->count() < 10)
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
                     Upload Images (Max 10 total, 5MB each)
                 </label>
                 <input type="file" 
                        wire:model="images" 
                        multiple 
                        accept="image/*" 
-                       class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-300">
+                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 @error('images') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                 @error('images.*') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                 
                 @if(count($images) > 0)
                     <div class="mt-2">
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Selected: {{ count($images) }} file(s)</p>
+                        <p class="text-sm text-gray-600">Selected: {{ count($images) }} file(s)</p>
                         <button type="button" 
                                 wire:click="uploadImages" 
-                                class="mt-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                class="btn-logo-primary mt-2 text-white font-bold py-2 px-4 rounded">
                             Upload Images
                         </button>
                     </div>
                 @endif
             </div>
         @else
-            <p class="text-sm text-yellow-600 dark:text-yellow-400">Maximum 10 images reached. Delete some images to upload more.</p>
+            <p class="text-sm text-yellow-600">Maximum 10 images reached. Delete some images to upload more.</p>
         @endif
     </div>
 
     @if($hotel->images->count() > 0)
-        <div class="mb-2 text-sm text-gray-600 dark:text-gray-400">
+        <div class="mb-2 text-sm text-gray-600">
             <p>💡 Drag and drop images to reorder them</p>
         </div>
         <div class="grid grid-cols-3 gap-4" 
@@ -116,7 +116,7 @@
                  }
              }">
             @foreach($hotel->images->sortBy('sort_order') as $index => $image)
-                <div class="relative group border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-move transition-all duration-200"
+                <div class="relative group border rounded-lg overflow-hidden bg-gray-100 cursor-move transition-all duration-200"
                      :class="{ 'ring-2 ring-blue-500 scale-105': draggedOverIndex === {{ $index }} }"
                      draggable="true"
                      data-image-id="{{ $image->id }}"
@@ -148,7 +148,7 @@
                         </button>
                     </div>
                     
-                    <div class="p-2 bg-white dark:bg-gray-800"
+                    <div class="p-2 bg-white"
                          @dragstart.stop
                          @click.stop>
                         <input type="text" 
@@ -157,8 +157,8 @@
                                wire:blur="updateAltText({{ $image->id }}, $event.target.value)"
                                draggable="false"
                                @dragstart.stop.prevent
-                               class="w-full text-sm p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-gray-300">
-                        <div class="mt-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                               class="w-full text-sm p-2 border border-gray-300 rounded">
+                        <div class="mt-1 flex items-center justify-between text-xs text-gray-500">
                             <span>Order: {{ $image->sort_order + 1 }}</span>
                             <span class="px-2 py-1 rounded {{ $image->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
                                 {{ ucfirst($image->status) }}
@@ -169,8 +169,8 @@
             @endforeach
         </div>
     @else
-        <div class="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-            <p class="text-gray-500 dark:text-gray-400">No images uploaded yet.</p>
+        <div class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+            <p class="text-gray-500">No images uploaded yet.</p>
         </div>
     @endif
 </div>

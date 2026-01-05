@@ -1,22 +1,22 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('edit_hotel') }}
-        </h2>
-    </x-slot>
+@extends('layouts.admin')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="mb-4">
-                <a href="{{ route('admin.events.hotels.index', $hotel->event) }}" 
-                   class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 inline-flex items-center"
-                   data-livewire-ignore="true">
-                    ← {{ __('back_to_hotels') }}
-                </a>
-            </div>
+@section('content')
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold">{{ __('edit_hotel') }}</h1>
+    </div>
 
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
+    <div class="mb-4">
+        <a href="{{ route('admin.events.hotels.index', $hotel->event) }}" 
+           class="text-logo-link hover:underline inline-flex items-center"
+           data-livewire-ignore="true">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+            {{ __('back_to_hotels') }}
+        </a>
+    </div>
+
+    <x-shadcn.card class="shadow-lg">
+        <x-shadcn.card-content class="p-6">
                     <form method="POST" action="{{ route('admin.hotels.update', $hotel) }}" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
@@ -48,8 +48,8 @@
                                 @php $stars = $hotel->rating_stars @endphp
                                 <div class="mt-2 flex items-center">
                                     <span class="text-yellow-400">
-                                        {{ str_repeat('⭐', $stars['full']) }}
-                                        @if($stars['half'])⭐@endif
+                                        {{ str_repeat('★', $stars['full']) }}
+                                        @if($stars['half'])★@endif
                                         {{ str_repeat('☆', $stars['empty']) }}
                                     </span>
                                     <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ $stars['text'] }}</span>
@@ -83,7 +83,7 @@
                         <div class="mb-4">
                             <div class="flex items-center justify-between">
                                 <x-input-label :value="__('hotel_images')" />
-                                <a href="{{ route('admin.hotels.images.index', $hotel) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm">
+                                <a href="{{ route('admin.hotels.images.index', $hotel) }}" class="text-logo-link hover:underline text-sm">
                                     {{ __('manage_images') }} ({{ $hotel->images->count() }}/10) →
                                 </a>
                             </div>
@@ -109,16 +109,15 @@
 
                         <div class="flex items-center justify-end mt-4">
                             <a href="{{ route('admin.events.hotels.index', $hotel->event) }}" 
-                               class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mr-4"
+                               class="text-gray-600 hover:text-gray-900 mr-4"
                                data-livewire-ignore="true">{{ __('cancel') }}</a>
-                            <x-primary-button>
+                            <x-primary-button class="btn-logo-primary">
                                 {{ __('update') }}
                             </x-primary-button>
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</x-app-layout>
+        </x-shadcn.card-content>
+    </x-shadcn.card>
+</div>
+@endsection
 

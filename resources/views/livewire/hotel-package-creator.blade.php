@@ -49,7 +49,7 @@
             <div>
                 <x-input-label for="prix_ttc" :value="__('prix_ttc')" />
                 <x-text-input id="prix_ttc" class="block mt-1 w-full bg-gray-100 dark:bg-gray-700" type="number" step="0.01" wire:model="prix_ttc" readonly />
-                <p class="mt-1 text-sm text-green-600 dark:text-green-400">✅ {{ __('auto_calculated') }} (+20% {{ __('vat') }})</p>
+                <p class="mt-1 text-sm text-green-600 dark:text-green-400">{{ __('auto_calculated') }} (+20% {{ __('vat') }})</p>
             </div>
 
             <div>
@@ -68,7 +68,7 @@
                 <x-input-label for="disponibilite" :value="__('disponibilite')" />
                 <div class="mt-2">
                     <span class="px-3 py-2 inline-flex text-sm leading-5 font-semibold rounded-full {{ $disponibilite ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
-                        {{ $disponibilite ? '✅ ' . __('yes') : '❌ ' . __('no') }}
+                        {{ $disponibilite ? __('yes') : __('no') }}
                     </span>
                 </div>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('auto_calculated') }}</p>

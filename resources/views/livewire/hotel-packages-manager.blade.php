@@ -1,7 +1,7 @@
 <div>
     {{-- Success/Error Messages --}}
     @if (session()->has('message'))
-        <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-lg dark:bg-green-900 dark:border-green-600 dark:text-green-200" role="alert">
+        <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-lg" role="alert">
             <span class="block sm:inline">{{ session('message') }}</span>
         </div>
     @endif
@@ -10,16 +10,17 @@
     <div class="mb-8">
         <button 
             wire:click="toggleForm"
-            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
-            {{ $showForm ? __('cancel') : '➕ ' . __('new_package') }}
+            class="btn-logo-primary px-6 py-2 text-white rounded-lg transition-colors">
+            {{ $showForm ? __('cancel') : __('new_package') }}
         </button>
     </div>
 
     {{-- Create Form --}}
     @if($showForm)
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-8">
-            <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">{{ __('new_package') }}</h3>
-            <form wire:submit="createPackage">
+        <x-shadcn.card class="shadow-lg mb-8">
+            <x-shadcn.card-content class="p-8">
+                <h3 class="text-xl font-semibold mb-6">{{ __('new_package') }}</h3>
+                <form wire:submit="createPackage">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                         <x-input-label for="nom_package" :value="__('nom_package')" />
@@ -59,8 +60,8 @@
                     
                     <div class="lg:col-span-2">
                         <x-input-label for="prix_ttc" :value="__('prix_ttc')" />
-                        <x-text-input id="prix_ttc" class="block mt-1 w-full bg-gray-100 dark:bg-gray-700" type="text" value="{{ number_format($prix_ttc, 2) }} MAD" readonly />
-                        <p class="mt-1 text-sm text-green-600 dark:text-green-400">✅ {{ __('auto_calculated') }} (+20% {{ __('vat') }})</p>
+                        <x-text-input id="prix_ttc" class="block mt-1 w-full bg-gray-100" type="text" value="{{ number_format($prix_ttc, 2) }} MAD" readonly />
+                        <p class="mt-1 text-sm text-green-600">{{ __('auto_calculated') }} (+20% {{ __('vat') }})</p>
                     </div>
                     
                     <div>
@@ -77,85 +78,83 @@
                     
                     <div class="lg:col-span-3 flex items-center space-x-3">
                         <input type="checkbox" {{ $disponibilite ? 'checked' : '' }} disabled class="rounded" />
-                        <span class="text-gray-700 dark:text-gray-300">{{ __('disponibilite') }} ({{ $chambres_restantes }} {{ __('rooms_available') }})</span>
+                        <span class="text-gray-700">{{ __('disponibilite') }} ({{ $chambres_restantes }} {{ __('rooms_available') }})</span>
                     </div>
                 </div>
                 
                 <div class="flex justify-end space-x-4 mt-8">
-                    <button type="button" wire:click="toggleForm" class="px-8 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <button type="button" wire:click="toggleForm" class="px-8 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition-colors">
                         {{ __('cancel') }}
                     </button>
-                    <button type="submit" class="px-10 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 shadow-lg transition-colors">
+                    <button type="submit" class="btn-logo-primary px-10 py-3 text-white rounded-xl shadow-lg transition-colors">
                         {{ __('create_package') }}
                     </button>
                 </div>
             </form>
-        </div>
+            </x-shadcn.card-content>
+        </x-shadcn.card>
     @endif
 
     {{-- Packages Table --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $hotel->name }} ({{ $packages->total() }} {{ __('packages') }})</h3>
-        </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('nom_package') }}</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('type_chambre') }}</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('occupants') }}</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('prix_ttc') }}</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('chambres_restantes') }}</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('disponibilite') }}</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Actions') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+    <x-shadcn.card class="shadow-lg">
+        <x-shadcn.card-header>
+            <x-shadcn.card-title>{{ $hotel->name }} ({{ $packages->total() }} {{ __('packages') }})</x-shadcn.card-title>
+        </x-shadcn.card-header>
+        <x-shadcn.card-content class="p-0">
+            <x-shadcn.table responsive>
+                <x-shadcn.table-header>
+                    <x-shadcn.table-row>
+                        <x-shadcn.table-head>{{ __('nom_package') }}</x-shadcn.table-head>
+                        <x-shadcn.table-head>{{ __('type_chambre') }}</x-shadcn.table-head>
+                        <x-shadcn.table-head>{{ __('occupants') }}</x-shadcn.table-head>
+                        <x-shadcn.table-head>{{ __('prix_ttc') }}</x-shadcn.table-head>
+                        <x-shadcn.table-head>{{ __('chambres_restantes') }}</x-shadcn.table-head>
+                        <x-shadcn.table-head>{{ __('disponibilite') }}</x-shadcn.table-head>
+                        <x-shadcn.table-head>{{ __('Actions') }}</x-shadcn.table-head>
+                    </x-shadcn.table-row>
+                </x-shadcn.table-header>
+                <x-shadcn.table-body>
                     @forelse($packages as $package)
-                        <tr class="border-t hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{{ $package->nom_package }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $package->type_chambre }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $package->occupants }}</td>
-                            <td class="px-6 py-4 text-sm font-semibold text-green-600 dark:text-green-400">{{ number_format($package->prix_ttc, 2) }} MAD</td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm">
+                        <x-shadcn.table-row hover>
+                            <x-shadcn.table-cell class="font-medium">{{ $package->nom_package }}</x-shadcn.table-cell>
+                            <x-shadcn.table-cell>{{ $package->type_chambre }}</x-shadcn.table-cell>
+                            <x-shadcn.table-cell>{{ $package->occupants }}</x-shadcn.table-cell>
+                            <x-shadcn.table-cell class="font-semibold text-green-600">{{ number_format($package->prix_ttc, 2) }} MAD</x-shadcn.table-cell>
+                            <x-shadcn.table-cell>
+                                <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm">
                                     {{ $package->chambres_restantes }} / {{ $package->quantite_chambres }}
                                 </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $package->disponibilite ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
+                            </x-shadcn.table-cell>
+                            <x-shadcn.table-cell>
+                                <x-shadcn.badge variant="{{ $package->disponibilite ? 'default' : 'destructive' }}">
                                     {{ $package->disponibilite ? __('yes') : __('no') }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm font-medium">
+                                </x-shadcn.badge>
+                            </x-shadcn.table-cell>
+                            <x-shadcn.table-cell class="space-x-2">
                                 <a href="{{ route('admin.hotels.packages.edit', [$hotel, $package]) }}" 
-                                   class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
+                                   class="text-logo-link hover:underline"
                                    data-livewire-ignore="true">{{ __('edit') }}</a>
                                 <button wire:click="deletePackage({{ $package->id }})" 
-                                        class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                        class="text-red-600 hover:underline"
                                         onclick="return confirm('{{ __('Are you sure you want to delete this package?') }}')">
                                     {{ __('delete') }}
                                 </button>
-                            </td>
-                        </tr>
+                            </x-shadcn.table-cell>
+                        </x-shadcn.table-row>
                     @empty
-                        <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                        <x-shadcn.table-row>
+                            <x-shadcn.table-cell colspan="7" class="text-center text-muted-foreground">
                                 {{ __('no_packages') }}
-                            </td>
-                        </tr>
+                            </x-shadcn.table-cell>
+                        </x-shadcn.table-row>
                     @endforelse
-                </tbody>
-            </table>
-        </div>
-        
-        {{-- Pagination --}}
+                </x-shadcn.table-body>
+            </x-shadcn.table>
+        </x-shadcn.card-content>
         @if($packages->hasPages())
-            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+            <div class="px-6 py-4 border-t border-gray-200">
                 {{ $packages->links() }}
             </div>
         @endif
-    </div>
+    </x-shadcn.card>
 </div>

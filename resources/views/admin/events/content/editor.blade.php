@@ -1,22 +1,22 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Éditer') }}: {{ $pageName }} - {{ $event->name }}
-        </h2>
-    </x-slot>
+@extends('layouts.admin')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="mb-4">
-                <a href="{{ route('admin.events.content.index', $event) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">← Retour aux Pages de Contenu</a>
-            </div>
-
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    @livewire('event-content-editor', ['event' => $event, 'pageType' => $pageType])
-                </div>
-            </div>
-        </div>
+@section('content')
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold">{{ __('Éditer') }}: {{ $pageName }} - {{ $event->name }}</h1>
     </div>
-</x-app-layout>
 
+    <div class="mb-4">
+        <a href="{{ route('admin.events.content.index', $event) }}" class="text-logo-link hover:underline inline-flex items-center">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+            Retour aux Pages de Contenu
+        </a>
+    </div>
+
+    <x-shadcn.card class="shadow-lg">
+        <x-shadcn.card-content class="p-6">
+            @livewire('event-content-editor', ['event' => $event, 'pageType' => $pageType])
+        </x-shadcn.card-content>
+    </x-shadcn.card>
+</div>
+@endsection

@@ -11,7 +11,16 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $stats = [
+        'revenue' => \App\Models\Booking::whereDate('created_at', today())
+            ->where('status', 'confirmed')
+            ->with('package')
+            ->get()
+            ->sum(fn($b) => $b->package->prix_ttc ?? 0),
+        'bookings' => \App\Models\Booking::whereDate('created_at', today())->count(),
+        'recent' => \App\Models\Booking::with(['event', 'hotel', 'package'])->latest()->take(5)->get(),
+    ];
+    return view('admin.dashboard', compact('stats'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -53,6 +62,7 @@ Route::middleware('auth')->group(function () {
         // Bookings
         Route::get('bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
         Route::patch('bookings/{booking}/status', [AdminBookingController::class, 'updateStatus'])->name('bookings.updateStatus');
+        Route::delete('bookings/{booking}', [AdminBookingController::class, 'destroy'])->name('bookings.destroy');
         
         // Partners
         Route::resource('partners', \App\Http\Controllers\Admin\PartnerController::class);

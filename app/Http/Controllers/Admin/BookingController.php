@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
@@ -53,9 +54,27 @@ class BookingController extends Controller
             'status' => 'required|in:pending,confirmed,cancelled',
         ]);
 
-        $booking->status = $validated['status'];
-        $booking->save();
+        // Use database transaction to ensure data consistency
+        // The Booking model's updating event will automatically handle room count updates
+        DB::transaction(function () use ($booking, $validated) {
+            $booking->status = $validated['status'];
+            $booking->save(); // Model event will handle package room count update
+        });
 
         return redirect()->route('admin.bookings.index')->with('success', 'Booking status updated successfully.');
+    }
+
+    /**
+     * Delete a booking.
+     */
+    public function destroy(Booking $booking)
+    {
+        // Use database transaction to ensure data consistency
+        // The Booking model's deleting event will automatically handle room count updates
+        DB::transaction(function () use ($booking) {
+            $booking->delete(); // Model event will handle package room count update
+        });
+
+        return redirect()->route('admin.bookings.index')->with('success', 'Booking deleted successfully.');
     }
 }

@@ -1,14 +1,13 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Create Event') }}
-        </h2>
-    </x-slot>
+@extends('layouts.admin')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
+@section('content')
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold">{{ __('Create Event') }}</h1>
+    </div>
+
+    <x-shadcn.card class="shadow-lg">
+        <x-shadcn.card-content class="p-6">
                     <form method="POST" action="{{ route('admin.events.store') }}" enctype="multipart/form-data">
                         @csrf
 
@@ -82,16 +81,15 @@
 
                         <div class="flex items-center justify-end mt-4">
                             <a href="{{ route('admin.events.index') }}" 
-                               class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mr-4"
+                               class="text-gray-600 hover:text-gray-900 mr-4"
                                data-livewire-ignore="true">{{ __('cancel') }}</a>
-                            <x-primary-button>
+                            <x-primary-button class="btn-logo-primary">
                                 {{ __('create') }}
                             </x-primary-button>
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</x-app-layout>
+        </x-shadcn.card-content>
+    </x-shadcn.card>
+</div>
+@endsection
 

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "41bf0b1bd72d3192c8c1b8773a19d987",
+    "content-hash": "c3a9e5783b4e57d03745e1486d5ad1a2",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -71,6 +71,67 @@
                 "source": "https://github.com/AnourValar/eloquent-serialize/tree/1.3.5"
             },
             "time": "2025-12-04T13:38:21+00:00"
+        },
+        {
+            "name": "bjnstnkvc/shadcn-ui",
+            "version": "1.1.7",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/BJNSTNKVC/laravel-shadcn-ui.git",
+                "reference": "b4fd3763f671020b3ff6c99184ed3b5ba058afea"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/BJNSTNKVC/laravel-shadcn-ui/zipball/b4fd3763f671020b3ff6c99184ed3b5ba058afea",
+                "reference": "b4fd3763f671020b3ff6c99184ed3b5ba058afea",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/console": "^10.0|^11.0|^12.0",
+                "illuminate/support": "^10.0|^11.0|^12.0",
+                "illuminate/view": "^10.0|^11.0|^12.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^8.0|^9.0",
+                "orchestra/testbench-dusk": "^8.0|^9.0",
+                "phpunit/phpunit": "^10.0|^11.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Bjnstnkvc\\ShadcnUi\\ShadcnUiServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Bjnstnkvc\\ShadcnUi\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bojan Stankovic",
+                    "email": "dev.bojan.stankovic@gmail.com"
+                }
+            ],
+            "description": "Port of shadcn/ui for Laravel.",
+            "keywords": [
+                "blade",
+                "laravel",
+                "shadcn",
+                "tailwindcss",
+                "ui"
+            ],
+            "support": {
+                "issues": "https://github.com/BJNSTNKVC/laravel-shadcn-ui/issues",
+                "source": "https://github.com/BJNSTNKVC/laravel-shadcn-ui/tree/1.1.7"
+            },
+            "time": "2025-03-05T22:54:13+00:00"
         },
         {
             "name": "blade-ui-kit/blade-heroicons",

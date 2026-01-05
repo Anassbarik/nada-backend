@@ -31,6 +31,7 @@ class Booking extends Model
         'checkin_date',
         'checkout_date',
         'guests_count',
+        'price',
         'status',
     ];
 
@@ -39,6 +40,7 @@ class Booking extends Model
         'checkout_date' => 'date',
         'flight_date' => 'date',
         'flight_time' => 'datetime',
+        'price' => 'decimal:2',
     ];
 
     protected static function boot()
@@ -53,6 +55,68 @@ class Booking extends Model
                 while (static::where('booking_reference', $booking->booking_reference)->exists()) {
                     $booking->booking_reference = 'BOOK-' . now()->format('Ymd') . '-' . strtoupper(Str::random(3));
                 }
+            }
+        });
+
+        // Handle room count updates when booking status changes
+        static::updating(function ($booking) {
+            // Only process if status is being changed
+            if ($booking->isDirty('status')) {
+                $oldStatus = $booking->getOriginal('status');
+                $newStatus = $booking->status;
+
+                // Load package if not already loaded
+                if (!$booking->relationLoaded('package')) {
+                    $booking->load('package');
+                }
+
+                $package = $booking->package;
+
+                if (!$package) {
+                    return; // No package associated, skip room count update
+                }
+
+                // If changing TO cancelled from a non-cancelled status, increment room count
+                if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+                    $package->chambres_restantes = min(
+                        $package->quantite_chambres,
+                        $package->chambres_restantes + 1
+                    );
+                    $package->disponibilite = $package->chambres_restantes > 0;
+                    $package->save();
+                }
+                // If changing FROM cancelled to a non-cancelled status, decrement room count
+                elseif ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
+                    if ($package->chambres_restantes > 0) {
+                        $package->chambres_restantes = max(0, $package->chambres_restantes - 1);
+                        $package->disponibilite = $package->chambres_restantes > 0;
+                        $package->save();
+                    }
+                }
+            }
+        });
+
+        // Handle room count update when booking is deleted (if it wasn't cancelled)
+        static::deleting(function ($booking) {
+            // Load package if not already loaded
+            if (!$booking->relationLoaded('package')) {
+                $booking->load('package');
+            }
+
+            $package = $booking->package;
+
+            if (!$package) {
+                return; // No package associated, skip room count update
+            }
+
+            // If booking was not cancelled, increment room count when deleted
+            if ($booking->status !== 'cancelled') {
+                $package->chambres_restantes = min(
+                    $package->quantite_chambres,
+                    $package->chambres_restantes + 1
+                );
+                $package->disponibilite = $package->chambres_restantes > 0;
+                $package->save();
             }
         });
     }

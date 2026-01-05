@@ -1,77 +1,66 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                {{ __('Night Prices for') }}: {{ $hotel->name }}
-            </h2>
-            <a href="{{ route('admin.hotels.night-prices.create', $hotel) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Add Night Price
-            </a>
-        </div>
-    </x-slot>
+@extends('layouts.admin')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            @if (session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                    <span class="block sm:inline">{{ session('success') }}</span>
+@section('content')
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold">{{ __('Night Prices for') }}: {{ $hotel->name }}</h1>
+        <a href="{{ route('admin.hotels.night-prices.create', $hotel) }}" class="btn-logo-primary text-white px-8 py-3 rounded-xl font-semibold transition-all">
+            Add Night Price
+        </a>
+    </div>
+
+    <div class="mb-4">
+        <a href="{{ route('admin.events.hotels.index', $hotel->event) }}" class="text-logo-link hover:underline inline-flex items-center">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+            Back to Hotels
+        </a>
+    </div>
+
+    <x-shadcn.card class="shadow-lg">
+        <x-shadcn.card-content class="p-0">
+            @if($nightPrices->count() > 0)
+                <x-shadcn.table responsive>
+                    <x-shadcn.table-header>
+                        <x-shadcn.table-row>
+                            <x-shadcn.table-head>Price per Night</x-shadcn.table-head>
+                            <x-shadcn.table-head>Valid From</x-shadcn.table-head>
+                            <x-shadcn.table-head>Valid To</x-shadcn.table-head>
+                            <x-shadcn.table-head>Status</x-shadcn.table-head>
+                            <x-shadcn.table-head>Actions</x-shadcn.table-head>
+                        </x-shadcn.table-row>
+                    </x-shadcn.table-header>
+                    <x-shadcn.table-body>
+                        @foreach($nightPrices as $nightPrice)
+                            <x-shadcn.table-row hover>
+                                <x-shadcn.table-cell class="font-medium">${{ number_format($nightPrice->price_per_night, 2) }}/night</x-shadcn.table-cell>
+                                <x-shadcn.table-cell>{{ $nightPrice->valid_from->format('M d, Y') }}</x-shadcn.table-cell>
+                                <x-shadcn.table-cell>{{ $nightPrice->valid_to ? $nightPrice->valid_to->format('M d, Y') : 'No end date' }}</x-shadcn.table-cell>
+                                <x-shadcn.table-cell>
+                                    <x-shadcn.badge variant="{{ $nightPrice->status === 'active' ? 'default' : 'secondary' }}">
+                                        {{ ucfirst($nightPrice->status) }}
+                                    </x-shadcn.badge>
+                                </x-shadcn.table-cell>
+                                <x-shadcn.table-cell class="space-x-2">
+                                    <a href="{{ route('admin.hotels.night-prices.edit', [$hotel, $nightPrice]) }}" class="text-logo-link hover:underline">Edit</a>
+                                    <form method="POST" action="{{ route('admin.hotels.night-prices.destroy', [$hotel, $nightPrice]) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this night price?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                                    </form>
+                                </x-shadcn.table-cell>
+                            </x-shadcn.table-row>
+                        @endforeach
+                    </x-shadcn.table-body>
+                </x-shadcn.table>
+            @else
+                <div class="text-center py-8 p-6">
+                    <p class="text-gray-500 mb-4">No night prices set for this hotel.</p>
+                    <a href="{{ route('admin.hotels.night-prices.create', $hotel) }}" class="btn-logo-primary text-white px-8 py-3 rounded-xl font-semibold transition-all inline-block">
+                        Set Base Night Price
+                    </a>
                 </div>
             @endif
-
-            <div class="mb-4">
-                <a href="{{ route('admin.events.hotels.index', $hotel->event) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">← Back to Hotels</a>
-            </div>
-
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    @if($nightPrices->count() > 0)
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead class="bg-gray-50 dark:bg-gray-700">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price per Night</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Valid From</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Valid To</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                    @foreach($nightPrices as $nightPrice)
-                                        <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">${{ number_format($nightPrice->price_per_night, 2) }}/night</td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $nightPrice->valid_from->format('M d, Y') }}</td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $nightPrice->valid_to ? $nightPrice->valid_to->format('M d, Y') : 'No end date' }}</td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    {{ $nightPrice->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                                    {{ ucfirst($nightPrice->status) }}
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <a href="{{ route('admin.hotels.night-prices.edit', [$hotel, $nightPrice]) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3">Edit</a>
-                                                <form method="POST" action="{{ route('admin.hotels.night-prices.destroy', [$hotel, $nightPrice]) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this night price?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Delete</button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <div class="text-center py-8">
-                            <p class="text-gray-500 dark:text-gray-400 mb-4">No night prices set for this hotel.</p>
-                            <a href="{{ route('admin.hotels.night-prices.create', $hotel) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block">
-                                Set Base Night Price
-                            </a>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-</x-app-layout>
-
+        </x-shadcn.card-content>
+    </x-shadcn.card>
+</div>
+@endsection

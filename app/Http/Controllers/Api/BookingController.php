@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Event;
 use App\Models\Hotel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
@@ -43,6 +44,7 @@ class BookingController extends Controller
                 'checkin_date' => $booking->checkin_date?->format('Y-m-d'),
                 'checkout_date' => $booking->checkout_date?->format('Y-m-d'),
                 'guests_count' => $booking->guests_count,
+                'price' => $booking->price,
                 'resident_name_1' => $booking->resident_name_1,
                 'resident_name_2' => $booking->resident_name_2,
                 'special_instructions' => $booking->special_instructions ?? $booking->special_requests,
@@ -103,6 +105,7 @@ class BookingController extends Controller
             'guest_phone' => 'nullable|string|max:255',
             'special_requests' => 'nullable|string|max:5000',
             'guests_count' => 'nullable|integer|min:1',
+            'price' => 'nullable|numeric|min:0',
         ];
 
         // If using direct /bookings route, require event_id and hotel_id
@@ -198,6 +201,7 @@ class BookingController extends Controller
             'checkin_date' => $package->check_in,
             'checkout_date' => $package->check_out,
             'guests_count' => $request->guests_count ?? $package->occupants,
+            'price' => $request->price ?? $package->prix_ttc,
             'status' => 'pending',
             // Legacy fields for backward compatibility
             'guest_name' => $fullName,
@@ -269,8 +273,15 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $booking->status = $request->status;
-        $booking->save();
+        // Use database transaction to ensure data consistency
+        // The Booking model's updating event will automatically handle room count updates
+        DB::transaction(function () use ($booking, $request) {
+            $booking->status = $request->status;
+            $booking->save(); // Model event will handle package room count update
+        });
+
+        // Reload booking with relationships
+        $booking->load(['event', 'hotel', 'package']);
 
         return response()->json([
             'success' => true,
