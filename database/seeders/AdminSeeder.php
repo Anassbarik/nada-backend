@@ -24,6 +24,7 @@ class AdminSeeder extends Seeder
             'name' => 'Super Admin',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'), // Change this password after first login!
+            'role' => 'admin',
             'email_verified_at' => now(),
         ]);
 

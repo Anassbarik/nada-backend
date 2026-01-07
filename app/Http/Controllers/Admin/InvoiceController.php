@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Mail\InvoiceMail;
+use App\Models\Invoice;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+
+class InvoiceController extends Controller
+{
+    public function index()
+    {
+        $invoices = Invoice::with('booking')->latest()->paginate(20);
+
+        return view('admin.invoices.index', compact('invoices'));
+    }
+
+    public function show(Invoice $invoice)
+    {
+        $invoice->load('booking.event', 'booking.hotel', 'booking.package');
+
+        return view('admin.invoices.show', compact('invoice'));
+    }
+
+    public function edit(Invoice $invoice)
+    {
+        $invoice->load('booking');
+
+        return view('admin.invoices.edit', compact('invoice'));
+    }
+
+    public function update(Request $request, Invoice $invoice)
+    {
+        $validated = $request->validate([
+            'total_amount' => 'required|numeric|min:0',
+            'status' => 'required|in:draft,sent,paid',
+            'notes' => 'nullable|string',
+        ]);
+
+        $invoice->update($validated);
+
+        return redirect()->route('admin.invoices.show', $invoice)->with('success', 'Invoice updated successfully.');
+    }
+
+    public function destroy(Invoice $invoice)
+    {
+        $invoice->delete();
+
+        return redirect()->route('admin.invoices.index')->with('success', 'Invoice deleted successfully.');
+    }
+
+    public function stream(Invoice $invoice)
+    {
+        $invoice->load('booking.event', 'booking.hotel', 'booking.package');
+
+        if ($invoice->pdf_path && Storage::disk('public')->exists($invoice->pdf_path)) {
+            return response()->file(storage_path('app/public/' . $invoice->pdf_path));
+        }
+
+        $booking = $invoice->booking;
+        $pdf = Pdf::loadView('invoices.template', compact('booking', 'invoice'));
+
+        return $pdf->stream("facture-{$invoice->invoice_number}.pdf");
+    }
+
+    public function send(Invoice $invoice)
+    {
+        $invoice->load('booking.event', 'booking.hotel', 'booking.package');
+
+        $booking = $invoice->booking;
+        $to = $booking?->guest_email ?: $booking?->email;
+
+        if (empty($to)) {
+            return back()->with('error', 'No guest email found for this booking.');
+        }
+
+        $pdf = Pdf::loadView('invoices.template', compact('booking', 'invoice'));
+        $pdfData = $pdf->output();
+
+        Mail::to($to)->send(new InvoiceMail($invoice, $booking, $pdfData));
+
+        $invoice->update(['status' => 'sent']);
+
+        return back()->with('success', 'Facture envoyée.');
+    }
+}
+
+

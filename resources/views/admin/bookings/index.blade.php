@@ -50,6 +50,7 @@
             <x-shadcn.table-head>Package</x-shadcn.table-head>
             <x-shadcn.table-head>Price (HT/TTC)</x-shadcn.table-head>
             <x-shadcn.table-head>Status</x-shadcn.table-head>
+            <x-shadcn.table-head>Invoice</x-shadcn.table-head>
             <x-shadcn.table-head>Date</x-shadcn.table-head>
             <x-shadcn.table-head>Actions</x-shadcn.table-head>
           </x-shadcn.table-row>
@@ -96,9 +97,29 @@
                 @endif
               </x-shadcn.table-cell>
               <x-shadcn.table-cell>
-                <x-shadcn.badge variant="{{ $booking->status === 'confirmed' ? 'default' : ($booking->status === 'pending' ? 'secondary' : 'destructive') }}">
-                  {{ ucfirst($booking->status) }}
+                <x-shadcn.badge variant="{{ $booking->status === 'confirmed' ? 'default' : ($booking->status === 'pending' ? 'secondary' : ($booking->status === 'refunded' ? 'outline' : 'destructive')) }}">
+                  {{ $booking->status === 'refunded' ? 'Remboursé' : ucfirst($booking->status) }}
                 </x-shadcn.badge>
+                @if($booking->status === 'refunded' && $booking->refund_amount)
+                  <div class="text-xs text-gray-600 mt-1">
+                    Montant: {{ number_format($booking->refund_amount, 2, '.', '') }} MAD
+                  </div>
+                @endif
+              </x-shadcn.table-cell>
+              <x-shadcn.table-cell>
+                @if($booking->invoice)
+                  <div class="flex flex-col gap-1">
+                    <a href="{{ route('admin.invoices.show', $booking->invoice) }}" 
+                       class="text-logo-link hover:underline text-sm font-medium">
+                      {{ $booking->invoice->invoice_number }}
+                    </a>
+                    <x-shadcn.badge variant="{{ $booking->invoice->status === 'paid' ? 'default' : ($booking->invoice->status === 'sent' ? 'secondary' : 'outline') }}" class="text-xs">
+                      {{ strtoupper($booking->invoice->status) }}
+                    </x-shadcn.badge>
+                  </div>
+                @else
+                  <span class="text-xs text-muted-foreground">No invoice</span>
+                @endif
               </x-shadcn.table-cell>
               <x-shadcn.table-cell>{{ $booking->created_at->format('Y-m-d') }}</x-shadcn.table-cell>
               <x-shadcn.table-cell>
@@ -106,17 +127,28 @@
                   <form method="POST" action="{{ route('admin.bookings.updateStatus', $booking) }}" class="inline">
                     @csrf
                     @method('PATCH')
-                    <select name="status" onchange="this.form.submit()" class="text-xs border border-gray-300 rounded px-2 py-1">
+                    <select name="status" onchange="this.form.submit()" class="text-xs border border-gray-300 rounded px-2 py-1" {{ $booking->status === 'refunded' ? 'disabled' : '' }}>
                       <option value="pending" {{ $booking->status === 'pending' ? 'selected' : '' }}>Pending</option>
                       <option value="confirmed" {{ $booking->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
                       <option value="cancelled" {{ $booking->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                      <option value="refunded" {{ $booking->status === 'refunded' ? 'selected' : '' }}>Remboursé</option>
                     </select>
                   </form>
+                  @if($booking->status !== 'refunded')
+                    <button 
+                      type="button"
+                      x-data
+                      @click="$dispatch('open-modal', 'confirm-booking-refund-{{ $booking->id }}')"
+                      class="text-orange-600 hover:text-orange-800 transition-colors cursor-pointer"
+                      title="Rembourser">
+                      <i data-lucide="dollar-sign" class="w-4 h-4"></i>
+                    </button>
+                  @endif
                   <button 
                     type="button"
-                    x-data=""
-                    x-on:click="$dispatch('open-modal', 'confirm-booking-deletion-{{ $booking->id }}')"
-                    class="text-red-600 hover:text-red-800 transition-colors"
+                    x-data
+                    @click="$dispatch('open-modal', 'confirm-booking-deletion-{{ $booking->id }}')"
+                    class="text-red-600 hover:text-red-800 transition-colors cursor-pointer"
                     title="Delete booking">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                   </button>
@@ -125,7 +157,7 @@
             </x-shadcn.table-row>
             {{-- Expanded Details Row --}}
             <x-shadcn.table-row id="details-{{ $booking->id }}" class="hidden">
-              <x-shadcn.table-cell colspan="10" class="bg-gray-50">
+              <x-shadcn.table-cell colspan="11" class="bg-gray-50">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm p-4">
                   {{-- Client Information --}}
                   <div class="space-y-2">
@@ -193,6 +225,68 @@
                     <div><span class="font-medium">Resident 2:</span> {{ $booking->resident_name_2 ?? 'N/A' }}</div>
                   </div>
 
+                  {{-- Invoice Information --}}
+                  <div class="space-y-2">
+                    <h4 class="font-semibold mb-2">Invoice Information</h4>
+                    @if($booking->invoice)
+                      <div><span class="font-medium">Invoice Number:</span> 
+                        <a href="{{ route('admin.invoices.show', $booking->invoice) }}" class="text-logo-link hover:underline">
+                          {{ $booking->invoice->invoice_number }}
+                        </a>
+                      </div>
+                      <div><span class="font-medium">Status:</span> 
+                        <x-shadcn.badge variant="{{ $booking->invoice->status === 'paid' ? 'default' : ($booking->invoice->status === 'sent' ? 'secondary' : 'outline') }}" class="text-xs">
+                          {{ strtoupper($booking->invoice->status) }}
+                        </x-shadcn.badge>
+                      </div>
+                      <div><span class="font-medium">Total Amount:</span> 
+                        <span class="font-semibold text-green-600">{{ number_format((float) $booking->invoice->total_amount, 2, '.', '') }} MAD</span>
+                      </div>
+                      <div class="flex gap-2 mt-2">
+                        <a href="{{ route('admin.invoices.show', $booking->invoice) }}" 
+                           class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">
+                          View Invoice
+                        </a>
+                        <a href="{{ route('admin.invoices.pdf', $booking->invoice) }}" target="_blank"
+                           class="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">
+                          View PDF
+                        </a>
+                        @if($booking->invoice->status !== 'sent' && $booking->invoice->status !== 'paid')
+                          <form method="POST" action="{{ route('admin.invoices.send', $booking->invoice) }}" class="inline">
+                            @csrf
+                            <button type="submit" 
+                                    class="text-xs px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                                    onclick="return confirm('Send invoice to {{ $booking->email ?? $booking->guest_email }}?');">
+                              Send Invoice
+                            </button>
+                          </form>
+                        @endif
+                      </div>
+                    @else
+                      <div class="text-muted-foreground text-sm">No invoice generated yet.</div>
+                    @endif
+                  </div>
+
+                  {{-- Refund Information --}}
+                  @if($booking->status === 'refunded')
+                    <div class="space-y-2 md:col-span-2 lg:col-span-3">
+                      <h4 class="font-semibold mb-2 text-orange-600">Informations de Remboursement</h4>
+                      <div class="bg-orange-50 border border-orange-200 p-3 rounded">
+                        <div><span class="font-medium">Montant remboursé:</span> 
+                          <span class="font-semibold text-orange-600">{{ number_format($booking->refund_amount ?? 0, 2, '.', '') }} MAD</span>
+                        </div>
+                        <div><span class="font-medium">Date de remboursement:</span> 
+                          {{ $booking->refunded_at ? $booking->refunded_at->format('d/m/Y H:i') : 'N/A' }}
+                        </div>
+                        @if($booking->refund_notes)
+                          <div class="mt-2"><span class="font-medium">Notes:</span> 
+                            <div class="text-sm text-gray-700 mt-1">{{ $booking->refund_notes }}</div>
+                          </div>
+                        @endif
+                      </div>
+                    </div>
+                  @endif
+
                   {{-- Special Instructions --}}
                   <div class="space-y-2 md:col-span-2 lg:col-span-3">
                     <h4 class="font-semibold mb-2">Special Instructions / Requests</h4>
@@ -205,7 +299,7 @@
             </x-shadcn.table-row>
           @empty
             <x-shadcn.table-row>
-              <x-shadcn.table-cell colspan="10" class="text-center text-muted-foreground">No bookings found.</x-shadcn.table-cell>
+              <x-shadcn.table-cell colspan="11" class="text-center text-muted-foreground">No bookings found.</x-shadcn.table-cell>
             </x-shadcn.table-row>
           @endforelse
         </x-shadcn.table-body>
@@ -242,17 +336,94 @@
       <div class="flex justify-end gap-3">
         <button
           type="button"
-          x-on:click="$dispatch('close')"
+          @click.stop="$dispatch('close-modal', 'confirm-booking-deletion-{{ $booking->id }}')"
           class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
           {{ __('Cancel') }}
         </button>
 
-        <x-danger-button type="submit">
+        <x-danger-button type="submit" @click.stop>
           {{ __('Delete Booking') }}
         </x-danger-button>
       </div>
     </form>
   </x-modal>
+@endforeach
+
+{{-- Refund Modals --}}
+@foreach($bookings as $booking)
+  @if($booking->status !== 'refunded')
+    @php
+      $totalPrice = $booking->price ?? ($booking->package->prix_ttc ?? 0);
+    @endphp
+    <x-modal name="confirm-booking-refund-{{ $booking->id }}" :show="false" focusable>
+      <form method="post" action="{{ route('admin.bookings.refund', $booking) }}" class="p-6">
+        @csrf
+
+        <h2 class="text-lg font-medium text-gray-900 mb-4">
+          {{ __('Remboursement') }}
+        </h2>
+
+        <p class="text-sm text-gray-600 mb-4">
+          {{ __('Traiter le remboursement pour cette réservation:') }}<br>
+          <strong>Référence:</strong> {{ $booking->booking_reference }}<br>
+          <strong>Client:</strong> {{ $booking->full_name ?? $booking->guest_name ?? 'N/A' }}<br>
+          <strong>Montant total:</strong> {{ number_format($totalPrice, 2, '.', '') }} MAD
+        </p>
+
+        <div class="space-y-4 mb-6">
+          <div>
+            <label for="amount-{{ $booking->id }}" class="block text-sm font-medium text-gray-700 mb-1">
+              Montant remboursé <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              id="amount-{{ $booking->id }}"
+              name="amount"
+              step="0.01"
+              min="0"
+              max="{{ $totalPrice }}"
+              value="{{ $totalPrice }}"
+              required
+              class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:border-blue-500 focus:ring-blue-500">
+            <p class="text-xs text-gray-500 mt-1">Maximum: {{ number_format($totalPrice, 2, '.', '') }} MAD</p>
+          </div>
+
+          <div>
+            <label for="notes-{{ $booking->id }}" class="block text-sm font-medium text-gray-700 mb-1">
+              Notes (optionnel)
+            </label>
+            <textarea
+              id="notes-{{ $booking->id }}"
+              name="notes"
+              rows="3"
+              maxlength="1000"
+              class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+              placeholder="Raison du remboursement, détails, etc."></textarea>
+          </div>
+        </div>
+
+        <p class="text-sm text-yellow-600 mb-6">
+          {{ __('Attention: Cette action changera le statut de la réservation en "Remboursé" et rendra la chambre disponible.') }}
+        </p>
+
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            @click.stop="$dispatch('close-modal', 'confirm-booking-refund-{{ $booking->id }}')"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
+            {{ __('Annuler') }}
+          </button>
+
+          <button
+            type="submit"
+            @click.stop
+            class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors font-semibold">
+            {{ __('Confirmer Remboursement') }}
+          </button>
+        </div>
+      </form>
+    </x-modal>
+  @endif
 @endforeach
 
 @push('scripts')

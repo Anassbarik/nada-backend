@@ -67,6 +67,7 @@ class CreateAdminUser extends Command
             'name' => $name,
             'email' => $email,
             'password' => Hash::make($password),
+            'role' => 'admin',
             'email_verified_at' => now(),
         ]);
 

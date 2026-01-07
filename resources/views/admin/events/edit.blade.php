@@ -114,9 +114,9 @@
 
                         <div class="mb-4">
                             <div class="flex items-center justify-between">
-                                <x-input-label :value="__('pages')" />
+                                <x-input-label :value="__('Content Pages')" />
                                 <a href="{{ route('admin.events.content.index', $event) }}" class="text-logo-link hover:underline text-sm">
-                                    {{ __('manage_pages') }} →
+                                    Manage Content Pages →
                                 </a>
                             </div>
                             <p class="mt-1 text-sm text-gray-500">Manage Conditions, Informations, and FAQ pages separately.</p>

@@ -14,7 +14,7 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Booking::with(['event', 'hotel', 'package'])->latest();
+        $query = Booking::with(['event', 'hotel', 'package', 'invoice'])->latest();
 
         if ($request->has('status') && $request->status !== '') {
             $query->where('status', $request->status);
@@ -51,7 +51,7 @@ class BookingController extends Controller
     public function updateStatus(Request $request, Booking $booking)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,confirmed,cancelled',
+            'status' => 'required|in:pending,confirmed,cancelled,refunded',
         ]);
 
         // Use database transaction to ensure data consistency
@@ -76,5 +76,42 @@ class BookingController extends Controller
         });
 
         return redirect()->route('admin.bookings.index')->with('success', 'Booking deleted successfully.');
+    }
+
+    /**
+     * Process a refund for a booking.
+     */
+    public function refund(Request $request, Booking $booking)
+    {
+        // Validate that booking can be refunded
+        if ($booking->status === 'refunded') {
+            return redirect()->route('admin.bookings.index')
+                ->with('error', 'Cette réservation a déjà été remboursée.');
+        }
+
+        // Get the total price (use booking price or package price)
+        $totalPrice = $booking->price ?? ($booking->package->prix_ttc ?? 0);
+
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0', 'max:' . $totalPrice],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        // Use database transaction to ensure data consistency
+        DB::transaction(function () use ($booking, $validated) {
+            $booking->update([
+                'status' => 'refunded',
+                'refund_amount' => $validated['amount'],
+                'refund_notes' => $validated['notes'] ?? null,
+                'refunded_at' => now(),
+            ]);
+            // The Booking model's updating event will automatically handle room count updates
+        });
+
+        // Optional: Log refund action or integrate payment gateway refund API here
+        // Future: Dispatch event for Sanctum user notification
+
+        return redirect()->route('admin.bookings.index')
+            ->with('success', 'Remboursement traité avec succès.');
     }
 }

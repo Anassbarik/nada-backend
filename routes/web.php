@@ -3,11 +3,25 @@
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\HotelController;
+use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    if (Auth::check()) {
+        $stats = [
+            'revenue' => \App\Models\Booking::whereDate('created_at', today())
+                ->where('status', 'confirmed')
+                ->with('package')
+                ->get()
+                ->sum(fn($b) => $b->package->prix_ttc ?? 0),
+            'bookings' => \App\Models\Booking::whereDate('created_at', today())->count(),
+            'recent' => \App\Models\Booking::with(['event', 'hotel', 'package'])->latest()->take(5)->get(),
+        ];
+        return view('admin.dashboard', compact('stats'));
+    }
+    return view('auth.login');
 });
 
 Route::get('/dashboard', function () {
@@ -28,8 +42,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Admin Routes
-    Route::middleware(\App\Http\Middleware\SetLocale::class)->name('admin.')->group(function () {
+    // Admin Routes (require admin role)
+    Route::middleware([\App\Http\Middleware\SetLocale::class, 'role:admin'])->name('admin.')->group(function () {
         // Events
         Route::resource('events', EventController::class);
         
@@ -62,7 +76,15 @@ Route::middleware('auth')->group(function () {
         // Bookings
         Route::get('bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
         Route::patch('bookings/{booking}/status', [AdminBookingController::class, 'updateStatus'])->name('bookings.updateStatus');
+        Route::post('bookings/{booking}/refund', [AdminBookingController::class, 'refund'])->name('bookings.refund');
         Route::delete('bookings/{booking}', [AdminBookingController::class, 'destroy'])->name('bookings.destroy');
+
+        // Invoices
+        Route::prefix('admin')->group(function () {
+            Route::resource('invoices', InvoiceController::class);
+            Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'stream'])->name('invoices.pdf');
+            Route::post('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+        });
         
         // Partners
         Route::resource('partners', \App\Http\Controllers\Admin\PartnerController::class);

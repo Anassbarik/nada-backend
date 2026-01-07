@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Booking extends Model
 {
     protected $fillable = [
+        'user_id',
         'event_id',
         'hotel_id',
         'package_id',
@@ -33,6 +35,9 @@ class Booking extends Model
         'guests_count',
         'price',
         'status',
+        'refund_amount',
+        'refunded_at',
+        'refund_notes',
     ];
 
     protected $casts = [
@@ -41,6 +46,8 @@ class Booking extends Model
         'flight_date' => 'date',
         'flight_time' => 'datetime',
         'price' => 'decimal:2',
+        'refund_amount' => 'decimal:2',
+        'refunded_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -76,8 +83,8 @@ class Booking extends Model
                     return; // No package associated, skip room count update
                 }
 
-                // If changing TO cancelled from a non-cancelled status, increment room count
-                if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+                // If changing TO cancelled or refunded from a non-cancelled/refunded status, increment room count
+                if (in_array($newStatus, ['cancelled', 'refunded']) && !in_array($oldStatus, ['cancelled', 'refunded'])) {
                     $package->chambres_restantes = min(
                         $package->quantite_chambres,
                         $package->chambres_restantes + 1
@@ -85,8 +92,8 @@ class Booking extends Model
                     $package->disponibilite = $package->chambres_restantes > 0;
                     $package->save();
                 }
-                // If changing FROM cancelled to a non-cancelled status, decrement room count
-                elseif ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
+                // If changing FROM cancelled or refunded to a non-cancelled/refunded status, decrement room count
+                elseif (in_array($oldStatus, ['cancelled', 'refunded']) && !in_array($newStatus, ['cancelled', 'refunded'])) {
                     if ($package->chambres_restantes > 0) {
                         $package->chambres_restantes = max(0, $package->chambres_restantes - 1);
                         $package->disponibilite = $package->chambres_restantes > 0;
@@ -109,8 +116,8 @@ class Booking extends Model
                 return; // No package associated, skip room count update
             }
 
-            // If booking was not cancelled, increment room count when deleted
-            if ($booking->status !== 'cancelled') {
+            // If booking was not cancelled or refunded, increment room count when deleted
+            if (!in_array($booking->status, ['cancelled', 'refunded'])) {
                 $package->chambres_restantes = min(
                     $package->quantite_chambres,
                     $package->chambres_restantes + 1
@@ -119,6 +126,11 @@ class Booking extends Model
                 $package->save();
             }
         });
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function event(): BelongsTo
@@ -134,5 +146,10 @@ class Booking extends Model
     public function package(): BelongsTo
     {
         return $this->belongsTo(Package::class);
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
     }
 }

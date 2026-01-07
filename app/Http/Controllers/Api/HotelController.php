@@ -144,7 +144,7 @@ class HotelController extends Controller
 
     /**
      * Display the specified hotel within an event context.
-     * Route: GET /api/events/{event}/hotels/{hotel}
+     * Route: GET /api/events/{event:slug}/hotels/{hotel:slug}
      */
     public function show(Event $event, Hotel $hotel)
     {
@@ -156,8 +156,17 @@ class HotelController extends Controller
             ], 404);
         }
 
-        // Ensure hotel is active and belongs to the event
-        if ($hotel->status !== 'active' || $hotel->event_id !== $event->id) {
+        // Route model binding resolves hotels by slug globally, not scoped to event
+        // Ensure the hotel belongs to this event
+        // If route model binding found a hotel from a different event, re-resolve scoped to this event
+        if ($hotel->event_id !== $event->id) {
+            $hotel = Hotel::where('slug', $hotel->slug)
+                ->where('event_id', $event->id)
+                ->firstOrFail();
+        }
+
+        // Ensure hotel is active
+        if ($hotel->status !== 'active') {
             return response()->json([
                 'success' => false,
                 'message' => 'Hotel not found.',

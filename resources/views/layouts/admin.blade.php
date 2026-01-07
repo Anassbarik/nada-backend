@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- CSP header for future Sanctum token security (XSS/JS protection) --}}
+    {{-- TODO: Configure CSP properly when implementing Sanctum - currently disabled to allow Vite dev server --}}
+    {{-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com http://localhost:* ws://localhost:*; style-src 'self' 'unsafe-inline' https://fonts.bunny.net http://localhost:*; font-src 'self' https://fonts.bunny.net data:; img-src 'self' data: https:; connect-src 'self' http://localhost:* ws://localhost:*;"> --}}
 
     <title>Admin - {{ config('app.name') }}</title>
 
@@ -125,6 +128,31 @@
                         <div class="ml-auto flex items-center gap-1">
                             <div class="w-1.5 h-1.5 rounded-full" style="background-color: #8c1790;"></div>
                             <div class="w-1 h-1 rounded-full opacity-60" style="background-color: #8c1790;"></div>
+                        </div>
+                    @endif
+                </a>
+
+                <a href="{{ route('admin.invoices.index') }}" 
+                   class="group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                          @if(request()->routeIs('admin.invoices.*'))
+                            font-semibold shadow-lg
+                          @else
+                            hover:bg-gray-50 text-gray-700 hover:text-gray-900
+                          @endif"
+                          @if(request()->routeIs('admin.invoices.*'))
+                          style="background: linear-gradient(135deg, rgba(234, 93, 37, 0.15) 0%, rgba(234, 93, 37, 0.05) 100%); color: #ea5d25; border: 2px solid rgba(234, 93, 37, 0.3); box-shadow: 0 4px 12px rgba(234, 93, 37, 0.15);"
+                          @endif>
+                    <div class="relative">
+                        <i data-lucide="receipt" class="w-5 h-5 transition-colors relative z-10" style="@if(request()->routeIs('admin.invoices.*')) color: #ea5d25; @else color: #6b7280; @endif"></i>
+                        @if(request()->routeIs('admin.invoices.*'))
+                            <div class="absolute inset-0 bg-orange-100 rounded-full blur-sm opacity-50"></div>
+                        @endif
+                    </div>
+                    <span>Invoices</span>
+                    @if(request()->routeIs('admin.invoices.*'))
+                        <div class="ml-auto flex items-center gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full" style="background-color: #ea5d25;"></div>
+                            <div class="w-1 h-1 rounded-full opacity-60" style="background-color: #ea5d25;"></div>
                         </div>
                     @endif
                 </a>

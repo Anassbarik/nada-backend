@@ -7,11 +7,14 @@ use App\Mail\BookingNotification;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\Hotel;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
@@ -21,13 +24,20 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $userEmail = $request->user()->email;
+        $user = $request->user();
         
-        $bookings = Booking::where(function($query) use ($userEmail) {
-                $query->where('guest_email', $userEmail)
-                      ->orWhere('email', $userEmail);
+        // Get bookings by user_id (primary) or email (fallback for legacy bookings)
+        $bookings = Booking::where(function($query) use ($user) {
+                $query->where('user_id', $user->id)
+                      ->orWhere(function($q) use ($user) {
+                          $q->whereNull('user_id')
+                            ->where(function($emailQuery) use ($user) {
+                                $emailQuery->where('guest_email', $user->email)
+                                          ->orWhere('email', $user->email);
+                            });
+                      });
             })
-            ->with(['event', 'hotel', 'package'])
+            ->with(['event', 'hotel', 'package', 'user'])
             ->latest()
             ->get();
 
@@ -106,7 +116,7 @@ class BookingController extends Controller
             'terms_accepted' => 'required|accepted',
             // Legacy fields for backward compatibility
             'guest_name' => 'nullable|string|max:255',
-            'guest_email' => 'nullable|email|max:255',
+            'guest_email' => 'required|email|max:255',
             'guest_phone' => 'nullable|string|max:255',
             'special_requests' => 'nullable|string|max:5000',
             'guests_count' => 'nullable|integer|min:1',
@@ -189,6 +199,7 @@ class BookingController extends Controller
         $specialInstructions = $request->special_instructions ?? $request->special_requests;
 
         $bookingData = [
+            'user_id' => $request->user()?->id, // Link to authenticated user if available
             'event_id' => $event->id,
             'hotel_id' => $hotel->id,
             'package_id' => $package->id,
@@ -222,17 +233,65 @@ class BookingController extends Controller
         $package->disponibilite = $package->chambres_restantes > 0;
         $package->save();
 
+        // Auto-create invoice and generate PDF (best-effort; do not block booking)
+        try {
+            $booking->loadMissing(['event', 'hotel', 'package']);
+
+            $invoice = $booking->invoice()->create([
+                'invoice_number' => 'FAC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
+                'total_amount' => $booking->price ?? 0,
+                'status' => 'draft',
+            ]);
+
+            $pdf = Pdf::loadView('invoices.template', compact('booking', 'invoice'));
+            Storage::disk('public')->makeDirectory('invoices');
+            $relativePath = "invoices/{$invoice->id}.pdf";
+            Storage::disk('public')->put($relativePath, $pdf->output());
+            $invoice->update(['pdf_path' => $relativePath]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to auto-create invoice or generate invoice PDF', [
+                'booking_id' => $booking->id,
+                'error_message' => $e->getMessage(),
+            ]);
+        }
+
         $booking->load(['event', 'hotel', 'package']);
 
         // Send email notification to admin
+        $adminEmail = null;
         try {
-            $adminEmail = config('mail.admin_email', config('mail.from.address'));
-            if ($adminEmail) {
+            $adminEmail = config('mail.admin_email');
+            
+            // Fallback to from address if admin_email is not set
+            if (empty($adminEmail)) {
+                $adminEmail = config('mail.from.address');
+                Log::warning('MAIL_ADMIN_EMAIL not configured, using MAIL_FROM_ADDRESS: ' . $adminEmail);
+            }
+            
+            // Ensure we have a valid email address
+            if (empty($adminEmail)) {
+                Log::error('No admin email configured. Booking created but email not sent.', [
+                    'booking_id' => $booking->id,
+                    'booking_reference' => $booking->booking_reference,
+                ]);
+            } else {
+                // Send the email
                 Mail::to($adminEmail)->send(new BookingNotification($booking));
+                Log::info('Booking notification email sent successfully', [
+                    'booking_id' => $booking->id,
+                    'booking_reference' => $booking->booking_reference,
+                    'admin_email' => $adminEmail,
+                ]);
             }
         } catch (\Exception $e) {
-            // Log error but don't fail the booking creation
-            Log::error('Failed to send booking notification email: ' . $e->getMessage());
+            // Log detailed error but don't fail the booking creation
+            Log::error('Failed to send booking notification email', [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->booking_reference,
+                'admin_email' => $adminEmail ?? 'not configured',
+                'error_message' => $e->getMessage(),
+                'error_trace' => $e->getTraceAsString(),
+            ]);
         }
 
         return response()->json([
@@ -242,12 +301,13 @@ class BookingController extends Controller
                 'booking' => [
                     'id' => $booking->id,
                     'reference' => $booking->booking_reference,
+                    'booking_reference' => $booking->booking_reference, // Alias for frontend compatibility
                     'status' => $booking->status,
                     'full_name' => $booking->full_name ?? $booking->guest_name,
                     'email' => $booking->email ?? $booking->guest_email,
                 ]
             ],
-        ], 200);
+        ], 201); // 201 Created for successful POST
     }
 
     /**

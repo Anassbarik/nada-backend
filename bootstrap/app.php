@@ -12,7 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Add CSP middleware for XSS protection (only active when CSP_ENABLED=true)
+        $middleware->web(append: [
+            \App\Http\Middleware\ContentSecurityPolicy::class,
+        ]);
+
+        // Register role middleware alias
+        $middleware->alias([
+            'role' => \App\Http\Middleware\CheckRole::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

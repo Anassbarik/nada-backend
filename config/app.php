@@ -125,4 +125,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Content Security Policy (CSP)
+    |--------------------------------------------------------------------------
+    |
+    | Enable CSP headers for XSS protection when using Sanctum tokens.
+    | Set CSP_ENABLED=true in .env to enable. Use CSP_REPORT_ONLY=true
+    | to test CSP without blocking resources (reports violations only).
+    |
+    */
+
+    'csp_enabled' => env('CSP_ENABLED', false),
+    'csp_report_only' => env('CSP_REPORT_ONLY', false),
+
 ];

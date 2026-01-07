@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\HotelController;
@@ -24,12 +25,19 @@ Route::get('/hotels', [HotelController::class, 'listAll']); // List all hotels
 // Partners
 Route::get('/partners', [\App\Http\Controllers\Api\PartnerController::class, 'apiIndex']);
 
-// Booking routes (public - no authentication required)
-Route::post('/bookings', [BookingController::class, 'store']);
-Route::post('/events/{event:slug}/hotels/{hotel:slug}/bookings', [BookingController::class, 'store']); // Legacy route
+// Authentication routes (public, with rate limiting)
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1'); // 5 attempts per minute
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1'); // 5 attempts per minute
 
-// Protected booking routes (for authenticated users to view their bookings)
+// Protected routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
+    // User routes
+    Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Booking routes (now requires authentication)
+    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::post('/events/{event:slug}/hotels/{hotel:slug}/bookings', [BookingController::class, 'store']); // Legacy route
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
     Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
