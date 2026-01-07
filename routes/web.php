@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    if (Auth::check()) {
+    if (Auth::check() && Auth::user()->isAdmin()) {
         $stats = [
             'revenue' => \App\Models\Booking::whereDate('created_at', today())
                 ->where('status', 'confirmed')
@@ -35,7 +35,7 @@ Route::get('/dashboard', function () {
         'recent' => \App\Models\Booking::with(['event', 'hotel', 'package'])->latest()->take(5)->get(),
     ];
     return view('admin.dashboard', compact('stats'));
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'verified', 'role:admin'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

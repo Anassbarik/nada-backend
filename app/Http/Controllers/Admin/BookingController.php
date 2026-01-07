@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\VoucherMail;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class BookingController extends Controller
 {
@@ -51,17 +54,37 @@ class BookingController extends Controller
     public function updateStatus(Request $request, Booking $booking)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,confirmed,cancelled,refunded',
+            'status' => 'required|in:pending,confirmed,paid,cancelled,refunded',
         ]);
 
         // Use database transaction to ensure data consistency
-        // The Booking model's updating event will automatically handle room count updates
         DB::transaction(function () use ($booking, $validated) {
+            $oldStatus = $booking->status;
             $booking->status = $validated['status'];
             $booking->save(); // Model event will handle package room count update
+
+            // If status changed to 'paid' and voucher exists, email it to user
+            if ($validated['status'] === 'paid' && $oldStatus !== 'paid' && $booking->voucher) {
+                try {
+                    $booking->loadMissing(['user', 'voucher', 'event', 'hotel', 'package']);
+                    
+                    if ($booking->user && $booking->user->email) {
+                        Mail::to($booking->user->email)
+                            ->send(new VoucherMail($booking));
+                        
+                        $booking->voucher->update(['emailed' => true]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('Failed to send voucher email', [
+                        'booking_id' => $booking->id,
+                        'error_message' => $e->getMessage(),
+                    ]);
+                    // Don't fail the status update if email fails
+                }
+            }
         });
 
-        return redirect()->route('admin.bookings.index')->with('success', 'Booking status updated successfully.');
+        return redirect()->route('admin.bookings.index')->with('success', 'Statut mis à jour avec succès.');
     }
 
     /**

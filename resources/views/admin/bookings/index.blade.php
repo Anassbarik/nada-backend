@@ -19,7 +19,9 @@
             <option value="">All Statuses</option>
             <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
             <option value="confirmed" {{ request('status') === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+            <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>Paid</option>
             <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+            <option value="refunded" {{ request('status') === 'refunded' ? 'selected' : '' }}>Remboursé</option>
           </select>
         </div>
         <div>
@@ -97,8 +99,8 @@
                 @endif
               </x-shadcn.table-cell>
               <x-shadcn.table-cell>
-                <x-shadcn.badge variant="{{ $booking->status === 'confirmed' ? 'default' : ($booking->status === 'pending' ? 'secondary' : ($booking->status === 'refunded' ? 'outline' : 'destructive')) }}">
-                  {{ $booking->status === 'refunded' ? 'Remboursé' : ucfirst($booking->status) }}
+                <x-shadcn.badge variant="{{ $booking->status === 'confirmed' || $booking->status === 'paid' ? 'default' : ($booking->status === 'pending' ? 'secondary' : ($booking->status === 'refunded' ? 'outline' : 'destructive')) }}">
+                  {{ $booking->status === 'refunded' ? 'Remboursé' : ($booking->status === 'paid' ? 'Payé' : ucfirst($booking->status)) }}
                 </x-shadcn.badge>
                 @if($booking->status === 'refunded' && $booking->refund_amount)
                   <div class="text-xs text-gray-600 mt-1">
@@ -130,6 +132,7 @@
                     <select name="status" onchange="this.form.submit()" class="text-xs border border-gray-300 rounded px-2 py-1" {{ $booking->status === 'refunded' ? 'disabled' : '' }}>
                       <option value="pending" {{ $booking->status === 'pending' ? 'selected' : '' }}>Pending</option>
                       <option value="confirmed" {{ $booking->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                      <option value="paid" {{ $booking->status === 'paid' ? 'selected' : '' }}>Paid</option>
                       <option value="cancelled" {{ $booking->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                       <option value="refunded" {{ $booking->status === 'refunded' ? 'selected' : '' }}>Remboursé</option>
                     </select>

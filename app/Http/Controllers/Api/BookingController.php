@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Hotel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -255,7 +256,46 @@ class BookingController extends Controller
             ]);
         }
 
-        $booking->load(['event', 'hotel', 'package']);
+        // Auto-create voucher and generate PDF (best-effort; do not block booking)
+        try {
+            $booking->loadMissing(['event', 'hotel', 'package', 'user']);
+
+            // Generate unique voucher number
+            $voucherNumber = 'VOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
+            while (\App\Models\Voucher::where('voucher_number', $voucherNumber)->exists()) {
+                $voucherNumber = 'VOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
+            }
+
+            $userId = $booking->user_id ?? (Auth::check() ? Auth::id() : null);
+            if (!$userId) {
+                // Skip voucher creation if no user_id (legacy booking without user)
+                Log::warning('Cannot create voucher: booking has no user_id', [
+                    'booking_id' => $booking->id,
+                ]);
+                throw new \Exception('User ID is required to create voucher');
+            }
+
+            $voucher = $booking->voucher()->create([
+                'user_id' => $userId,
+                'voucher_number' => $voucherNumber,
+                'emailed' => false,
+            ]);
+
+            // Generate voucher PDF
+            $pdf = Pdf::loadView('vouchers.template', compact('booking', 'voucher'));
+            Storage::disk('public')->makeDirectory('vouchers');
+            $relativePath = "vouchers/{$voucher->id}.pdf";
+            Storage::disk('public')->put($relativePath, $pdf->output());
+            $voucher->update(['pdf_path' => $relativePath]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to auto-create voucher or generate voucher PDF', [
+                'booking_id' => $booking->id,
+                'error_message' => $e->getMessage(),
+            ]);
+        }
+
+        // Reload booking with all relationships including invoice and voucher
+        $booking->load(['event', 'hotel', 'package', 'invoice', 'voucher']);
 
         // Send email notification to admin
         $adminEmail = null;
@@ -305,7 +345,18 @@ class BookingController extends Controller
                     'status' => $booking->status,
                     'full_name' => $booking->full_name ?? $booking->guest_name,
                     'email' => $booking->email ?? $booking->guest_email,
-                ]
+                ],
+                'invoice' => $booking->invoice ? [
+                    'id' => $booking->invoice->id,
+                    'invoice_number' => $booking->invoice->invoice_number,
+                    'status' => $booking->invoice->status,
+                ] : null,
+                'voucher' => $booking->voucher ? [
+                    'id' => $booking->voucher->id,
+                    'voucher_number' => $booking->voucher->voucher_number,
+                    'emailed' => $booking->voucher->emailed,
+                    'visible' => $booking->status === 'paid', // Only visible when paid
+                ] : null,
             ],
         ], 201); // 201 Created for successful POST
     }

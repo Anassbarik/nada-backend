@@ -28,6 +28,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Check if user is admin before redirecting to dashboard
+        if (!Auth::user()->isAdmin()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            
+            return redirect()->route('login')->withErrors([
+                'email' => __('Vous n\'avez pas les permissions nécessaires pour accéder au tableau de bord. Seuls les administrateurs peuvent se connecter.'),
+            ]);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

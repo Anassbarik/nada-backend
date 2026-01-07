@@ -4,7 +4,13 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\HotelController;
+use App\Http\Controllers\Api\VoucherController;
+use App\Http\Controllers\Api\WalletController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
+
+// Sanctum CSRF cookie route (for SPA authentication)
+Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
 
 // Public API routes
 Route::get('/events', [EventController::class, 'index']);
@@ -34,6 +40,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // User routes
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Wallet routes
+    Route::get('/wallet', [WalletController::class, 'index']);
+    Route::put('/wallet/password', [WalletController::class, 'updatePassword']);
+
+    // Voucher routes (only paid bookings)
+    Route::get('/vouchers', [VoucherController::class, 'index']);
+    Route::get('/vouchers/{voucher}', [VoucherController::class, 'show']);
 
     // Booking routes (now requires authentication)
     Route::post('/bookings', [BookingController::class, 'store']);

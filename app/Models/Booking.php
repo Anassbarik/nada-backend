@@ -92,6 +92,27 @@ class Booking extends Model
                     $package->disponibilite = $package->chambres_restantes > 0;
                     $package->save();
                 }
+
+                // If changing TO refunded, credit the user's wallet
+                if ($newStatus === 'refunded' && $oldStatus !== 'refunded' && $booking->user) {
+                    // Load wallet if not already loaded
+                    if (!$booking->user->relationLoaded('wallet')) {
+                        $booking->user->load('wallet');
+                    }
+
+                    // Ensure wallet exists
+                    if (!$booking->user->wallet) {
+                        $booking->user->wallet()->create(['balance' => 0.00]);
+                        $booking->user->refresh();
+                    }
+
+                    // Get refund amount (check if refund_amount is being set in this update)
+                    // If refund_amount is in the dirty attributes, use it; otherwise use booking price
+                    $refundAmount = $booking->getDirty()['refund_amount'] ?? $booking->refund_amount ?? $booking->price ?? ($package->prix_ttc ?? 0);
+                    
+                    // Credit wallet
+                    $booking->user->wallet->increment('balance', $refundAmount);
+                }
                 // If changing FROM cancelled or refunded to a non-cancelled/refunded status, decrement room count
                 elseif (in_array($oldStatus, ['cancelled', 'refunded']) && !in_array($newStatus, ['cancelled', 'refunded'])) {
                     if ($package->chambres_restantes > 0) {
@@ -151,5 +172,10 @@ class Booking extends Model
     public function invoice(): HasOne
     {
         return $this->hasOne(Invoice::class);
+    }
+
+    public function voucher(): HasOne
+    {
+        return $this->hasOne(Voucher::class);
     }
 }

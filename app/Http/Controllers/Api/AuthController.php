@@ -52,8 +52,14 @@ class AuthController extends Controller
             'role' => 'user', // Default role for API registrations
         ]);
 
+        // Create wallet automatically on user registration
+        $user->wallet()->create(['balance' => 0.00]);
+
         // Create token and enforce maximum token limit
         $token = $this->createTokenWithLimit($user, 'booking-app');
+
+        // Load wallet for response
+        $user->load('wallet');
 
         return response()->json([
             'token' => $token,
@@ -61,6 +67,11 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'wallet' => [
+                    'id' => $user->wallet->id,
+                    'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
+                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' €',
+                ],
             ],
         ], 201);
     }
@@ -86,9 +97,18 @@ class AuthController extends Controller
             ]);
         }
 
+        // Ensure wallet exists (for legacy users who might not have one)
+        if (!$user->wallet) {
+            $user->wallet()->create(['balance' => 0.00]);
+            $user->refresh();
+        }
+
         // Create token and enforce maximum token limit
         // Oldest tokens are automatically deleted when limit is reached
         $token = $this->createTokenWithLimit($user, 'booking-app');
+
+        // Load wallet for response
+        $user->load('wallet');
 
         return response()->json([
             'token' => $token,
@@ -96,6 +116,11 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'wallet' => [
+                    'id' => $user->wallet->id,
+                    'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
+                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' €',
+                ],
             ],
         ]);
     }
@@ -123,11 +148,26 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
+        $user = $request->user();
+        
+        // Ensure wallet exists (for legacy users who might not have one)
+        if (!$user->wallet) {
+            $user->wallet()->create(['balance' => 0.00]);
+            $user->refresh();
+        }
+
+        $user->load('wallet');
+
         return response()->json([
             'user' => [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'wallet' => [
+                    'id' => $user->wallet->id,
+                    'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
+                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' €',
+                ],
             ],
         ]);
     }
