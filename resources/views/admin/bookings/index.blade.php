@@ -51,6 +51,7 @@
             <x-shadcn.table-head>Hotel</x-shadcn.table-head>
             <x-shadcn.table-head>Package</x-shadcn.table-head>
             <x-shadcn.table-head>Price (HT/TTC)</x-shadcn.table-head>
+            <x-shadcn.table-head>Payment</x-shadcn.table-head>
             <x-shadcn.table-head>Status</x-shadcn.table-head>
             <x-shadcn.table-head>Invoice</x-shadcn.table-head>
             <x-shadcn.table-head>Date</x-shadcn.table-head>
@@ -96,6 +97,39 @@
                   </div>
                 @else
                   <div class="text-xs text-gray-500">N/A</div>
+                @endif
+              </x-shadcn.table-cell>
+              <x-shadcn.table-cell>
+                @if($booking->payment_type)
+                  <div class="flex flex-col gap-1">
+                    @php
+                      $paymentTypeLabels = [
+                        'wallet' => 'Portefeuille',
+                        'bank' => 'Virement',
+                        'both' => 'Mixte'
+                      ];
+                      $paymentTypeColors = [
+                        'wallet' => 'bg-green-100 text-green-700',
+                        'bank' => 'bg-blue-100 text-blue-700',
+                        'both' => 'bg-purple-100 text-purple-700'
+                      ];
+                    @endphp
+                    <span class="text-xs px-2 py-1 rounded {{ $paymentTypeColors[$booking->payment_type] ?? 'bg-gray-100 text-gray-700' }}">
+                      {{ $paymentTypeLabels[$booking->payment_type] ?? strtoupper($booking->payment_type) }}
+                    </span>
+                    @if($booking->wallet_amount > 0 || $booking->bank_amount > 0)
+                      <div class="text-xs text-gray-600">
+                        @if($booking->wallet_amount > 0)
+                          <div>Portefeuille: {{ number_format($booking->wallet_amount, 2, '.', '') }} MAD</div>
+                        @endif
+                        @if($booking->bank_amount > 0)
+                          <div>Virement: {{ number_format($booking->bank_amount, 2, '.', '') }} MAD</div>
+                        @endif
+                      </div>
+                    @endif
+                  </div>
+                @else
+                  <span class="text-xs text-muted-foreground">N/A</span>
                 @endif
               </x-shadcn.table-cell>
               <x-shadcn.table-cell>
@@ -160,7 +194,7 @@
             </x-shadcn.table-row>
             {{-- Expanded Details Row --}}
             <x-shadcn.table-row id="details-{{ $booking->id }}" class="hidden">
-              <x-shadcn.table-cell colspan="11" class="bg-gray-50">
+              <x-shadcn.table-cell colspan="12" class="bg-gray-50">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm p-4">
                   {{-- Client Information --}}
                   <div class="space-y-2">
@@ -226,6 +260,38 @@
                     <h4 class="font-semibold mb-2">Resident Names</h4>
                     <div><span class="font-medium">Resident 1:</span> {{ $booking->resident_name_1 ?? 'N/A' }}</div>
                     <div><span class="font-medium">Resident 2:</span> {{ $booking->resident_name_2 ?? 'N/A' }}</div>
+                  </div>
+
+                  {{-- Payment Information --}}
+                  <div class="space-y-2">
+                    <h4 class="font-semibold mb-2">Payment Information</h4>
+                    @if($booking->payment_type)
+                      @php
+                        $paymentTypeLabels = [
+                          'wallet' => 'Portefeuille',
+                          'bank' => 'Virement Bancaire',
+                          'both' => 'Mixte (Portefeuille + Virement)'
+                        ];
+                      @endphp
+                      <div><span class="font-medium">Payment Method:</span> 
+                        <span class="font-semibold">{{ $paymentTypeLabels[$booking->payment_type] ?? strtoupper($booking->payment_type) }}</span>
+                      </div>
+                      <div><span class="font-medium">Total Amount:</span> 
+                        <span class="font-semibold text-green-600">{{ number_format((float) $booking->price, 2, '.', '') }} MAD</span>
+                      </div>
+                      @if($booking->wallet_amount > 0)
+                        <div><span class="font-medium">Wallet Amount:</span> 
+                          <span class="text-green-600">{{ number_format((float) $booking->wallet_amount, 2, '.', '') }} MAD</span>
+                        </div>
+                      @endif
+                      @if($booking->bank_amount > 0)
+                        <div><span class="font-medium">Bank Amount:</span> 
+                          <span class="text-blue-600">{{ number_format((float) $booking->bank_amount, 2, '.', '') }} MAD</span>
+                        </div>
+                      @endif
+                    @else
+                      <div class="text-muted-foreground text-sm">No payment information available.</div>
+                    @endif
                   </div>
 
                   {{-- Invoice Information --}}
@@ -302,7 +368,7 @@
             </x-shadcn.table-row>
           @empty
             <x-shadcn.table-row>
-              <x-shadcn.table-cell colspan="11" class="text-center text-muted-foreground">No bookings found.</x-shadcn.table-cell>
+              <x-shadcn.table-cell colspan="12" class="text-center text-muted-foreground">No bookings found.</x-shadcn.table-cell>
             </x-shadcn.table-row>
           @endforelse
         </x-shadcn.table-body>

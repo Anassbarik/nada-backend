@@ -100,28 +100,62 @@ class BookingController extends Controller
      */
     public function store(Request $request, Event $event = null, Hotel $hotel = null)
     {
+        // DEBUG: Log incoming request
+        Log::info('Booking request received:', [
+            'all_data' => $request->all(),
+            'auth_user_id' => Auth::check() ? Auth::id() : null,
+            'headers' => $request->headers->all(),
+        ]);
+
+        // Check authentication
+        if (!Auth::check()) {
+            Log::warning('Booking creation attempted without authentication');
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        Log::info('Auth user for booking:', ['id' => Auth::id(), 'email' => Auth::user()->email]);
+
         // Validation rules - adjust based on route
+        // Support both new field names and legacy field names
         $validationRules = [
             'package_id' => 'required|exists:hotel_packages,id',
+            // Flight fields - support both flight_number and flight_num
             'flight_number' => 'nullable|string|max:20',
+            'flight_num' => 'nullable|string|max:20', // Frontend may send this
             'flight_date' => 'nullable|date',
             'flight_time' => 'nullable',
             'airport' => 'nullable|string|max:10',
-            'full_name' => 'required|string|max:255',
+            // Name fields - support both full_name and guest_name
+            'full_name' => 'nullable|string|max:255',
+            'guest_name' => 'nullable|string|max:255',
             'company' => 'nullable|string|max:255',
-            'phone' => 'required|string|max:20',
+            // Contact fields
+            'phone' => 'nullable|string|max:20',
+            'guest_phone' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
+            'guest_email' => 'nullable|email|max:255', // Changed from required to nullable
+            // Other fields
             'special_instructions' => 'nullable|string',
+            'special_requests' => 'nullable|string|max:5000',
             'resident_name_1' => 'nullable|string|max:255',
             'resident_name_2' => 'nullable|string|max:255',
-            'terms_accepted' => 'required|accepted',
-            // Legacy fields for backward compatibility
-            'guest_name' => 'nullable|string|max:255',
-            'guest_email' => 'required|email|max:255',
-            'guest_phone' => 'nullable|string|max:255',
-            'special_requests' => 'nullable|string|max:5000',
+            'terms_accepted' => 'nullable|accepted', // Made nullable for API calls
             'guests_count' => 'nullable|integer|min:1',
+            // Price fields - support both price and total
             'price' => 'nullable|numeric|min:0',
+            'total' => 'nullable|numeric|min:0.01', // Frontend may send this
+            // Date fields
+            'checkin_date' => 'nullable|date',
+            'checkout_date' => 'nullable|date',
+            // Status
+            'status' => 'nullable|in:pending,confirmed,paid,cancelled,refunded',
+            // Payment method
+            'payment_method' => 'nullable|in:wallet,bank,both',
+            // User ID (will be overridden by auth()->id())
+            'user_id' => 'nullable|exists:users,id',
         ];
 
         // If using direct /bookings route, require event_id and hotel_id
@@ -133,6 +167,11 @@ class BookingController extends Controller
         $validator = Validator::make($request->all(), $validationRules);
 
         if ($validator->fails()) {
+            Log::error('Booking validation failed:', [
+                'errors' => $validator->errors()->toArray(),
+                'request_data' => $request->all(),
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed.',
@@ -198,41 +237,159 @@ class BookingController extends Controller
         $phone = $request->phone ?? $request->guest_phone;
         $email = $request->email ?? $request->guest_email;
         $specialInstructions = $request->special_instructions ?? $request->special_requests;
+        
+        // Support both flight_number and flight_num
+        $flightNumber = $request->flight_number ?? $request->flight_num ?? null;
+        
+        // Support both price and total
+        $total = $request->price ?? $request->total ?? $package->prix_ttc;
+        
+        // Support checkin/checkout dates from request or use package dates
+        $checkinDate = $request->checkin_date ? \Carbon\Carbon::parse($request->checkin_date) : $package->check_in;
+        $checkoutDate = $request->checkout_date ? \Carbon\Carbon::parse($request->checkout_date) : $package->check_out;
 
-        $bookingData = [
-            'user_id' => $request->user()?->id, // Link to authenticated user if available
-            'event_id' => $event->id,
-            'hotel_id' => $hotel->id,
-            'package_id' => $package->id,
-            'flight_number' => $request->flight_number ?? null,
-            'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : null,
-            'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : null,
-            'airport' => $request->airport ?? null,
-            'full_name' => $fullName,
-            'company' => $request->company ?? null,
-            'phone' => $phone,
-            'email' => $email,
-            'special_instructions' => $specialInstructions,
-            'resident_name_1' => $request->resident_name_1 ?? null,
-            'resident_name_2' => $request->resident_name_2 ?? null,
-            'checkin_date' => $package->check_in,
-            'checkout_date' => $package->check_out,
-            'guests_count' => $request->guests_count ?? $package->occupants,
-            'price' => $request->price ?? $package->prix_ttc,
-            'status' => 'pending',
-            // Legacy fields for backward compatibility
-            'guest_name' => $fullName,
-            'guest_email' => $email,
-            'guest_phone' => $phone,
-            'special_requests' => $specialInstructions,
-        ];
+        // Ensure we have required fields
+        if (!$fullName) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => ['full_name' => ['The full name field is required.']],
+            ], 422);
+        }
 
-        $booking = Booking::create($bookingData);
+        // SMART WALLET PAYMENT LOGIC
+        $user = Auth::user();
+        
+        // Ensure wallet exists and load it
+        $wallet = \App\Models\Wallet::firstOrCreate(
+            ['user_id' => $user->id],
+            ['balance' => 0.00]
+        );
+        
+        $walletBalance = (float) $wallet->balance;
+        $paymentMethod = $request->payment_method ?? 'bank'; // Default to bank if not specified
+        
+        // Initialize payment amounts
+        $walletAmount = 0;
+        $bankAmount = 0;
+        $paymentType = 'bank';
+        $bookingStatus = $request->status ?? 'pending';
+        
+        // Calculate payment split based on payment method
+        switch ($paymentMethod) {
+            case 'wallet':
+                if ($walletBalance >= $total) {
+                    $walletAmount = $total;
+                    $paymentType = 'wallet';
+                    $bookingStatus = 'confirmed'; // Wallet payments auto-confirmed
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Solde insuffisant dans le portefeuille.',
+                        'errors' => [
+                            'payment_method' => ['Votre solde (' . number_format($walletBalance, 2, ',', ' ') . ' MAD) est insuffisant pour couvrir le montant total (' . number_format($total, 2, ',', ' ') . ' MAD).'],
+                        ],
+                    ], 422);
+                }
+                break;
+                
+            case 'bank':
+                $bankAmount = $total;
+                $paymentType = 'bank';
+                break;
+                
+            case 'both':
+                $walletAmount = min($walletBalance, $total);
+                $bankAmount = $total - $walletAmount;
+                $paymentType = $walletAmount > 0 ? 'both' : 'bank';
+                // If wallet covers full amount, auto-confirm
+                if ($walletAmount >= $total) {
+                    $bookingStatus = 'confirmed';
+                }
+                break;
+        }
 
-        // Decrease available rooms
-        $package->chambres_restantes = max(0, $package->chambres_restantes - 1);
-        $package->disponibilite = $package->chambres_restantes > 0;
-        $package->save();
+        // TRANSACTION SAFETY: Create booking and deduct wallet in a transaction
+        try {
+            DB::beginTransaction();
+            
+            // Deduct wallet amount if applicable
+            if ($walletAmount > 0) {
+                // Refresh wallet to get latest balance
+                $wallet->refresh();
+                if ($wallet->balance < $walletAmount) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Solde insuffisant dans le portefeuille.',
+                        'errors' => [
+                            'payment_method' => ['Le solde disponible a changé. Veuillez réessayer.'],
+                        ],
+                    ], 422);
+                }
+                $wallet->decrement('balance', $walletAmount);
+                Log::info('Wallet amount deducted:', [
+                    'user_id' => $user->id,
+                    'amount' => $walletAmount,
+                    'new_balance' => $wallet->fresh()->balance,
+                ]);
+            }
+
+            $bookingData = [
+                'user_id' => $user->id,
+                'event_id' => $event->id,
+                'hotel_id' => $hotel->id,
+                'package_id' => $package->id,
+                'flight_number' => $flightNumber,
+                'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : null,
+                'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : null,
+                'airport' => $request->airport ?? null,
+                'full_name' => $fullName,
+                'company' => $request->company ?? null,
+                'phone' => $phone,
+                'email' => $email,
+                'special_instructions' => $specialInstructions,
+                'resident_name_1' => $request->resident_name_1 ?? null,
+                'resident_name_2' => $request->resident_name_2 ?? null,
+                'checkin_date' => $checkinDate,
+                'checkout_date' => $checkoutDate,
+                'guests_count' => $request->guests_count ?? $package->occupants,
+                'price' => $total,
+                'payment_type' => $paymentType,
+                'wallet_amount' => $walletAmount,
+                'bank_amount' => $bankAmount,
+                'status' => $bookingStatus,
+                // Legacy fields for backward compatibility
+                'guest_name' => $fullName,
+                'guest_email' => $email,
+                'guest_phone' => $phone,
+                'special_requests' => $specialInstructions,
+            ];
+            
+            Log::info('Booking data prepared:', $bookingData);
+
+            $booking = Booking::create($bookingData);
+
+            // Decrease available rooms
+            $package->chambres_restantes = max(0, $package->chambres_restantes - 1);
+            $package->disponibilite = $package->chambres_restantes > 0;
+            $package->save();
+            
+            DB::commit();
+            
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Booking creation failed:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la création de la réservation.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Une erreur est survenue.',
+            ], 500);
+        }
 
         // Auto-create invoice and generate PDF (best-effort; do not block booking)
         try {
@@ -334,9 +491,12 @@ class BookingController extends Controller
             ]);
         }
 
+        // Reload wallet to get updated balance
+        $wallet->refresh();
+        
         return response()->json([
             'success' => true,
-            'message' => 'Booking created successfully.',
+            'message' => $walletAmount > 0 ? 'Réservation payée avec succès.' : 'Réservation créée avec succès.',
             'data' => [
                 'booking' => [
                     'id' => $booking->id,
@@ -345,6 +505,13 @@ class BookingController extends Controller
                     'status' => $booking->status,
                     'full_name' => $booking->full_name ?? $booking->guest_name,
                     'email' => $booking->email ?? $booking->guest_email,
+                ],
+                'payment' => [
+                    'payment_type' => $paymentType,
+                    'total' => number_format($total, 2, '.', ''),
+                    'wallet_amount' => number_format($walletAmount, 2, '.', ''),
+                    'bank_amount' => number_format($bankAmount, 2, '.', ''),
+                    'wallet_balance_after' => number_format((float)$wallet->balance, 2, '.', ''),
                 ],
                 'invoice' => $booking->invoice ? [
                     'id' => $booking->invoice->id,

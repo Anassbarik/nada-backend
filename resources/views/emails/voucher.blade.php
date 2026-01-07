@@ -23,7 +23,7 @@
             <p style="margin: 5px 0;"><strong>Hôtel:</strong> {{ $booking->hotel->name ?? '—' }}</p>
             <p style="margin: 5px 0;"><strong>Date d'arrivée:</strong> {{ $booking->checkin_date?->format('d/m/Y') ?? '—' }}</p>
             <p style="margin: 5px 0;"><strong>Date de départ:</strong> {{ $booking->checkout_date?->format('d/m/Y') ?? '—' }}</p>
-            <p style="margin: 5px 0;"><strong>Montant:</strong> {{ number_format((float) ($booking->price ?? 0), 2, ',', ' ') }} €</p>
+            <p style="margin: 5px 0;"><strong>Montant:</strong> {{ number_format((float) ($booking->price ?? 0), 2, '.', '') }} MAD</p>
         </div>
 
         <p>Votre bon de confirmation en format PDF est joint à cet email. Veuillez le conserver et le présenter lors de votre arrivée.</p>

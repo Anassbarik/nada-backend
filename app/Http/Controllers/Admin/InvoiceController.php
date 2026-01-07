@@ -53,16 +53,29 @@ class InvoiceController extends Controller
         return redirect()->route('admin.invoices.index')->with('success', 'Invoice deleted successfully.');
     }
 
-    public function stream(Invoice $invoice)
+    public function stream(Request $request, Invoice $invoice)
     {
         $invoice->load('booking.event', 'booking.hotel', 'booking.package');
 
+        $booking = $invoice->booking;
+        $pdf = Pdf::loadView('invoices.template', compact('booking', 'invoice'));
+
+        // If refresh=1, overwrite the stored PDF so existing PDFs get the latest template too.
+        if ($request->boolean('refresh')) {
+            Storage::disk('public')->makeDirectory('invoices');
+            $relativePath = $invoice->pdf_path ?: "invoices/{$invoice->id}.pdf";
+            Storage::disk('public')->put($relativePath, $pdf->output());
+            if ($invoice->pdf_path !== $relativePath) {
+                $invoice->update(['pdf_path' => $relativePath]);
+            }
+
+            return response()->file(storage_path('app/public/' . $relativePath));
+        }
+
+        // Default behavior: serve existing stored PDF if present; otherwise stream generated PDF.
         if ($invoice->pdf_path && Storage::disk('public')->exists($invoice->pdf_path)) {
             return response()->file(storage_path('app/public/' . $invoice->pdf_path));
         }
-
-        $booking = $invoice->booking;
-        $pdf = Pdf::loadView('invoices.template', compact('booking', 'invoice'));
 
         return $pdf->stream("facture-{$invoice->invoice_number}.pdf");
     }

@@ -59,9 +59,13 @@ class BookingController extends Controller
 
         // Use database transaction to ensure data consistency
         DB::transaction(function () use ($booking, $validated) {
+            // Ensure package is loaded for room availability restoration when status changes
+            $booking->loadMissing('package');
+            
             $oldStatus = $booking->status;
             $booking->status = $validated['status'];
             $booking->save(); // Model event will handle package room count update
+            // When status changes to 'refunded' or 'cancelled', room availability is restored
 
             // If status changed to 'paid' and voucher exists, email it to user
             if ($validated['status'] === 'paid' && $oldStatus !== 'paid' && $booking->voucher) {
@@ -122,6 +126,9 @@ class BookingController extends Controller
 
         // Use database transaction to ensure data consistency
         DB::transaction(function () use ($booking, $validated) {
+            // Ensure package is loaded for room availability restoration
+            $booking->loadMissing('package');
+            
             $booking->update([
                 'status' => 'refunded',
                 'refund_amount' => $validated['amount'],
@@ -129,6 +136,7 @@ class BookingController extends Controller
                 'refunded_at' => now(),
             ]);
             // The Booking model's updating event will automatically handle room count updates
+            // When status changes to 'refunded', it increments chambres_restantes and sets disponibilite
         });
 
         // Optional: Log refund action or integrate payment gateway refund API here

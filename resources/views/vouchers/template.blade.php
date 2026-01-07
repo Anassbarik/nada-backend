@@ -4,41 +4,87 @@
     <meta charset="utf-8">
     <title>Bon de Confirmation</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111827; }
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-        .title { font-size: 22px; font-weight: 700; color: #059669; }
-        .muted { color: #6b7280; }
-        .box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-        th { background: #f9fafb; font-weight: 600; }
+        @page { margin: 10mm; size: A4; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #111827; margin: 0; padding: 0; line-height: 1.3; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .title { font-size: 18px; font-weight: 700; color: #059669; margin: 0; }
+        .muted { color: #6b7280; font-size: 9px; }
+        .box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+        th { background: #f9fafb; font-weight: 600; font-size: 9px; }
         .right { text-align: right; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 11px; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; }
         .badge-paid { background: #dcfce7; color: #166534; }
-        .page-break { page-break-after: always; }
+        h3 { margin: 0 0 6px 0; font-size: 11px; }
+        .no-page-break { page-break-inside: avoid; }
+        .compact { margin: 0; padding: 0; }
     </style>
 </head>
 <body>
-    <div class="header">
+    @php
+        $ttc = (float) ($booking->price ?? 0);
+        $taxRate = 0.20; // 20%
+        $ht = $ttc > 0 ? ($ttc / (1 + $taxRate)) : 0.0;
+        $tva = max(0.0, $ttc - $ht);
+
+        /**
+         * Convert a monetary amount to French words (e.g. "Deux cent dirhams et dix centimes").
+         * Best-effort: uses intl NumberFormatter when available.
+         */
+        $amountToWordsFr = function (float $amount, string $currencyLabel = 'dirhams'): string {
+            $amount = round($amount, 2);
+            $whole = (int) floor($amount);
+            $cents = (int) round(($amount - $whole) * 100);
+
+            $spellout = null;
+            try {
+                if (class_exists(\NumberFormatter::class)) {
+                    $spellout = new \NumberFormatter('fr_FR', \NumberFormatter::SPELLOUT);
+                }
+            } catch (\Throwable $e) {
+                $spellout = null;
+            }
+
+            $wholeWords = $spellout ? (string) $spellout->format($whole) : (string) $whole;
+            $centsWords = $spellout ? (string) $spellout->format($cents) : (string) $cents;
+
+            $wholeWords = trim($wholeWords);
+            $centsWords = trim($centsWords);
+
+            $text = $wholeWords . ' ' . $currencyLabel . ' et ' . $centsWords . ' centimes';
+
+            // Capitalize first letter (UTF-8 safe)
+            if (function_exists('mb_substr') && function_exists('mb_strtoupper')) {
+                return mb_strtoupper(mb_substr($text, 0, 1)) . mb_substr($text, 1);
+            }
+
+            return ucfirst($text);
+        };
+
+        $totalInLetters = $amountToWordsFr($ttc, 'dirhams');
+    @endphp
+
+    <div class="header no-page-break">
         <div>
             <div class="title">Bon de Confirmation</div>
             <div class="muted">N°: {{ $voucher->voucher_number }}</div>
             <div class="muted">Réservation: {{ $booking->booking_reference ?? $booking->id }}</div>
         </div>
         <div class="right">
-            <img src="{{ public_path('assets/logo-seminaireexpo.png') }}" alt="Logo" style="height: 46px;">
-            <div class="muted" style="margin-top: 6px;">{{ now()->format('d/m/Y') }}</div>
+            <img src="{{ public_path('assets/logo-seminaireexpo.png') }}" alt="Logo" style="height: 35px;">
+            <div class="muted" style="margin-top: 4px;">{{ now()->format('d/m/Y') }}</div>
         </div>
     </div>
 
-    <div class="box" style="margin-bottom: 14px;">
+    <div class="box no-page-break" style="margin-bottom: 8px;">
         <table>
             <tr>
-                <td>
-                    <strong>Client</strong><br>
-                    {{ $booking->full_name ?? $booking->guest_name ?? '—' }}<br>
-                    <span class="muted">{{ $booking->email ?? $booking->guest_email ?? '—' }}</span><br>
-                    <span class="muted">{{ $booking->phone ?? $booking->guest_phone ?? '—' }}</span>
+                <td style="width: 60%;">
+                    <strong style="font-size: 10px;">Client</strong><br>
+                    <span style="font-size: 9px;">{{ $booking->full_name ?? $booking->guest_name ?? '—' }}</span><br>
+                    <span class="muted" style="font-size: 8px;">{{ $booking->email ?? $booking->guest_email ?? '—' }}</span><br>
+                    <span class="muted" style="font-size: 8px;">{{ $booking->phone ?? $booking->guest_phone ?? '—' }}</span>
                 </td>
                 <td class="right">
                     <strong>Statut</strong><br>
@@ -48,12 +94,12 @@
         </table>
     </div>
 
-    <div class="box">
-        <h3 style="margin: 0 0 10px 0;">Détails de la réservation</h3>
-        <table>
+    <div class="box no-page-break">
+        <h3 style="margin: 0 0 6px 0; font-size: 10px;">Détails de la réservation</h3>
+        <table style="font-size: 9px;">
             <tr>
-                <th>Champ</th>
-                <th>Valeur</th>
+                <th style="width: 35%; font-size: 9px;">Champ</th>
+                <th style="font-size: 9px;">Valeur</th>
             </tr>
             <tr>
                 <td>Événement</td>
@@ -72,70 +118,65 @@
                 <td>{{ $booking->package->type_chambre ?? '—' }}</td>
             </tr>
             <tr>
-                <td>Date d'arrivée</td>
-                <td>{{ $booking->checkin_date?->format('d/m/Y') ?? '—' }}</td>
+                <td>Dates</td>
+                <td>{{ $booking->checkin_date?->format('d/m/Y') ?? '—' }} - {{ $booking->checkout_date?->format('d/m/Y') ?? '—' }}</td>
             </tr>
             <tr>
-                <td>Date de départ</td>
-                <td>{{ $booking->checkout_date?->format('d/m/Y') ?? '—' }}</td>
-            </tr>
-            <tr>
-                <td>Nombre de personnes</td>
+                <td>Personnes</td>
                 <td>{{ $booking->guests_count ?? '—' }}</td>
             </tr>
-            @if($booking->flight_number)
+            @if($booking->flight_number || $booking->flight_date || $booking->airport)
             <tr>
-                <td>Numéro de vol</td>
-                <td>{{ $booking->flight_number }}</td>
-            </tr>
-            @endif
-            @if($booking->flight_date)
-            <tr>
-                <td>Date/Heure de vol</td>
+                <td>Vol</td>
                 <td>
-                    {{ $booking->flight_date?->format('d/m/Y') ?? '—' }}
-                    {{ $booking->flight_time?->format('H:i') ?? '' }}
+                    {{ $booking->flight_number ?? '' }}
+                    @if($booking->flight_date) - {{ $booking->flight_date?->format('d/m/Y') ?? '' }} @endif
+                    @if($booking->flight_time) {{ $booking->flight_time?->format('H:i') }} @endif
+                    @if($booking->airport) - {{ $booking->airport }} @endif
                 </td>
-            </tr>
-            @endif
-            @if($booking->airport)
-            <tr>
-                <td>Aéroport</td>
-                <td>{{ $booking->airport }}</td>
             </tr>
             @endif
         </table>
     </div>
 
-    <div style="margin-top: 16px;" class="box">
-        <table>
+    <div style="margin-top: 8px;" class="box no-page-break">
+        <table style="font-size: 9px;">
             <tr>
-                <th>Description</th>
-                <th class="right">Montant</th>
+                <th style="font-size: 9px;">Description</th>
+                <th class="right" style="font-size: 9px;">Montant</th>
             </tr>
             <tr>
-                <td>Réservation confirmée</td>
-                <td class="right">{{ number_format((float) ($booking->price ?? 0), 2, ',', ' ') }} €</td>
+                <td class="right muted" style="font-size: 8px;">Total HT</td>
+                <td class="right" style="font-size: 9px;">{{ number_format($ht, 2, '.', '') }} MAD</td>
             </tr>
             <tr>
-                <th class="right">Total</th>
-                <th class="right">{{ number_format((float) ($booking->price ?? 0), 2, ',', ' ') }} €</th>
+                <td class="right muted" style="font-size: 8px;">TVA (20%)</td>
+                <td class="right" style="font-size: 9px;">{{ number_format($tva, 2, '.', '') }} MAD</td>
+            </tr>
+            <tr>
+                <th class="right" style="font-size: 11px; padding-top: 6px; padding-bottom: 6px;">Total TTC</th>
+                <th class="right" style="font-size: 11px; padding-top: 6px; padding-bottom: 6px;">{{ number_format($ttc, 2, '.', '') }} MAD</th>
+            </tr>
+            <tr>
+                <td colspan="2" class="muted" style="border-bottom: 0; padding-top: 6px; font-size: 8px; line-height: 1.2;">
+                    <strong>Arrêté le présent bon à la somme de :</strong><br>
+                    {{ $totalInLetters }} TTC
+                </td>
             </tr>
         </table>
     </div>
 
     @if($booking->special_instructions || $booking->special_requests)
-        <div style="margin-top: 16px;" class="box">
-            <strong>Instructions spéciales</strong><br>
-            <div class="muted" style="white-space: pre-wrap;">{{ $booking->special_instructions ?? $booking->special_requests }}</div>
+        <div style="margin-top: 8px;" class="box no-page-break">
+            <strong style="font-size: 9px;">Instructions spéciales</strong><br>
+            <div class="muted" style="white-space: pre-wrap; font-size: 8px; line-height: 1.2;">{{ $booking->special_instructions ?? $booking->special_requests }}</div>
         </div>
     @endif
 
-    <div style="margin-top: 20px; padding: 12px; background: #f0fdf4; border-radius: 8px;">
-        <strong style="color: #059669;">✓ Réservation confirmée et payée</strong><br>
-        <div class="muted" style="margin-top: 4px;">
-            Ce bon de confirmation confirme que votre réservation a été payée et est confirmée.
-            Veuillez présenter ce document lors de votre arrivée.
+    <div style="margin-top: 8px; padding: 8px; background: #f0fdf4; border-radius: 6px;" class="no-page-break">
+        <strong style="color: #059669; font-size: 9px;">✓ Réservation confirmée et payée</strong><br>
+        <div class="muted" style="margin-top: 2px; font-size: 8px; line-height: 1.2;">
+            Ce bon de confirmation confirme que votre réservation a été payée et est confirmée. Veuillez présenter ce document lors de votre arrivée.
         </div>
     </div>
 </body>

@@ -62,15 +62,21 @@ class AuthController extends Controller
         $user->load('wallet');
 
         return response()->json([
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'wallet' => [
-                    'id' => $user->wallet->id,
-                    'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
-                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' €',
+            'success' => true,
+            'message' => __('Compte créé avec succès.'),
+            'data' => [
+                'token' => $token,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role ?? 'user',
+                    'email_verified_at' => $user->email_verified_at?->toISOString(),
+                    'wallet' => [
+                        'id' => $user->wallet->id,
+                        'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
+                        'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
+                    ],
                 ],
             ],
         ], 201);
@@ -78,20 +84,25 @@ class AuthController extends Controller
 
     /**
      * Login user and create token.
-     *
+     * Route: POST /api/login
+     * 
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function login(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+        ], [
+            'email.required' => __('L\'email est obligatoire.'),
+            'email.email' => __('L\'email doit être une adresse email valide.'),
+            'password.required' => __('Le mot de passe est obligatoire.'),
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $validated['email'])->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => [__('Les identifiants fournis sont incorrects.')],
             ]);
@@ -107,22 +118,28 @@ class AuthController extends Controller
         // Oldest tokens are automatically deleted when limit is reached
         $token = $this->createTokenWithLimit($user, 'booking-app');
 
-        // Load wallet for response
+        // Load relationships for dashboard
         $user->load('wallet');
 
         return response()->json([
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'wallet' => [
-                    'id' => $user->wallet->id,
-                    'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
-                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' €',
+            'success' => true,
+            'message' => __('Connexion réussie.'),
+            'data' => [
+                'token' => $token,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role ?? 'user',
+                    'email_verified_at' => $user->email_verified_at?->toISOString(),
+                    'wallet' => [
+                        'id' => $user->wallet->id,
+                        'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
+                        'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
+                    ],
                 ],
             ],
-        ]);
+        ], 200);
     }
 
     /**
@@ -169,6 +186,47 @@ class AuthController extends Controller
                     'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' €',
                 ],
             ],
+        ]);
+    }
+
+    /**
+     * Update authenticated user's password (profile).
+     *
+     * Route: PUT /api/user/password (auth:sanctum)
+     */
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)->mixedCase()->numbers(),
+            ],
+        ], [
+            'current_password.required' => __('Le mot de passe actuel est obligatoire.'),
+            'password.required' => __('Le nouveau mot de passe est obligatoire.'),
+            'password.confirmed' => __('La confirmation du nouveau mot de passe ne correspond pas.'),
+            'password.min' => __('Le nouveau mot de passe doit contenir au moins 8 caractères.'),
+            'password.mixedCase' => __('Le nouveau mot de passe doit contenir des majuscules et des minuscules.'),
+            'password.numbers' => __('Le nouveau mot de passe doit contenir au moins un chiffre.'),
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => [__('Le mot de passe actuel est incorrect.')],
+            ]);
+        }
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('Votre mot de passe a été mis à jour avec succès.'),
         ]);
     }
 

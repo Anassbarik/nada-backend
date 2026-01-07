@@ -13,6 +13,7 @@ use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
 
 // Public API routes
+Route::get('/maintenance', [\App\Http\Controllers\Api\MaintenanceController::class, 'index']);
 Route::get('/events', [EventController::class, 'index']);
 
 // Event content pages (must come before /events/{slug} to avoid route conflicts)
@@ -39,11 +40,12 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 Route::middleware('auth:sanctum')->group(function () {
     // User routes
     Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user/password', [AuthController::class, 'updatePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Wallet routes
     Route::get('/wallet', [WalletController::class, 'index']);
-    Route::put('/wallet/password', [WalletController::class, 'updatePassword']);
+    Route::get('/wallet/balance', [WalletController::class, 'balance']);
 
     // Voucher routes (only paid bookings)
     Route::get('/vouchers', [VoucherController::class, 'index']);

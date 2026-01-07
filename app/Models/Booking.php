@@ -35,6 +35,9 @@ class Booking extends Model
         'guests_count',
         'price',
         'status',
+        'payment_type',
+        'wallet_amount',
+        'bank_amount',
         'refund_amount',
         'refunded_at',
         'refund_notes',
@@ -46,6 +49,8 @@ class Booking extends Model
         'flight_date' => 'date',
         'flight_time' => 'datetime',
         'price' => 'decimal:2',
+        'wallet_amount' => 'decimal:2',
+        'bank_amount' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'refunded_at' => 'datetime',
     ];

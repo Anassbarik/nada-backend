@@ -2,6 +2,58 @@
 
 @section('content')
 <div class="space-y-8">
+  {{-- Maintenance Mode Toggle --}}
+  <x-shadcn.card class="shadow-lg border-l-4" style="border-left-color: #f59e0b;">
+    <x-shadcn.card-content class="p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold mb-1">Maintenance Mode</h3>
+          <p class="text-sm text-muted-foreground">Control maintenance status for the frontend application</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <span class="text-sm font-medium">Home:</span>
+              <form method="POST" action="{{ route('admin.maintenance.toggle') }}" class="inline">
+                @csrf
+                <input type="hidden" name="type" value="home">
+                <input type="hidden" name="enabled" value="{{ Cache::get('maintenance.home', false) ? '0' : '1' }}">
+                <button type="submit" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                  {{ Cache::get('maintenance.home', false) ? 'bg-orange-600' : 'bg-gray-300' }}">
+                  <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                    {{ Cache::get('maintenance.home', false) ? 'translate-x-6' : 'translate-x-1' }}">
+                  </span>
+                </button>
+              </form>
+              <span class="text-xs text-muted-foreground">
+                {{ Cache::get('maintenance.home', false) ? 'ON' : 'OFF' }}
+              </span>
+            </label>
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <span class="text-sm font-medium">Global:</span>
+              <form method="POST" action="{{ route('admin.maintenance.toggle') }}" class="inline">
+                @csrf
+                <input type="hidden" name="type" value="global">
+                <input type="hidden" name="enabled" value="{{ Cache::get('maintenance.global', false) ? '0' : '1' }}">
+                <button type="submit" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                  {{ Cache::get('maintenance.global', false) ? 'bg-red-600' : 'bg-gray-300' }}">
+                  <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                    {{ Cache::get('maintenance.global', false) ? 'translate-x-6' : 'translate-x-1' }}">
+                  </span>
+                </button>
+              </form>
+              <span class="text-xs text-muted-foreground">
+                {{ Cache::get('maintenance.global', false) ? 'ON' : 'OFF' }}
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </x-shadcn.card-content>
+  </x-shadcn.card>
+
   {{-- Stats Cards --}}
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     <x-shadcn.card class="border-0 shadow-lg hover:shadow-xl transition-all" style="border-top: 4px solid #00adf1;">

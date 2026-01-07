@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class WalletController extends Controller
 {
@@ -33,7 +31,7 @@ class WalletController extends Controller
                 'wallet' => [
                     'id' => $user->wallet->id,
                     'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
-                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' €',
+                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
                     'user_id' => $user->id,
                 ],
                 'user' => [
@@ -46,46 +44,30 @@ class WalletController extends Controller
     }
 
     /**
-     * Update user's password.
+     * Get wallet balance (simplified endpoint).
+     * Route: GET /api/wallet/balance
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updatePassword(Request $request)
+    public function balance(Request $request)
     {
-        $validated = $request->validate([
-            'current_password' => ['required', 'string'],
-            'password' => [
-                'required',
-                'confirmed',
-                'min:8',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/', // At least one lowercase, one uppercase, one number
-            ],
-        ], [
-            'current_password.required' => __('Le mot de passe actuel est obligatoire.'),
-            'password.required' => __('Le nouveau mot de passe est obligatoire.'),
-            'password.confirmed' => __('La confirmation du mot de passe ne correspond pas.'),
-            'password.min' => __('Le mot de passe doit contenir au moins 8 caractères.'),
-            'password.regex' => __('Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre.'),
-        ]);
-
         $user = $request->user();
-
-        // Verify current password
-        if (!Hash::check($validated['current_password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'current_password' => [__('Le mot de passe actuel est incorrect.')],
-            ]);
+        
+        // Ensure wallet exists
+        if (!$user->wallet) {
+            $user->wallet()->create(['balance' => 0.00]);
+            $user->refresh();
         }
 
-        // Update password
-        $user->update([
-            'password' => Hash::make($validated['password']),
-        ]);
+        $user->load('wallet');
 
         return response()->json([
             'success' => true,
-            'message' => __('Mot de passe mis à jour avec succès.'),
+            'data' => [
+                'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
+                'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
+            ],
         ]);
     }
 }
