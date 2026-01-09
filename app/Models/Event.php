@@ -135,8 +135,7 @@ class Event extends Model
             return null;
         }
         
-        $baseUrl = config('app.url', 'http://localhost');
-        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->logo_path, '/');
+        return \App\Services\DualStorageService::url($this->logo_path);
     }
 
     /**
@@ -148,8 +147,7 @@ class Event extends Model
             return null;
         }
         
-        $baseUrl = config('app.url', 'http://localhost');
-        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->banner_path, '/');
+        return \App\Services\DualStorageService::url($this->banner_path);
     }
 
     /**
@@ -161,7 +159,6 @@ class Event extends Model
             return null;
         }
         
-        $baseUrl = config('app.url', 'http://localhost');
-        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->organizer_logo, '/');
+        return \App\Services\DualStorageService::url($this->organizer_logo);
     }
 }

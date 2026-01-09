@@ -116,7 +116,7 @@ class HotelController extends Controller
         
         // Delete all hotel images (cascade will handle this, but we delete files manually)
         foreach ($hotel->images as $image) {
-            Storage::disk('public')->delete($image->path);
+            \App\Services\DualStorageService::delete($image->path, 'public');
         }
 
         $hotel->delete();

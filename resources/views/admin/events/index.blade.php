@@ -46,14 +46,42 @@
                 {{ ucfirst($event->status) }}
               </x-shadcn.badge>
             </x-shadcn.table-cell>
-            <x-shadcn.table-cell class="space-x-2">
-              <a href="{{ route('admin.events.edit', $event) }}" class="text-logo-link hover:underline">Edit</a>
-              <a href="{{ route('admin.events.content.index', $event) }}" class="text-purple-600 hover:underline" title="{{ __('content') }}">Content</a>
-              <a href="{{ route('admin.events.hotels.index', $event) }}" class="text-indigo-600 hover:underline">{{ __('hotels') }}</a>
-              <form action="{{ route('admin.events.destroy', $event) }}" method="POST" class="inline">
-                @csrf @method('DELETE')
-                <button type="submit" class="text-red-600 hover:underline" onclick="return confirm('{{ __('Are you sure you want to delete this event?') }}')">Delete</button>
-              </form>
+            <x-shadcn.table-cell>
+              <div class="flex items-center gap-2">
+                @if(config('app.frontend_url'))
+                  <a href="{{ config('app.frontend_url') }}/{{ $event->slug }}" 
+                     target="_blank" 
+                     rel="noopener noreferrer"
+                     class="p-2 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors group"
+                     title="Visit Event Page">
+                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                  </a>
+                @endif
+                <a href="{{ route('admin.events.edit', $event) }}" 
+                   class="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group"
+                   title="Edit Event">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </a>
+                <a href="{{ route('admin.events.content.index', $event) }}" 
+                   class="p-2 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors group"
+                   title="{{ __('content') }}">
+                  <i data-lucide="file-text" class="w-4 h-4"></i>
+                </a>
+                <a href="{{ route('admin.events.hotels.index', $event) }}" 
+                   class="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors group"
+                   title="{{ __('hotels') }}">
+                  <i data-lucide="building" class="w-4 h-4"></i>
+                </a>
+                <form action="{{ route('admin.events.destroy', $event) }}" method="POST" class="inline">
+                  @csrf @method('DELETE')
+                  <button type="submit" 
+                          class="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group"
+                          title="Delete Event"
+                          onclick="return confirm('{{ __('Are you sure you want to delete this event?') }}')">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </form>
+              </div>
             </x-shadcn.table-cell>
           </x-shadcn.table-row>
           @empty

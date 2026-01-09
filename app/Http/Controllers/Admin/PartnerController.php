@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Partner;
+use App\Services\DualStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -40,7 +41,7 @@ class PartnerController extends Controller
         ]);
 
         // Store logo
-        $logoPath = $request->file('logo')->store('partners', 'public');
+        $logoPath = DualStorageService::store($request->file('logo'), 'partners', 'public');
 
         $partner = Partner::create([
             'name' => $validated['name'],
@@ -87,9 +88,9 @@ class PartnerController extends Controller
         if ($request->hasFile('logo')) {
             // Delete old logo
             if ($partner->logo_path) {
-                Storage::disk('public')->delete($partner->logo_path);
+                DualStorageService::delete($partner->logo_path, 'public');
             }
-            $logoPath = $request->file('logo')->store('partners', 'public');
+            $logoPath = DualStorageService::store($request->file('logo'), 'partners', 'public');
             $partner->logo_path = $logoPath;
         }
 
@@ -110,7 +111,7 @@ class PartnerController extends Controller
     {
         // Delete logo file
         if ($partner->logo_path) {
-            Storage::disk('public')->delete($partner->logo_path);
+            DualStorageService::delete($partner->logo_path, 'public');
         }
 
         $partner->delete();

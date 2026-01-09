@@ -81,11 +81,11 @@ class VoucherController extends Controller
             abort(403, 'Voucher is only available for paid bookings.');
         }
 
-        if (!$voucher->pdf_path || !Storage::disk('public')->exists($voucher->pdf_path)) {
+        if (!$voucher->pdf_path || !file_exists(public_path('storage/' . $voucher->pdf_path))) {
             abort(404, 'Voucher PDF not found.');
         }
 
-        $filePath = Storage::disk('public')->path($voucher->pdf_path);
+        $filePath = public_path('storage/' . $voucher->pdf_path);
 
         return response()->file($filePath, [
             'Content-Type' => 'application/pdf',

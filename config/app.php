@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used to generate links to the frontend event pages.
+    | Set FRONTEND_URL in your .env file (e.g., https://seminairexpo.com)
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', null),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

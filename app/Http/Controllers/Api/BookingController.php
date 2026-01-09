@@ -402,9 +402,9 @@ class BookingController extends Controller
             ]);
 
             $pdf = Pdf::loadView('invoices.template', compact('booking', 'invoice'));
-            Storage::disk('public')->makeDirectory('invoices');
+            \App\Services\DualStorageService::makeDirectory('invoices');
             $relativePath = "invoices/{$invoice->id}.pdf";
-            Storage::disk('public')->put($relativePath, $pdf->output());
+            \App\Services\DualStorageService::put($relativePath, $pdf->output(), 'public');
             $invoice->update(['pdf_path' => $relativePath]);
         } catch (\Throwable $e) {
             Log::error('Failed to auto-create invoice or generate invoice PDF', [
@@ -440,9 +440,9 @@ class BookingController extends Controller
 
             // Generate voucher PDF
             $pdf = Pdf::loadView('vouchers.template', compact('booking', 'voucher'));
-            Storage::disk('public')->makeDirectory('vouchers');
+            \App\Services\DualStorageService::makeDirectory('vouchers');
             $relativePath = "vouchers/{$voucher->id}.pdf";
-            Storage::disk('public')->put($relativePath, $pdf->output());
+            \App\Services\DualStorageService::put($relativePath, $pdf->output(), 'public');
             $voucher->update(['pdf_path' => $relativePath]);
         } catch (\Throwable $e) {
             Log::error('Failed to auto-create voucher or generate voucher PDF', [

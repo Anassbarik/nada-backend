@@ -8,7 +8,7 @@
             </label>
             @if($hero_image)
                 <div class="mb-2">
-                    <img src="{{ asset('storage/' . $hero_image) }}" alt="Hero" class="h-48 w-full object-cover rounded-lg">
+                    <img src="{{ \App\Services\DualStorageService::url($hero_image) }}" alt="Hero" class="h-48 w-full object-cover rounded-lg">
                     <p class="text-sm text-gray-500 mt-1">Image actuelle</p>
                 </div>
             @endif

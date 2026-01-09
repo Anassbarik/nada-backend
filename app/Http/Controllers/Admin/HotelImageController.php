@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Hotel;
 use App\Models\HotelImage;
+use App\Services\DualStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -24,47 +25,82 @@ class HotelImageController extends Controller
      */
     public function store(Request $request, Hotel $hotel)
     {
+        // Check if files were uploaded
+        if (!$request->hasFile('images')) {
+            return back()->withErrors(['images' => 'Please select at least one image to upload.'])->withInput();
+        }
+
+        $files = $request->file('images');
+        
+        // Ensure files is an array
+        if (!is_array($files)) {
+            $files = [$files];
+        }
+
+        // Validate each file
         $validated = $request->validate([
-            'images' => 'required|array|max:10',
-            'images.*' => 'image|mimes:jpeg,png,jpg|max:5120',
-            'alt_texts' => 'nullable|array',
-            'alt_texts.*' => 'nullable|string|max:255',
+            'images.*' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+        ], [
+            'images.*.image' => 'Each file must be an image.',
+            'images.*.mimes' => 'Images must be JPEG, PNG, or JPG format.',
+            'images.*.max' => 'Each image must be less than 5MB.',
         ]);
 
         $currentImageCount = $hotel->images()->count();
-        $uploadCount = count($request->file('images'));
+        $uploadCount = count($files);
 
         if ($currentImageCount + $uploadCount > 10) {
-            return back()->withErrors(['images' => 'Maximum 10 images allowed per hotel.'])->withInput();
+            return back()->withErrors(['images' => "Maximum 10 images allowed per hotel. You currently have {$currentImageCount} images."])->withInput();
         }
 
         $maxSortOrder = $hotel->images()->max('sort_order') ?? -1;
+        $uploaded = 0;
+        $errors = [];
 
-        foreach ($request->file('images') as $index => $image) {
-            $path = $image->store("hotels/{$hotel->id}", 'public');
-            $altText = $request->alt_texts[$index] ?? null;
+        foreach ($files as $index => $image) {
+            try {
+                // Store the file in both storage/app/public and public/storage
+                $path = DualStorageService::store($image, "hotels/{$hotel->id}", 'public');
+                
+                if (!$path) {
+                    $errors[] = "Failed to upload image " . ($index + 1);
+                    continue;
+                }
 
-            HotelImage::create([
-                'hotel_id' => $hotel->id,
-                'path' => $path,
-                'alt_text' => $altText,
-                'sort_order' => ++$maxSortOrder,
-                'status' => 'active',
-            ]);
+                // Create database record
+                HotelImage::create([
+                    'hotel_id' => $hotel->id,
+                    'path' => $path,
+                    'alt_text' => null,
+                    'sort_order' => ++$maxSortOrder,
+                    'status' => 'active',
+                ]);
+                
+                $uploaded++;
+            } catch (\Exception $e) {
+                $errors[] = "Error uploading image " . ($index + 1) . ": " . $e->getMessage();
+            }
         }
 
-        return redirect()->route('admin.hotels.images.index', $hotel)->with('success', "{$uploadCount} image(s) uploaded successfully.");
+        if ($uploaded === 0) {
+            return back()->withErrors(['images' => 'Failed to upload images. ' . implode(' ', $errors)])->withInput();
+        }
+
+        $message = "{$uploaded} image(s) uploaded successfully.";
+        if (count($errors) > 0) {
+            $message .= " Some errors occurred: " . implode(' ', $errors);
+        }
+
+        return redirect()->route('admin.hotels.images.index', $hotel)->with('success', $message);
     }
 
     /**
      * Update image alt text.
      */
-    public function update(Request $request, Hotel $hotel, HotelImage $image)
+    public function update(Request $request, Hotel $hotel, $image)
     {
-        // Ensure image belongs to this hotel
-        if ($image->hotel_id !== $hotel->id) {
-            abort(404, 'Image not found for this hotel.');
-        }
+        // Resolve via the hotel's relationship to avoid any prod-only binding issues
+        $image = $hotel->images()->findOrFail($image);
 
         $validated = $request->validate([
             'alt_text' => 'nullable|string|max:255',
@@ -81,12 +117,10 @@ class HotelImageController extends Controller
     /**
      * Delete an image.
      */
-    public function destroy(Hotel $hotel, HotelImage $image)
+    public function destroy(Hotel $hotel, $image)
     {
-        // Ensure image belongs to this hotel
-        if ($image->hotel_id !== $hotel->id) {
-            abort(404, 'Image not found for this hotel.');
-        }
+        // Resolve via the hotel's relationship to avoid any prod-only binding issues
+        $image = $hotel->images()->findOrFail($image);
 
         // Prevent deleting the last image
         $imageCount = $hotel->images()->count();
@@ -94,7 +128,7 @@ class HotelImageController extends Controller
             return back()->withErrors(['delete' => 'L\'hôtel doit avoir au moins 1 image.']);
         }
 
-        Storage::disk('public')->delete($image->path);
+        DualStorageService::delete($image->path, 'public');
         $image->delete();
 
         return back()->with('success', 'Image deleted successfully.');

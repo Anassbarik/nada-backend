@@ -29,7 +29,6 @@ class Partner extends Model
             return null;
         }
         
-        $baseUrl = config('app.url', 'http://localhost');
-        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->logo_path, '/');
+        return \App\Services\DualStorageService::url($this->logo_path);
     }
 }

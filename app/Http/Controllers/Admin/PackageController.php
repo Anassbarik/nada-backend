@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hotel;
-use App\Models\Package;
 use Illuminate\Http\Request;
 
 class PackageController extends Controller
@@ -14,9 +13,20 @@ class PackageController extends Controller
      */
     public function index(Hotel $hotel)
     {
-        return view('admin.packages.index', compact('hotel'));
+        $packages = $hotel->packages()
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+            
+        return view('admin.packages.index', compact('hotel', 'packages'));
     }
 
+    /**
+     * Show the form for creating a new package.
+     */
+    public function create(Hotel $hotel)
+    {
+        return view('admin.packages.create', compact('hotel'));
+    }
 
     /**
      * Store a newly created package.
@@ -48,12 +58,10 @@ class PackageController extends Controller
     /**
      * Show the form for editing the specified package.
      */
-    public function edit(Hotel $hotel, Package $package)
+    public function edit(Hotel $hotel, $package)
     {
-        // Ensure package belongs to this hotel
-        if ($package->hotel_id !== $hotel->id) {
-            abort(404, 'Package not found for this hotel.');
-        }
+        // Resolve via the hotel's relationship to avoid any prod-only binding issues
+        $package = $hotel->packages()->findOrFail($package);
 
         return view('admin.packages.edit', compact('hotel', 'package'));
     }
@@ -61,12 +69,10 @@ class PackageController extends Controller
     /**
      * Update the specified package.
      */
-    public function update(Request $request, Hotel $hotel, Package $package)
+    public function update(Request $request, Hotel $hotel, $package)
     {
-        // Ensure package belongs to this hotel
-        if ($package->hotel_id !== $hotel->id) {
-            abort(404, 'Package not found for this hotel.');
-        }
+        // Resolve via the hotel's relationship to avoid any prod-only binding issues
+        $package = $hotel->packages()->findOrFail($package);
 
         $validated = $request->validate([
             'nom_package' => 'required|string|max:255',
@@ -93,12 +99,10 @@ class PackageController extends Controller
     /**
      * Remove the specified package.
      */
-    public function destroy(Hotel $hotel, Package $package)
+    public function destroy(Hotel $hotel, $package)
     {
-        // Ensure package belongs to this hotel
-        if ($package->hotel_id !== $hotel->id) {
-            abort(404, 'Package not found for this hotel.');
-        }
+        // Resolve via the hotel's relationship to avoid any prod-only binding issues
+        $package = $hotel->packages()->findOrFail($package);
 
         $package->delete();
         return redirect()->route('admin.hotels.packages.index', $hotel)->with('success', 'Package deleted successfully.');

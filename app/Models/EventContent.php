@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\DualStorageService;
 use Illuminate\Support\Facades\Storage;
 
 class EventContent extends Model
@@ -35,7 +36,6 @@ class EventContent extends Model
             return null;
         }
         
-        $baseUrl = config('app.url', 'http://localhost');
-        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->hero_image, '/');
+        return DualStorageService::url($this->hero_image);
     }
 }

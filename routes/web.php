@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
         
         // Packages
         Route::get('hotels/{hotel}/packages', [\App\Http\Controllers\Admin\PackageController::class, 'index'])->name('hotels.packages.index');
+        Route::get('hotels/{hotel}/packages/create', [\App\Http\Controllers\Admin\PackageController::class, 'create'])->name('hotels.packages.create');
         Route::post('hotels/{hotel}/packages', [\App\Http\Controllers\Admin\PackageController::class, 'store'])->name('hotels.packages.store');
         Route::get('hotels/{hotel}/packages/{package}/edit', [\App\Http\Controllers\Admin\PackageController::class, 'edit'])->name('hotels.packages.edit');
         Route::put('hotels/{hotel}/packages/{package}', [\App\Http\Controllers\Admin\PackageController::class, 'update'])->name('hotels.packages.update');

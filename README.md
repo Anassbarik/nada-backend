@@ -106,6 +106,22 @@ A minimal, secure, and extensible SaaS backend system built with Laravel 12 that
    - Login with your super admin credentials
    - Access the dashboard at `http://localhost:8000/dashboard`
 
+## Deploying in a subdirectory (ex: `/admin/public`)
+
+If your Laravel `public/` directory is not at the domain root (for example the app is accessed at `https://example.com/admin/public`), set:
+
+```env
+APP_URL=https://example.com/admin/public
+ASSET_URL=https://example.com/admin/public
+APP_BASE_PATH=/admin/public
+```
+
+Then clear caches after deploy:
+
+```bash
+php artisan optimize:clear
+```
+
 ## Database Structure
 
 ### Events

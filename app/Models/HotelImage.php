@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\DualStorageService;
 use Illuminate\Support\Facades\Storage;
 
 class HotelImage extends Model
@@ -23,7 +24,7 @@ class HotelImage extends Model
         // Delete file from storage when image is deleted
         static::deleting(function ($image) {
             if ($image->path) {
-                Storage::disk('public')->delete($image->path);
+                DualStorageService::delete($image->path, 'public');
             }
         });
     }
@@ -42,7 +43,6 @@ class HotelImage extends Model
             return null;
         }
         
-        $baseUrl = config('app.url', 'http://localhost');
-        return rtrim($baseUrl, '/') . '/storage/' . ltrim($this->path, '/');
+        return DualStorageService::url($this->path);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Event;
 use App\Models\EventContent;
+use App\Services\DualStorageService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
@@ -67,9 +68,10 @@ class EventContentEditor extends Component
         if ($this->uploadedHeroImage) {
             // Delete old hero image if exists
             if ($heroImagePath) {
-                Storage::disk('public')->delete($heroImagePath);
+                DualStorageService::delete($heroImagePath, 'public');
             }
-            $heroImagePath = $this->uploadedHeroImage->store("events/{$this->event->id}/content", 'public');
+            // Store in both storage/app/public and public/storage
+            $heroImagePath = DualStorageService::store($this->uploadedHeroImage, "events/{$this->event->id}/content", 'public');
         }
 
         EventContent::updateOrCreate(

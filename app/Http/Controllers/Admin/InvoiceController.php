@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\InvoiceMail;
 use App\Models\Invoice;
+use App\Services\DualStorageService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -62,19 +63,19 @@ class InvoiceController extends Controller
 
         // If refresh=1, overwrite the stored PDF so existing PDFs get the latest template too.
         if ($request->boolean('refresh')) {
-            Storage::disk('public')->makeDirectory('invoices');
+            DualStorageService::makeDirectory('invoices');
             $relativePath = $invoice->pdf_path ?: "invoices/{$invoice->id}.pdf";
-            Storage::disk('public')->put($relativePath, $pdf->output());
+            DualStorageService::put($relativePath, $pdf->output(), 'public');
             if ($invoice->pdf_path !== $relativePath) {
                 $invoice->update(['pdf_path' => $relativePath]);
             }
 
-            return response()->file(storage_path('app/public/' . $relativePath));
+            return response()->file(public_path('storage/' . $relativePath));
         }
 
         // Default behavior: serve existing stored PDF if present; otherwise stream generated PDF.
-        if ($invoice->pdf_path && Storage::disk('public')->exists($invoice->pdf_path)) {
-            return response()->file(storage_path('app/public/' . $invoice->pdf_path));
+        if ($invoice->pdf_path && file_exists(public_path('storage/' . $invoice->pdf_path))) {
+            return response()->file(public_path('storage/' . $invoice->pdf_path));
         }
 
         return $pdf->stream("facture-{$invoice->invoice_number}.pdf");
