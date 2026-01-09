@@ -92,6 +92,7 @@
                         </div>
                         <p class="mt-1 text-sm text-gray-500">Auto-calculé</p>
                     </div>
+
                 </div>
 
                 <div class="flex items-center justify-end mt-6">

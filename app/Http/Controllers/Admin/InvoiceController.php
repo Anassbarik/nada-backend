@@ -36,6 +36,11 @@ class InvoiceController extends Controller
 
     public function update(Request $request, Invoice $invoice)
     {
+        // Check ownership
+        if (!$invoice->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this invoice.');
+        }
+
         $validated = $request->validate([
             'total_amount' => 'required|numeric|min:0',
             'status' => 'required|in:draft,sent,paid',
@@ -49,6 +54,11 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice)
     {
+        // Check ownership
+        if (!$invoice->canBeDeletedBy(auth()->user())) {
+            abort(403, 'You do not have permission to delete this invoice.');
+        }
+
         $invoice->delete();
 
         return redirect()->route('admin.invoices.index')->with('success', 'Invoice deleted successfully.');

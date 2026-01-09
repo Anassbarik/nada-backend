@@ -24,6 +24,9 @@ Route::get('/events/{event:slug}/{type}', [EventController::class, 'getContentBy
 Route::get('/events/{event:slug}/hotels', [HotelController::class, 'index']); // Uses slug via getRouteKeyName()
 Route::get('/events/{event:slug}/hotels/{hotel:slug}', [HotelController::class, 'show']); // Hotel details within event context
 
+// Airports by event slug
+Route::get('/events/{event:slug}/airports', [\App\Http\Controllers\Api\AirportController::class, 'index']); // List airports for an event
+
 // Event by slug (generic route - must come after specific routes)
 Route::get('/events/{slug}', [EventController::class, 'show']);
 
@@ -40,6 +43,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 Route::middleware('auth:sanctum')->group(function () {
     // User routes
     Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user', [AuthController::class, 'update']);
     Route::put('/user/password', [AuthController::class, 'updatePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
 

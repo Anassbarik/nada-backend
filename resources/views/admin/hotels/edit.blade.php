@@ -82,6 +82,45 @@
                         </div>
 
                         <div class="mb-4">
+                            <x-input-label for="inclusions" :value="__('Inclusions')" />
+                            <div x-data="{ 
+                                inclusions: {{ json_encode(old('inclusions', $hotel->inclusions ?? [''])) }},
+                                addInclusion() { this.inclusions.push(''); },
+                                removeInclusion(index) { this.inclusions.splice(index, 1); }
+                            }" class="space-y-2">
+                                <template x-for="(inclusion, index) in inclusions" :key="index">
+                                    <div class="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            :name="'inclusions[' + index + ']'" 
+                                            x-model="inclusions[index]" 
+                                            class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300" 
+                                            :placeholder="'{{ __('Enter inclusion item') }}'"
+                                        />
+                                        <button 
+                                            type="button" 
+                                            @click="removeInclusion(index)" 
+                                            class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                                            x-show="inclusions.length > 1"
+                                        >
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </template>
+                                <button 
+                                    type="button" 
+                                    @click="addInclusion()" 
+                                    class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 inline-flex items-center"
+                                >
+                                    <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                                    {{ __('Add Inclusion') }}
+                                </button>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('List what is included in all packages for this hotel (e.g., Breakfast, Transfer, etc.)') }}</p>
+                            <x-input-error :messages="$errors->get('inclusions.*')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
                             <x-input-label for="website" :value="__('website')" />
                             <x-text-input id="website" class="block mt-1 w-full" type="url" name="website" :value="old('website', $hotel->website)" placeholder="https://example.com" />
                             <x-input-error :messages="$errors->get('website')" class="mt-2" />

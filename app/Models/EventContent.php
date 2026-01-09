@@ -16,6 +16,7 @@ class EventContent extends Model
         'hero_image',
         'sections',
         'content', // Simple longText content field
+        'created_by',
     ];
 
     protected $casts = [
@@ -37,5 +38,35 @@ class EventContent extends Model
         }
         
         return DualStorageService::url($this->hero_image);
+    }
+
+    /**
+     * Get the admin who created this content.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Check if a user can edit this content.
+     */
+    public function canBeEditedBy(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        if ($this->created_by && $this->created_by === $user->id) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if a user can delete this content.
+     */
+    public function canBeDeletedBy(User $user): bool
+    {
+        return $this->canBeEditedBy($user);
     }
 }

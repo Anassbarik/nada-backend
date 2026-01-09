@@ -14,6 +14,11 @@ class EventContentController extends Controller
      */
     public function index(Event $event)
     {
+        // All admins can view content pages (read-only)
+        if (!$event->canBeViewedBy(auth()->user())) {
+            abort(403, 'You do not have permission to view this event.');
+        }
+        
         $event->load('contents');
         $contents = $event->contents->keyBy('page_type');
         return view('admin.events.content.index', compact('event', 'contents'));
@@ -24,6 +29,11 @@ class EventContentController extends Controller
      */
     public function edit(Event $event, $pageType)
     {
+        // Only allow editing if user can edit the event
+        if (!$event->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this event content. Events created by super administrators can only be edited by super administrators.');
+        }
+        
         $validPageTypes = ['conditions', 'informations', 'faq'];
         
         if (!in_array($pageType, $validPageTypes)) {
@@ -53,10 +63,24 @@ class EventContentController extends Controller
      */
     public function update(Request $request, Event $event, $pageType)
     {
+        // Only allow updating if user can edit the event
+        if (!$event->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this event content. Events created by super administrators can only be edited by super administrators.');
+        }
+        
         $validPageTypes = ['conditions', 'informations', 'faq'];
         
         if (!in_array($pageType, $validPageTypes)) {
             abort(404, 'Invalid page type.');
+        }
+
+        $existingContent = EventContent::where('event_id', $event->id)
+            ->where('page_type', $pageType)
+            ->first();
+
+        // Check ownership if content exists
+        if ($existingContent && !$existingContent->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this content.');
         }
 
         $validated = $request->validate([
@@ -72,6 +96,7 @@ class EventContentController extends Controller
             ],
             [
                 'sections' => $validated['sections'],
+                'created_by' => auth()->id(),
             ]
         );
 

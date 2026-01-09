@@ -16,6 +16,11 @@ class HotelImageController extends Controller
      */
     public function index(Hotel $hotel)
     {
+        // All admins can view hotel images (read-only)
+        if (!$hotel->event->canBeViewedBy(auth()->user())) {
+            abort(403, 'You do not have permission to view this hotel.');
+        }
+        
         $hotel->load('images');
         return view('admin.hotels.images.index', compact('hotel'));
     }
@@ -25,6 +30,11 @@ class HotelImageController extends Controller
      */
     public function store(Request $request, Hotel $hotel)
     {
+        // Only allow uploading images if user can edit the event
+        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
+        }
+        
         // Check if files were uploaded
         if (!$request->hasFile('images')) {
             return back()->withErrors(['images' => 'Please select at least one image to upload.'])->withInput();
@@ -74,6 +84,7 @@ class HotelImageController extends Controller
                     'alt_text' => null,
                     'sort_order' => ++$maxSortOrder,
                     'status' => 'active',
+                    'created_by' => auth()->id(),
                 ]);
                 
                 $uploaded++;
@@ -99,8 +110,18 @@ class HotelImageController extends Controller
      */
     public function update(Request $request, Hotel $hotel, $image)
     {
+        // Only allow updating if user can edit the event
+        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
+        }
+        
         // Resolve via the hotel's relationship to avoid any prod-only binding issues
         $image = $hotel->images()->findOrFail($image);
+
+        // Also check image ownership
+        if (!$image->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this image.');
+        }
 
         $validated = $request->validate([
             'alt_text' => 'nullable|string|max:255',
@@ -119,8 +140,18 @@ class HotelImageController extends Controller
      */
     public function destroy(Hotel $hotel, $image)
     {
+        // Only allow deleting if user can edit the event
+        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
+        }
+        
         // Resolve via the hotel's relationship to avoid any prod-only binding issues
         $image = $hotel->images()->findOrFail($image);
+
+        // Also check image ownership
+        if (!$image->canBeDeletedBy(auth()->user())) {
+            abort(403, 'You do not have permission to delete this image.');
+        }
 
         // Prevent deleting the last image
         $imageCount = $hotel->images()->count();
@@ -139,6 +170,11 @@ class HotelImageController extends Controller
      */
     public function reorder(Request $request, Hotel $hotel)
     {
+        // Only allow reordering if user can edit the event
+        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
+        }
+        
         $validated = $request->validate([
             'order' => 'required|array',
             'order.*' => 'required|exists:hotel_images,id',

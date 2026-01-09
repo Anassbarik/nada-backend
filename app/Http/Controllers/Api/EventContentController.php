@@ -77,8 +77,6 @@ class EventContentController extends Controller
                 'type' => $type,
                 'page_type' => $content->page_type,
                 'content' => $content->content ?? ($content->sections ? json_encode($content->sections) : ''),
-                'hero_image' => $content->hero_image_url,
-                'hero_image_path' => $content->hero_image,
                 'sections' => $content->sections ?? [],
             ],
         ]);

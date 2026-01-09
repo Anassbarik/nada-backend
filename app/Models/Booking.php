@@ -11,6 +11,7 @@ class Booking extends Model
 {
     protected $fillable = [
         'user_id',
+        'created_by',
         'event_id',
         'hotel_id',
         'package_id',
@@ -182,5 +183,35 @@ class Booking extends Model
     public function voucher(): HasOne
     {
         return $this->hasOne(Voucher::class);
+    }
+
+    /**
+     * Get the admin who created this booking.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Check if a user can edit this booking.
+     */
+    public function canBeEditedBy(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        if ($this->created_by && $this->created_by === $user->id) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if a user can delete this booking.
+     */
+    public function canBeDeletedBy(User $user): bool
+    {
+        return $this->canBeEditedBy($user);
     }
 }

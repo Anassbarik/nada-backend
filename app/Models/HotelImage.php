@@ -15,6 +15,7 @@ class HotelImage extends Model
         'alt_text',
         'sort_order',
         'status',
+        'created_by',
     ];
 
     protected static function boot()
@@ -44,5 +45,35 @@ class HotelImage extends Model
         }
         
         return DualStorageService::url($this->path);
+    }
+
+    /**
+     * Get the admin who created this image.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Check if a user can edit this image.
+     */
+    public function canBeEditedBy(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        if ($this->created_by && $this->created_by === $user->id) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if a user can delete this image.
+     */
+    public function canBeDeletedBy(User $user): bool
+    {
+        return $this->canBeEditedBy($user);
     }
 }

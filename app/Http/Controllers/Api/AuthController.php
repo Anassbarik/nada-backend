@@ -34,6 +34,8 @@ class AuthController extends Controller
                 'min:8',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/', // At least one lowercase, one uppercase, one number
             ],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'company' => ['nullable', 'string', 'max:255'],
         ], [
             'name.required' => __('Le nom est obligatoire.'),
             'email.required' => __('L\'email est obligatoire.'),
@@ -43,12 +45,16 @@ class AuthController extends Controller
             'password.confirmed' => __('La confirmation du mot de passe ne correspond pas.'),
             'password.min' => __('Le mot de passe doit contenir au moins 8 caractères.'),
             'password.regex' => __('Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre.'),
+            'phone.max' => __('Le numéro de téléphone ne doit pas dépasser 50 caractères.'),
+            'company.max' => __('Le nom de l\'entreprise ne doit pas dépasser 255 caractères.'),
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'phone' => $validated['phone'] ?? null,
+            'company' => $validated['company'] ?? null,
             'role' => 'user', // Default role for API registrations
         ]);
 
@@ -70,6 +76,8 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'phone' => $user->phone,
+                    'company' => $user->company,
                     'role' => $user->role ?? 'user',
                     'email_verified_at' => $user->email_verified_at?->toISOString(),
                     'wallet' => [
@@ -130,6 +138,8 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'phone' => $user->phone,
+                    'company' => $user->company,
                     'role' => $user->role ?? 'user',
                     'email_verified_at' => $user->email_verified_at?->toISOString(),
                     'wallet' => [
@@ -180,13 +190,91 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'phone' => $user->phone,
+                'company' => $user->company,
+                'role' => $user->role ?? 'user',
+                'email_verified_at' => $user->email_verified_at?->toISOString(),
                 'wallet' => [
                     'id' => $user->wallet->id,
                     'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
-                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' €',
+                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Update authenticated user's profile information.
+     *
+     * Route: PUT /api/user (auth:sanctum)
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'company' => ['nullable', 'string', 'max:255'],
+        ], [
+            'name.required' => __('Le nom est obligatoire.'),
+            'email.required' => __('L\'email est obligatoire.'),
+            'email.email' => __('L\'email doit être une adresse email valide.'),
+            'email.unique' => __('Cet email est déjà utilisé.'),
+            'phone.max' => __('Le numéro de téléphone ne doit pas dépasser 50 caractères.'),
+            'company.max' => __('Le nom de l\'entreprise ne doit pas dépasser 255 caractères.'),
+        ]);
+
+        // If email changed, reset email verification
+        if ($user->email !== $validated['email']) {
+            $user->email_verified_at = null;
+        }
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
+            'company' => $validated['company'] ?? null,
+        ]);
+
+        // Ensure wallet exists
+        if (!$user->wallet) {
+            $user->wallet()->create(['balance' => 0.00]);
+            $user->refresh();
+        }
+
+        $user->load('wallet');
+
+        return response()->json([
+            'success' => true,
+            'message' => __('Profil mis à jour avec succès.'),
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'company' => $user->company,
+                    'role' => $user->role ?? 'user',
+                    'email_verified_at' => $user->email_verified_at?->toISOString(),
+                    'wallet' => [
+                        'id' => $user->wallet->id,
+                        'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
+                        'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
+                    ],
+                ],
+            ],
+        ], 200);
     }
 
     /**

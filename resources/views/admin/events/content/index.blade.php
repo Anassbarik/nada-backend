@@ -17,8 +17,21 @@
         <x-shadcn.card-content class="p-6">
             <h3 class="text-lg font-medium mb-6">{{ $event->name }} → Contenu des Pages</h3>
             
+            @php
+              $canEdit = $event->canBeEditedBy(auth()->user());
+            @endphp
+            
+            @if(!$canEdit)
+              <div class="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                  <strong>View Only:</strong> This event was created by a super administrator. You can view the content but cannot modify it.
+                </p>
+              </div>
+            @endif
+            
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="{{ route('admin.events.content.edit', [$event, 'conditions']) }}" class="block p-6 border-2 border-gray-300 rounded-lg hover:border-logo-link transition-colors">
+                <div class="block p-6 border-2 border-gray-300 rounded-lg {{ $canEdit ? 'hover:border-logo-link transition-colors cursor-pointer' : 'opacity-50 cursor-not-allowed' }} {{ $canEdit ? '' : 'bg-gray-50 dark:bg-gray-800' }}"
+                     @if($canEdit) onclick="window.location='{{ route('admin.events.content.edit', [$event, 'conditions']) }}'" @endif>
                     <div class="text-3xl mb-2"><i data-lucide="file-text" class="w-8 h-8" style="color: #00adf1;"></i></div>
                     <h4 class="text-lg font-semibold mb-2">Conditions de Réservation</h4>
                     <p class="text-sm text-gray-500">
@@ -28,10 +41,15 @@
                             Non créé
                         @endif
                     </p>
-                    <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
-                </a>
+                    @if($canEdit)
+                      <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
+                    @else
+                      <span class="text-gray-400 text-sm mt-2 inline-block" title="You cannot edit content for events created by super administrators">View Only →</span>
+                    @endif
+                </div>
 
-                <a href="{{ route('admin.events.content.edit', [$event, 'informations']) }}" class="block p-6 border-2 border-gray-300 rounded-lg hover:border-logo-link transition-colors">
+                <div class="block p-6 border-2 border-gray-300 rounded-lg {{ $canEdit ? 'hover:border-logo-link transition-colors cursor-pointer' : 'opacity-50 cursor-not-allowed' }} {{ $canEdit ? '' : 'bg-gray-50 dark:bg-gray-800' }}"
+                     @if($canEdit) onclick="window.location='{{ route('admin.events.content.edit', [$event, 'informations']) }}'" @endif>
                     <div class="text-3xl mb-2"><i data-lucide="clipboard-list" class="w-8 h-8" style="color: #00adf1;"></i></div>
                     <h4 class="text-lg font-semibold mb-2">Informations Générales</h4>
                     <p class="text-sm text-gray-500">
@@ -41,10 +59,15 @@
                             Non créé
                         @endif
                     </p>
-                    <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
-                </a>
+                    @if($canEdit)
+                      <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
+                    @else
+                      <span class="text-gray-400 text-sm mt-2 inline-block" title="You cannot edit content for events created by super administrators">View Only →</span>
+                    @endif
+                </div>
 
-                <a href="{{ route('admin.events.content.edit', [$event, 'faq']) }}" class="block p-6 border-2 border-gray-300 rounded-lg hover:border-logo-link transition-colors">
+                <div class="block p-6 border-2 border-gray-300 rounded-lg {{ $canEdit ? 'hover:border-logo-link transition-colors cursor-pointer' : 'opacity-50 cursor-not-allowed' }} {{ $canEdit ? '' : 'bg-gray-50 dark:bg-gray-800' }}"
+                     @if($canEdit) onclick="window.location='{{ route('admin.events.content.edit', [$event, 'faq']) }}'" @endif>
                     <div class="text-3xl mb-2"><i data-lucide="help-circle" class="w-8 h-8" style="color: #00adf1;"></i></div>
                     <h4 class="text-lg font-semibold mb-2">FAQ</h4>
                     <p class="text-sm text-gray-500">
@@ -54,8 +77,12 @@
                             Non créé
                         @endif
                     </p>
-                    <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
-                </a>
+                    @if($canEdit)
+                      <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
+                    @else
+                      <span class="text-gray-400 text-sm mt-2 inline-block" title="You cannot edit content for events created by super administrators">View Only →</span>
+                    @endif
+                </div>
             </div>
         </x-shadcn.card-content>
     </x-shadcn.card>

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -24,6 +25,7 @@ class Event extends Model
         'description',
         'menu_links',
         'status',
+        'created_by',
     ];
 
     protected $casts = [
@@ -78,6 +80,63 @@ class Event extends Model
     public function contents(): HasMany
     {
         return $this->hasMany(EventContent::class);
+    }
+
+    public function airports(): HasMany
+    {
+        return $this->hasMany(Airport::class)->orderBy('sort_order')->orderBy('name');
+    }
+
+    /**
+     * Get the admin who created this event.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Check if a user can view this event (read-only access).
+     * All admins can view events, but only certain ones can edit.
+     */
+    public function canBeViewedBy(User $user): bool
+    {
+        // All authenticated admins can view events
+        return $user->isAdmin() || $user->isSuperAdmin();
+    }
+
+    /**
+     * Check if a user can edit this event.
+     */
+    public function canBeEditedBy(User $user): bool
+    {
+        // Super-admin can edit everything
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        // If event was created by a super admin, only super admins can edit it
+        if ($this->created_by) {
+            $creator = $this->creator;
+            if ($creator && $creator->isSuperAdmin()) {
+                return false; // Regular admins cannot edit super admin events
+            }
+        }
+
+        // Creator can edit their own resources
+        if ($this->created_by && $this->created_by === $user->id) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if a user can delete this event.
+     */
+    public function canBeDeletedBy(User $user): bool
+    {
+        return $this->canBeEditedBy($user);
     }
 
     /**

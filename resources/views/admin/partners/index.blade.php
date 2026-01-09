@@ -54,6 +54,12 @@
                             </x-shadcn.table-cell>
                             <x-shadcn.table-cell class="space-x-2">
                                 <a href="{{ route('admin.partners.edit', $partner) }}" class="text-logo-link hover:underline">{{ __('edit') }}</a>
+                                <form method="POST" action="{{ route('admin.partners.duplicate', $partner) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to duplicate this partner?') }}');">
+                                    @csrf
+                                    <button type="submit" class="text-orange-600 hover:underline" title="{{ __('duplicate') }}">
+                                        <i data-lucide="copy" class="w-4 h-4 inline"></i>
+                                    </button>
+                                </form>
                                 <form method="POST" action="{{ route('admin.partners.destroy', $partner) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to delete this partner?') }}');">
                                     @csrf
                                     @method('DELETE')

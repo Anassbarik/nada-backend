@@ -4,9 +4,18 @@
 <div class="space-y-6">
   <div class="flex justify-between items-center">
     <h1 class="text-4xl font-bold">{{ __('Hotels for') }}: {{ $event->name }}</h1>
-    <a href="{{ route('admin.events.hotels.create', $event) }}" class="text-white px-8 py-3 rounded-xl font-semibold transition-all" style="background-color: #00adf1;" onmouseover="this.style.backgroundColor='#0099d8'" onmouseout="this.style.backgroundColor='#00adf1'">
-      {{ __('add_hotel') }}
-    </a>
+    @php
+      $canEdit = $event->canBeEditedBy(auth()->user());
+    @endphp
+    @if($canEdit)
+      <a href="{{ route('admin.events.hotels.create', $event) }}" class="text-white px-8 py-3 rounded-xl font-semibold transition-all" style="background-color: #00adf1;" onmouseover="this.style.backgroundColor='#0099d8'" onmouseout="this.style.backgroundColor='#00adf1'">
+        {{ __('add_hotel') }}
+      </a>
+    @else
+      <span class="text-gray-400 px-8 py-3 rounded-xl font-semibold opacity-50 cursor-not-allowed" title="You cannot modify events created by super administrators">
+        {{ __('add_hotel') }} (View Only)
+      </span>
+    @endif
   </div>
 
   <div class="mb-4">
@@ -80,21 +89,42 @@
                 </x-shadcn.badge>
               </x-shadcn.table-cell>
               <x-shadcn.table-cell onclick="event.stopPropagation();">
+                @php
+                  $canEdit = $event->canBeEditedBy(auth()->user());
+                @endphp
                 <div class="flex items-center gap-2">
                   <a href="{{ route('admin.hotels.packages.index', $hotel) }}" 
-                     class="text-logo-link hover:underline" 
-                     title="{{ __('packages') }}">
+                     class="text-logo-link hover:underline {{ !$canEdit ? 'opacity-50' : '' }}" 
+                     title="{{ __('packages') }} {{ !$canEdit ? '(View Only)' : '' }}">
                     <i data-lucide="package" class="w-4 h-4"></i>
                   </a>
-                  <a href="{{ route('admin.hotels.edit', $hotel) }}" 
-                     class="text-indigo-600 hover:text-indigo-900">
-                    {{ __('edit') }}
-                  </a>
-                  <form method="POST" action="{{ route('admin.hotels.destroy', $hotel) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to delete this hotel?') }}');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="text-red-600 hover:text-red-900">{{ __('delete') }}</button>
-                  </form>
+                  @if($canEdit)
+                    <a href="{{ route('admin.hotels.edit', $hotel) }}" 
+                       class="text-indigo-600 hover:text-indigo-900">
+                      {{ __('edit') }}
+                    </a>
+                    <form method="POST" action="{{ route('admin.hotels.duplicate', $hotel) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to duplicate this hotel?') }}');">
+                      @csrf
+                      <button type="submit" class="text-orange-600 hover:text-orange-900" title="{{ __('duplicate') }}">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                      </button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.hotels.destroy', $hotel) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to delete this hotel?') }}');">
+                      @csrf
+                      @method('DELETE')
+                      <button type="submit" class="text-red-600 hover:text-red-900">{{ __('delete') }}</button>
+                    </form>
+                  @else
+                    <span class="text-gray-400 opacity-50 cursor-not-allowed" title="You cannot modify hotels for events created by super administrators">
+                      {{ __('edit') }}
+                    </span>
+                    <span class="text-gray-400 opacity-50 cursor-not-allowed" title="You cannot duplicate hotels for events created by super administrators">
+                      <i data-lucide="copy" class="w-4 h-4"></i>
+                    </span>
+                    <span class="text-gray-400 opacity-50 cursor-not-allowed" title="You cannot delete hotels for events created by super administrators">
+                      {{ __('delete') }}
+                    </span>
+                  @endif
                 </div>
               </x-shadcn.table-cell>
             </x-shadcn.table-row>

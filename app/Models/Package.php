@@ -21,6 +21,7 @@ class Package extends Model
         'quantite_chambres',
         'chambres_restantes',
         'disponibilite',
+        'created_by',
     ];
 
     protected $casts = [
@@ -80,5 +81,35 @@ class Package extends Model
                 $package->disponibilite = $package->chambres_restantes > 0;
             }
         });
+    }
+
+    /**
+     * Get the admin who created this package.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Check if a user can edit this package.
+     */
+    public function canBeEditedBy(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        if ($this->created_by && $this->created_by === $user->id) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if a user can delete this package.
+     */
+    public function canBeDeletedBy(User $user): bool
+    {
+        return $this->canBeEditedBy($user);
     }
 }

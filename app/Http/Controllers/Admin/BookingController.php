@@ -53,6 +53,11 @@ class BookingController extends Controller
      */
     public function updateStatus(Request $request, Booking $booking)
     {
+        // Check ownership
+        if (!$booking->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this booking.');
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:pending,confirmed,paid,cancelled,refunded',
         ]);
@@ -96,6 +101,11 @@ class BookingController extends Controller
      */
     public function destroy(Booking $booking)
     {
+        // Check ownership
+        if (!$booking->canBeDeletedBy(auth()->user())) {
+            abort(403, 'You do not have permission to delete this booking.');
+        }
+
         // Use database transaction to ensure data consistency
         // The Booking model's deleting event will automatically handle room count updates
         DB::transaction(function () use ($booking) {

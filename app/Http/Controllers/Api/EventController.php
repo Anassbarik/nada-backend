@@ -73,6 +73,9 @@ class EventController extends Controller
             ->where('status', 'published')
             ->with([
                 'contents',
+                'airports' => function ($query) {
+                    $query->where('active', true);
+                },
                 'hotels' => function ($query) {
                     $query->where('status', 'active')
                         ->with([
@@ -92,6 +95,11 @@ class EventController extends Controller
                 'success' => false,
                 'message' => 'Event not found.',
             ], 404);
+        }
+
+        // Ensure contents relationship is loaded
+        if (!$event->relationLoaded('contents')) {
+            $event->load('contents');
         }
 
         // Format images to each hotel using URL accessor
@@ -123,21 +131,23 @@ class EventController extends Controller
         $event->formatted_dates = $event->formatted_dates;
         $event->compact_dates = $event->compact_dates;
 
-        // Format contents by page_type
+        // Format contents by page_type BEFORE converting to array
         $contents = [];
         foreach ($event->contents as $content) {
             $contents[$content->page_type] = [
-                'hero_image' => $content->hero_image_url,
-                'hero_image_path' => $content->hero_image,
+                'content' => $content->content ?? null,
                 'sections' => $content->sections ?? [],
             ];
         }
 
-        $event->contents = $contents;
+        // Build response data manually to ensure contents are included
+        $responseData = $event->toArray();
+        // Overwrite contents with formatted version
+        $responseData['contents'] = $contents;
 
         return response()->json([
             'success' => true,
-            'data' => $event,
+            'data' => $responseData,
         ]);
     }
 

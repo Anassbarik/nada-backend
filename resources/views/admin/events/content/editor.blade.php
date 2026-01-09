@@ -91,12 +91,6 @@
                     </button>
                 </div>
 
-                @if (session()->has('success'))
-                    <x-alert type="success" class="mt-4">
-                        {{ session('success') }}
-                    </x-alert>
-                @endif
-
                 @if ($errors->any())
                     <div class="mt-4">
                         <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

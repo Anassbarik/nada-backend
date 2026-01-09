@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    if (Auth::check() && Auth::user()->isAdmin()) {
+    if (Auth::check() && (Auth::user()->isAdmin() || Auth::user()->isSuperAdmin())) {
         $stats = [
             'revenue' => \App\Models\Booking::whereDate('created_at', today())
                 ->where('status', 'confirmed')
@@ -47,11 +47,21 @@ Route::middleware('auth')->group(function () {
     Route::middleware([\App\Http\Middleware\SetLocale::class, 'role:admin'])->name('admin.')->group(function () {
         // Events
         Route::resource('events', EventController::class);
+        Route::post('events/{event}/duplicate', [EventController::class, 'duplicate'])->name('events.duplicate');
         
         // Event Content
         Route::get('events/{event}/content', [\App\Http\Controllers\Admin\EventContentController::class, 'index'])->name('events.content.index');
         Route::get('events/{event}/content/{pageType}', [\App\Http\Controllers\Admin\EventContentController::class, 'edit'])->name('events.content.edit');
         Route::put('events/{event}/content/{pageType}', [\App\Http\Controllers\Admin\EventContentController::class, 'update'])->name('events.content.update');
+        
+        // Airports
+        Route::get('events/{event}/airports', [\App\Http\Controllers\Admin\AirportController::class, 'index'])->name('events.airports.index');
+        Route::get('events/{event}/airports/create', [\App\Http\Controllers\Admin\AirportController::class, 'create'])->name('events.airports.create');
+        Route::post('events/{event}/airports', [\App\Http\Controllers\Admin\AirportController::class, 'store'])->name('events.airports.store');
+        Route::get('events/{event}/airports/{airport}/edit', [\App\Http\Controllers\Admin\AirportController::class, 'edit'])->name('events.airports.edit');
+        Route::put('events/{event}/airports/{airport}', [\App\Http\Controllers\Admin\AirportController::class, 'update'])->name('events.airports.update');
+        Route::delete('events/{event}/airports/{airport}', [\App\Http\Controllers\Admin\AirportController::class, 'destroy'])->name('events.airports.destroy');
+        Route::post('events/{event}/airports/{airport}/duplicate', [\App\Http\Controllers\Admin\AirportController::class, 'duplicate'])->name('events.airports.duplicate');
         
         // Hotels
         Route::get('events/{event}/hotels', [HotelController::class, 'index'])->name('events.hotels.index');
@@ -60,6 +70,7 @@ Route::middleware('auth')->group(function () {
         Route::get('hotels/{hotel}/edit', [HotelController::class, 'edit'])->name('hotels.edit');
         Route::put('hotels/{hotel}', [HotelController::class, 'update'])->name('hotels.update');
         Route::delete('hotels/{hotel}', [HotelController::class, 'destroy'])->name('hotels.destroy');
+        Route::post('hotels/{hotel}/duplicate', [HotelController::class, 'duplicate'])->name('hotels.duplicate');
         
         // Hotel Images
         Route::get('hotels/{hotel}/images', [\App\Http\Controllers\Admin\HotelImageController::class, 'index'])->name('hotels.images.index');
@@ -75,6 +86,7 @@ Route::middleware('auth')->group(function () {
         Route::get('hotels/{hotel}/packages/{package}/edit', [\App\Http\Controllers\Admin\PackageController::class, 'edit'])->name('hotels.packages.edit');
         Route::put('hotels/{hotel}/packages/{package}', [\App\Http\Controllers\Admin\PackageController::class, 'update'])->name('hotels.packages.update');
         Route::delete('hotels/{hotel}/packages/{package}', [\App\Http\Controllers\Admin\PackageController::class, 'destroy'])->name('hotels.packages.destroy');
+        Route::post('hotels/{hotel}/packages/{package}/duplicate', [\App\Http\Controllers\Admin\PackageController::class, 'duplicate'])->name('hotels.packages.duplicate');
         
         // Bookings
         Route::get('bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
@@ -93,6 +105,12 @@ Route::middleware('auth')->group(function () {
         Route::resource('partners', \App\Http\Controllers\Admin\PartnerController::class);
         Route::patch('partners/{partner}/toggle-active', [\App\Http\Controllers\Admin\PartnerController::class, 'toggleActive'])->name('partners.toggle-active');
         Route::patch('partners/sort-order', [\App\Http\Controllers\Admin\PartnerController::class, 'updateSortOrder'])->name('partners.sort-order');
+        Route::post('partners/{partner}/duplicate', [\App\Http\Controllers\Admin\PartnerController::class, 'duplicate'])->name('partners.duplicate');
+        
+        // Admins (only super-admin can manage)
+        Route::middleware('role:super-admin')->group(function () {
+            Route::resource('admins', \App\Http\Controllers\Admin\AdminController::class);
+        });
         
         // Maintenance
         Route::post('maintenance/toggle', [\App\Http\Controllers\Admin\MaintenanceController::class, 'toggle'])->name('maintenance.toggle');

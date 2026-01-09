@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class Partner extends Model
@@ -13,6 +14,7 @@ class Partner extends Model
         'url',
         'sort_order',
         'active',
+        'created_by',
     ];
 
     protected $casts = [
@@ -30,5 +32,35 @@ class Partner extends Model
         }
         
         return \App\Services\DualStorageService::url($this->logo_path);
+    }
+
+    /**
+     * Get the admin who created this partner.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Check if a user can edit this partner.
+     */
+    public function canBeEditedBy(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        if ($this->created_by && $this->created_by === $user->id) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if a user can delete this partner.
+     */
+    public function canBeDeletedBy(User $user): bool
+    {
+        return $this->canBeEditedBy($user);
     }
 }

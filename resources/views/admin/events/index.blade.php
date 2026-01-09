@@ -47,6 +47,9 @@
               </x-shadcn.badge>
             </x-shadcn.table-cell>
             <x-shadcn.table-cell>
+              @php
+                $canEdit = $event->canBeEditedBy(auth()->user());
+              @endphp
               <div class="flex items-center gap-2">
                 @if(config('app.frontend_url'))
                   <a href="{{ config('app.frontend_url') }}/{{ $event->slug }}" 
@@ -57,36 +60,71 @@
                     <i data-lucide="external-link" class="w-4 h-4"></i>
                   </a>
                 @endif
-                <a href="{{ route('admin.events.edit', $event) }}" 
-                   class="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group"
-                   title="Edit Event">
-                  <i data-lucide="pencil" class="w-4 h-4"></i>
-                </a>
+                @if($canEdit)
+                  <a href="{{ route('admin.events.edit', $event) }}" 
+                     class="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group"
+                     title="Edit Event">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </a>
+                @else
+                  <span class="p-2 rounded-lg text-gray-400 cursor-not-allowed opacity-50"
+                        title="You cannot edit events created by super administrators">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </span>
+                @endif
                 <a href="{{ route('admin.events.content.index', $event) }}" 
-                   class="p-2 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors group"
-                   title="{{ __('content') }}">
+                   class="p-2 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors group {{ !$canEdit ? 'opacity-50' : '' }}"
+                   title="{{ __('content') }} {{ !$canEdit ? '(View Only)' : '' }}">
                   <i data-lucide="file-text" class="w-4 h-4"></i>
                 </a>
                 <a href="{{ route('admin.events.hotels.index', $event) }}" 
-                   class="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors group"
-                   title="{{ __('hotels') }}">
+                   class="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors group {{ !$canEdit ? 'opacity-50' : '' }}"
+                   title="{{ __('hotels') }} {{ !$canEdit ? '(View Only)' : '' }}">
                   <i data-lucide="building" class="w-4 h-4"></i>
                 </a>
-                <form action="{{ route('admin.events.destroy', $event) }}" method="POST" class="inline">
-                  @csrf @method('DELETE')
-                  <button type="submit" 
-                          class="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group"
-                          title="Delete Event"
-                          onclick="return confirm('{{ __('Are you sure you want to delete this event?') }}')">
+                <a href="{{ route('admin.events.airports.index', $event) }}" 
+                   class="p-2 rounded-lg text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors group {{ !$canEdit ? 'opacity-50' : '' }}"
+                   title="Airports {{ !$canEdit ? '(View Only)' : '' }}">
+                  <i data-lucide="plane" class="w-4 h-4"></i>
+                </a>
+                @if($canEdit)
+                  <form action="{{ route('admin.events.duplicate', $event) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" 
+                            class="p-2 rounded-lg text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors group"
+                            title="Duplicate Event"
+                            onclick="return confirm('{{ __('Are you sure you want to duplicate this event?') }}')">
+                      <i data-lucide="copy" class="w-4 h-4"></i>
+                    </button>
+                  </form>
+                  <form action="{{ route('admin.events.destroy', $event) }}" method="POST" class="inline">
+                    @csrf @method('DELETE')
+                    <button type="submit" 
+                            class="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group"
+                            title="Delete Event"
+                            onclick="return confirm('{{ __('Are you sure you want to delete this event?') }}')">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </form>
+                @else
+                  <span class="p-2 rounded-lg text-gray-400 cursor-not-allowed opacity-50"
+                        title="You cannot duplicate events created by super administrators">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                  </span>
+                  <span class="p-2 rounded-lg text-gray-400 cursor-not-allowed opacity-50"
+                        title="You cannot delete events created by super administrators">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
-                </form>
+                  </span>
+                @endif
               </div>
             </x-shadcn.table-cell>
           </x-shadcn.table-row>
           @empty
           <x-shadcn.table-row>
-            <x-shadcn.table-cell colspan="6" class="text-center text-muted-foreground">{{ __('no_events') }}</x-shadcn.table-cell>
+            <x-shadcn.table-cell colspan="6" class="text-center py-8">
+              <p class="text-muted-foreground">{{ __('no_events') }}</p>
+              <p class="text-sm text-muted-foreground mt-2">Get started by creating your first event.</p>
+            </x-shadcn.table-cell>
           </x-shadcn.table-row>
           @endforelse
         </x-shadcn.table-body>

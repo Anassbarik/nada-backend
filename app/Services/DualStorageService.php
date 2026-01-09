@@ -99,12 +99,47 @@ class DualStorageService
 
     /**
      * Get the public URL for a stored file
-     * Always returns /storage/ path since public/storage is directly accessible
+     * Uses Laravel's asset helper to properly handle subdirectories and local development
      */
     public static function url(string $path): string
     {
-        $baseUrl = config('app.url', 'http://localhost');
-        return rtrim($baseUrl, '/') . '/storage/' . ltrim($path, '/');
+        // Use asset() helper which automatically handles the base URL and subdirectories
+        // This works correctly both locally and in production with subdirectories
+        return asset('storage/' . ltrim($path, '/'));
+    }
+
+    /**
+     * Copy a file from one location to another in both storage locations
+     * Returns the new relative path
+     */
+    public static function copy(string $sourcePath, string $destinationPath, string $disk = 'public'): string
+    {
+        if (empty($sourcePath) || !Storage::disk($disk)->exists($sourcePath)) {
+            return $sourcePath; // Return original if source doesn't exist
+        }
+
+        // Generate new filename with timestamp to avoid conflicts
+        $extension = pathinfo($sourcePath, PATHINFO_EXTENSION);
+        $filename = pathinfo($sourcePath, PATHINFO_FILENAME);
+        $newFilename = $filename . '_' . time() . '.' . $extension;
+        $newPath = rtrim($destinationPath, '/') . '/' . $newFilename;
+
+        // Ensure directory exists
+        self::makeDirectory($destinationPath, $disk);
+
+        // Copy in storage/app/public
+        $sourceStoragePath = Storage::disk($disk)->path($sourcePath);
+        $destStoragePath = Storage::disk($disk)->path($newPath);
+        File::copy($sourceStoragePath, $destStoragePath);
+
+        // Copy in public/storage
+        $sourcePublicPath = public_path('storage/' . $sourcePath);
+        $destPublicPath = public_path('storage/' . $newPath);
+        if (File::exists($sourcePublicPath)) {
+            File::copy($sourcePublicPath, $destPublicPath);
+        }
+
+        return $newPath;
     }
 }
 

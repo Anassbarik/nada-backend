@@ -28,7 +28,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // Check if user is admin before redirecting to dashboard
+        // Check if user is admin or super-admin before redirecting to dashboard
         if (!Auth::user()->isAdmin()) {
             Auth::logout();
             $request->session()->invalidate();

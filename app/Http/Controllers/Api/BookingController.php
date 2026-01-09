@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\BookingConfirmation;
 use App\Mail\BookingNotification;
 use App\Models\Booking;
 use App\Models\Event;
@@ -335,8 +336,15 @@ class BookingController extends Controller
                 ]);
             }
 
+            // Set created_by if booking is created by an admin
+            $createdBy = null;
+            if ($user->isAdmin()) {
+                $createdBy = $user->id;
+            }
+
             $bookingData = [
                 'user_id' => $user->id,
+                'created_by' => $createdBy,
                 'event_id' => $event->id,
                 'hotel_id' => $hotel->id,
                 'package_id' => $package->id,
@@ -395,10 +403,17 @@ class BookingController extends Controller
         try {
             $booking->loadMissing(['event', 'hotel', 'package']);
 
+            // Set created_by if booking was created by an admin
+            $createdBy = null;
+            if (Auth::check() && Auth::user()->isAdmin()) {
+                $createdBy = Auth::id();
+            }
+
             $invoice = $booking->invoice()->create([
                 'invoice_number' => 'FAC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
                 'total_amount' => $booking->price ?? 0,
                 'status' => 'draft',
+                'created_by' => $createdBy,
             ]);
 
             $pdf = Pdf::loadView('invoices.template', compact('booking', 'invoice'));
@@ -488,6 +503,33 @@ class BookingController extends Controller
                 'admin_email' => $adminEmail ?? 'not configured',
                 'error_message' => $e->getMessage(),
                 'error_trace' => $e->getTraceAsString(),
+            ]);
+        }
+
+        // Send email confirmation to user
+        $userEmail = $booking->email ?? $booking->guest_email ?? $user->email ?? null;
+        if ($userEmail) {
+            try {
+                Mail::to($userEmail)->send(new BookingConfirmation($booking));
+                Log::info('Booking confirmation email sent to user', [
+                    'booking_id' => $booking->id,
+                    'booking_reference' => $booking->booking_reference,
+                    'user_email' => $userEmail,
+                ]);
+            } catch (\Exception $e) {
+                // Log detailed error but don't fail the booking creation
+                Log::error('Failed to send booking confirmation email to user', [
+                    'booking_id' => $booking->id,
+                    'booking_reference' => $booking->booking_reference,
+                    'user_email' => $userEmail,
+                    'error_message' => $e->getMessage(),
+                    'error_trace' => $e->getTraceAsString(),
+                ]);
+            }
+        } else {
+            Log::warning('Cannot send booking confirmation email: no user email found', [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->booking_reference,
             ]);
         }
 

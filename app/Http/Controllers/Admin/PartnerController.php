@@ -49,6 +49,7 @@ class PartnerController extends Controller
             'url' => $validated['url'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
             'active' => $validated['active'] ?? true,
+            'created_by' => auth()->id(),
         ]);
 
         return redirect()->route('admin.partners.index')
@@ -76,6 +77,11 @@ class PartnerController extends Controller
      */
     public function update(Request $request, Partner $partner)
     {
+        // Check ownership
+        if (!$partner->canBeEditedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this partner.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -109,6 +115,11 @@ class PartnerController extends Controller
      */
     public function destroy(Partner $partner)
     {
+        // Check ownership
+        if (!$partner->canBeDeletedBy(auth()->user())) {
+            abort(403, 'You do not have permission to delete this partner.');
+        }
+
         // Delete logo file
         if ($partner->logo_path) {
             DualStorageService::delete($partner->logo_path, 'public');
@@ -148,5 +159,25 @@ class PartnerController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Duplicate a partner.
+     */
+    public function duplicate(Partner $partner)
+    {
+        $duplicate = $partner->replicate();
+        $duplicate->name = $partner->name . ' (Copy)';
+        $duplicate->created_by = auth()->id();
+        
+        // Copy logo if it exists
+        if ($partner->logo_path) {
+            $duplicate->logo_path = DualStorageService::copy($partner->logo_path, 'partners', 'public');
+        }
+        
+        $duplicate->save();
+
+        return redirect()->route('admin.partners.index')
+            ->with('success', __('Partner duplicated successfully.'));
     }
 }

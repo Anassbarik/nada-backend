@@ -14,16 +14,6 @@
         </a>
     </div>
 
-    @if ($errors->any())
-        <x-alert type="error" class="mb-6">
-            <ul class="list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </x-alert>
-    @endif
-
     <x-shadcn.card class="shadow-lg">
         <x-shadcn.card-content class="p-8">
             <form method="POST" action="{{ route('admin.hotels.packages.store', $hotel) }}" 
@@ -95,6 +85,7 @@
                         <input type="checkbox" x-model="disponibilite" disabled class="rounded" />
                         <span class="text-gray-700">{{ __('disponibilite') }} (<span x-text="chambres_restantes"></span> {{ __('rooms_available') }})</span>
                     </div>
+
                 </div>
                 
                 <div class="flex items-center justify-end mt-8">

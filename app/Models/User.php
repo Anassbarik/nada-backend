@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -23,6 +24,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'phone',
+        'company',
     ];
 
     /**
@@ -53,7 +56,46 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === 'admin' || $this->role === 'super-admin';
+    }
+
+    /**
+     * Check if user is a super admin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super-admin';
+    }
+
+    /**
+     * Check if user has a specific permission.
+     */
+    public function hasPermission(string $resource, string $action): bool
+    {
+        // Super admins have all permissions
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        // Regular admins need explicit permission
+        if ($this->role === 'admin') {
+            return $this->permissions()
+                ->where('resource', $resource)
+                ->where('action', $action)
+                ->exists();
+        }
+
+        return false;
+    }
+
+
+    /**
+     * Get the permissions for the user.
+     */
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'admin_permissions')
+            ->withTimestamps();
     }
 
     /**

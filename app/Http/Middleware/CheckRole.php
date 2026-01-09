@@ -23,7 +23,10 @@ class CheckRole
             return redirect()->route('login');
         }
 
-        if (auth()->user()->role !== $role) {
+        $user = auth()->user();
+        
+        // Allow both admin and super-admin roles
+        if ($role === 'admin' && !in_array($user->role, ['admin', 'super-admin'])) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'Unauthorized. Required role: ' . $role
@@ -37,6 +40,19 @@ class CheckRole
             
             return redirect()->route('login')->withErrors([
                 'email' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page. Seuls les administrateurs peuvent y accéder.'),
+            ]);
+        }
+        
+        // For super-admin role, only super-admin can access
+        if ($role === 'super-admin' && $user->role !== 'super-admin') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Unauthorized. Required role: ' . $role
+                ], 403);
+            }
+            
+            return redirect()->route('dashboard')->withErrors([
+                'error' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page.'),
             ]);
         }
 

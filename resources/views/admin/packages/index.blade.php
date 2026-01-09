@@ -14,29 +14,21 @@
         </a>
     </div>
 
-    {{-- Success/Error Messages --}}
-    @if (session('success'))
-        <x-alert type="success" class="mb-6">
-            {{ session('success') }}
-        </x-alert>
-    @endif
-
-    @if ($errors->any())
-        <x-alert type="error" class="mb-6">
-            <ul class="list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </x-alert>
-    @endif
-
     {{-- New Package Button --}}
     <div class="mb-8">
-        <a href="{{ route('admin.hotels.packages.create', $hotel) }}" 
-           class="btn-logo-primary px-6 py-2 text-white rounded-lg transition-colors inline-block">
-            {{ __('new_package') }}
-        </a>
+        @php
+          $canEdit = $hotel->event->canBeEditedBy(auth()->user());
+        @endphp
+        @if($canEdit)
+          <a href="{{ route('admin.hotels.packages.create', $hotel) }}" 
+             class="btn-logo-primary px-6 py-2 text-white rounded-lg transition-colors inline-block">
+              {{ __('new_package') }}
+          </a>
+        @else
+          <span class="text-gray-400 px-6 py-2 rounded-lg opacity-50 cursor-not-allowed inline-block" title="You cannot modify packages for events created by super administrators">
+              {{ __('new_package') }} (View Only)
+          </span>
+        @endif
     </div>
 
     {{-- Packages Table --}}
@@ -75,17 +67,37 @@
                                 </x-shadcn.badge>
                             </x-shadcn.table-cell>
                             <x-shadcn.table-cell class="space-x-2">
-                                <a href="{{ route('admin.hotels.packages.edit', [$hotel, $package]) }}" 
-                                   class="text-logo-link hover:underline">{{ __('edit') }}</a>
-                                <form method="POST" action="{{ route('admin.hotels.packages.destroy', [$hotel, $package]) }}" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="text-red-600 hover:underline"
-                                            onclick="return confirm('{{ __('Are you sure you want to delete this package?') }}')">
-                                        {{ __('delete') }}
-                                    </button>
-                                </form>
+                                @php
+                                  $canEdit = $hotel->event->canBeEditedBy(auth()->user());
+                                @endphp
+                                @if($canEdit)
+                                  <a href="{{ route('admin.hotels.packages.edit', [$hotel, $package]) }}" 
+                                     class="text-logo-link hover:underline">{{ __('edit') }}</a>
+                                  <form method="POST" action="{{ route('admin.hotels.packages.duplicate', [$hotel, $package]) }}" class="inline">
+                                      @csrf
+                                      <button type="submit" 
+                                              class="text-orange-600 hover:underline"
+                                              onclick="return confirm('{{ __('Are you sure you want to duplicate this package?') }}')"
+                                              title="{{ __('duplicate') }}">
+                                          <i data-lucide="copy" class="w-4 h-4 inline"></i>
+                                      </button>
+                                  </form>
+                                  <form method="POST" action="{{ route('admin.hotels.packages.destroy', [$hotel, $package]) }}" class="inline">
+                                      @csrf
+                                      @method('DELETE')
+                                      <button type="submit" 
+                                              class="text-red-600 hover:underline"
+                                              onclick="return confirm('{{ __('Are you sure you want to delete this package?') }}')">
+                                          {{ __('delete') }}
+                                      </button>
+                                  </form>
+                                @else
+                                  <span class="text-gray-400 opacity-50 cursor-not-allowed" title="You cannot modify packages for events created by super administrators">{{ __('edit') }}</span>
+                                  <span class="text-gray-400 opacity-50 cursor-not-allowed" title="You cannot duplicate packages for events created by super administrators">
+                                      <i data-lucide="copy" class="w-4 h-4 inline"></i>
+                                  </span>
+                                  <span class="text-gray-400 opacity-50 cursor-not-allowed" title="You cannot delete packages for events created by super administrators">{{ __('delete') }}</span>
+                                @endif
                             </x-shadcn.table-cell>
                         </x-shadcn.table-row>
                     @empty
