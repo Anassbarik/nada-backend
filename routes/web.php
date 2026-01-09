@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
         // Event Content
         Route::get('events/{event}/content', [\App\Http\Controllers\Admin\EventContentController::class, 'index'])->name('events.content.index');
         Route::get('events/{event}/content/{pageType}', [\App\Http\Controllers\Admin\EventContentController::class, 'edit'])->name('events.content.edit');
+        Route::put('events/{event}/content/{pageType}', [\App\Http\Controllers\Admin\EventContentController::class, 'update'])->name('events.content.update');
         
         // Hotels
         Route::get('events/{event}/hotels', [HotelController::class, 'index'])->name('events.hotels.index');

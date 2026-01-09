@@ -47,4 +47,36 @@ class EventContentController extends Controller
             'content' => $content,
         ]);
     }
+
+    /**
+     * Update the content for a specific content page.
+     */
+    public function update(Request $request, Event $event, $pageType)
+    {
+        $validPageTypes = ['conditions', 'informations', 'faq'];
+        
+        if (!in_array($pageType, $validPageTypes)) {
+            abort(404, 'Invalid page type.');
+        }
+
+        $validated = $request->validate([
+            'sections' => 'required|array|min:1',
+            'sections.*.title' => 'required|string|max:255',
+            'sections.*.content' => 'required|string',
+        ]);
+
+        EventContent::updateOrCreate(
+            [
+                'event_id' => $event->id,
+                'page_type' => $pageType,
+            ],
+            [
+                'sections' => $validated['sections'],
+            ]
+        );
+
+        return redirect()
+            ->route('admin.events.content.edit', [$event, $pageType])
+            ->with('success', 'Contenu sauvegardé avec succès!');
+    }
 }
