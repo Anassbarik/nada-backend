@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
+// Cache clearing route (secure, requires token from .env)
+Route::get('/clear-cache', [\App\Http\Controllers\CacheController::class, 'clear']);
+
 Route::get('/', function () {
     if (Auth::check() && (Auth::user()->isAdmin() || Auth::user()->isSuperAdmin())) {
         $stats = [

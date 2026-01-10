@@ -54,34 +54,38 @@
                 <div class="mb-6">
                     <x-input-label for="role" value="Role" />
                     <select id="role" name="role" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
-                        <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="admin" {{ old('role', 'admin') === 'admin' ? 'selected' : '' }}>Admin</option>
                         <option value="super-admin" {{ old('role') === 'super-admin' ? 'selected' : '' }}>Super Admin</option>
                     </select>
                     <p class="mt-1 text-sm text-gray-500">Super Admin has all permissions automatically.</p>
                     <x-input-error :messages="$errors->get('role')" class="mt-2" />
                 </div>
 
-                <div id="permissions-section" class="mb-6" style="display: none;">
+                <div id="permissions-section" class="mb-6" data-visible="{{ old('role', 'admin') === 'admin' ? 'true' : 'false' }}">
                     <x-input-label value="Permissions" />
                     <p class="text-sm text-gray-500 mb-4">Select the permissions for this admin:</p>
                     
-                    @foreach($permissionsByResource as $resource => $permissions)
-                        <div class="mb-4 border rounded-lg p-4">
-                            <h4 class="font-semibold mb-2 capitalize">{{ $resource }}</h4>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                @foreach($permissions as $permission)
-                                    <label class="flex items-center">
-                                        <input type="checkbox" 
-                                               name="permissions[]" 
-                                               value="{{ $permission->id }}"
-                                               class="rounded border-gray-300"
-                                               {{ in_array($permission->id, old('permissions', [])) ? 'checked' : '' }}>
-                                        <span class="ml-2 text-sm">{{ $permission->action }}</span>
-                                    </label>
-                                @endforeach
+                    @if(isset($permissionsByResource) && count($permissionsByResource) > 0)
+                        @foreach($permissionsByResource as $resource => $permissions)
+                            <div class="mb-4 border rounded-lg p-4">
+                                <h4 class="font-semibold mb-2 capitalize">{{ $resource }}</h4>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    @foreach($permissions as $permission)
+                                        <label class="flex items-center">
+                                            <input type="checkbox" 
+                                                   name="permissions[]" 
+                                                   value="{{ $permission->id }}"
+                                                   class="rounded border-gray-300"
+                                                   {{ in_array($permission->id, old('permissions', [])) ? 'checked' : '' }}>
+                                            <span class="ml-2 text-sm">{{ $permission->action }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
                             </div>
-                        </div>
-                    @endforeach
+                        @endforeach
+                    @else
+                        <p class="text-sm text-gray-500 italic">No permissions available. Please create permissions first.</p>
+                    @endif
                     <x-input-error :messages="$errors->get('permissions')" class="mt-2" />
                 </div>
 
@@ -97,25 +101,60 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const roleSelect = document.getElementById('role');
-    const permissionsSection = document.getElementById('permissions-section');
-    
-    function togglePermissions() {
-        if (roleSelect.value === 'admin') {
+(function() {
+    function initPermissionsToggle() {
+        const roleSelect = document.getElementById('role');
+        const permissionsSection = document.getElementById('permissions-section');
+        
+        if (!roleSelect || !permissionsSection) {
+            console.error('Required elements not found:', {
+                roleSelect: !!roleSelect,
+                permissionsSection: !!permissionsSection
+            });
+            return;
+        }
+        
+        function showPermissions() {
             permissionsSection.style.display = 'block';
-        } else {
+            permissionsSection.style.visibility = 'visible';
+            permissionsSection.style.opacity = '1';
+            permissionsSection.setAttribute('data-visible', 'true');
+        }
+        
+        function hidePermissions() {
             permissionsSection.style.display = 'none';
-            // Uncheck all permissions when super-admin is selected
+            permissionsSection.style.visibility = 'hidden';
+            permissionsSection.style.opacity = '0';
+            permissionsSection.setAttribute('data-visible', 'false');
+            // Uncheck all permissions
             document.querySelectorAll('input[name="permissions[]"]').forEach(checkbox => {
                 checkbox.checked = false;
             });
         }
+        
+        function togglePermissions() {
+            const selectedRole = roleSelect.value;
+            if (selectedRole === 'admin') {
+                showPermissions();
+            } else {
+                hidePermissions();
+            }
+        }
+        
+        // Set initial state
+        togglePermissions();
+        
+        // Listen for changes
+        roleSelect.addEventListener('change', togglePermissions);
     }
     
-    roleSelect.addEventListener('change', togglePermissions);
-    togglePermissions(); // Initial call
-});
+    // Run when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPermissionsToggle);
+    } else {
+        initPermissionsToggle();
+    }
+})();
 
 function togglePassword(fieldId) {
     const field = document.getElementById(fieldId);
