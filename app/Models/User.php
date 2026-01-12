@@ -79,6 +79,14 @@ class User extends Authenticatable
 
         // Regular admins need explicit permission
         if ($this->role === 'admin') {
+            // Avoid N+1 queries when permissions are already loaded
+            if ($this->relationLoaded('permissions')) {
+                return $this->permissions
+                    ->where('resource', $resource)
+                    ->where('action', $action)
+                    ->isNotEmpty();
+            }
+
             return $this->permissions()
                 ->where('resource', $resource)
                 ->where('action', $action)

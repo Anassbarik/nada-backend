@@ -141,8 +141,10 @@ class BookingController extends Controller
             // Other fields
             'special_instructions' => 'nullable|string',
             'special_requests' => 'nullable|string|max:5000',
+            'booker_is_resident' => 'required|boolean',
             'resident_name_1' => 'nullable|string|max:255',
             'resident_name_2' => 'nullable|string|max:255',
+            'resident_name_3' => 'nullable|string|max:255',
             'terms_accepted' => 'nullable|accepted', // Made nullable for API calls
             'guests_count' => 'nullable|integer|min:1',
             // Price fields - support both price and total
@@ -180,6 +182,41 @@ class BookingController extends Controller
             ], 422);
         }
 
+        // Get package to determine conditional validation for resident names
+        $package = \App\Models\Package::findOrFail($request->package_id);
+        
+        // Add conditional validation for resident names based on package occupants
+        $occupants = (int) $package->occupants;
+        $bookerIsResident = $request->boolean('booker_is_resident');
+        $requiredNames = $occupants - ($bookerIsResident ? 1 : 0);
+
+        // Validate resident names conditionally
+        $residentNameErrors = [];
+        if ($requiredNames >= 1 && empty(trim($request->resident_name_1 ?? ''))) {
+            $residentNameErrors['resident_name_1'] = ['The resident name 1 field is required.'];
+        }
+        if ($requiredNames >= 2 && empty(trim($request->resident_name_2 ?? ''))) {
+            $residentNameErrors['resident_name_2'] = ['The resident name 2 field is required.'];
+        }
+        if ($requiredNames >= 3 && empty(trim($request->resident_name_3 ?? ''))) {
+            $residentNameErrors['resident_name_3'] = ['The resident name 3 field is required.'];
+        }
+
+        if (!empty($residentNameErrors)) {
+            Log::error('Booking resident name validation failed:', [
+                'errors' => $residentNameErrors,
+                'occupants' => $occupants,
+                'booker_is_resident' => $bookerIsResident,
+                'required_names' => $requiredNames,
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $residentNameErrors,
+            ], 422);
+        }
+
         // Handle route model binding vs request parameters
         if ($event && $hotel) {
             // Route: /events/{event:slug}/hotels/{hotel:slug}/bookings
@@ -206,8 +243,7 @@ class BookingController extends Controller
         }
         }
         
-        // Get package
-        $package = \App\Models\Package::findOrFail($request->package_id);
+        // Package is already loaded from validation above
 
         // Check if package belongs to hotel
         if ($package->hotel_id != $hotel->id) {
@@ -357,11 +393,13 @@ class BookingController extends Controller
                 'phone' => $phone,
                 'email' => $email,
                 'special_instructions' => $specialInstructions,
-                'resident_name_1' => $request->resident_name_1 ?? null,
-                'resident_name_2' => $request->resident_name_2 ?? null,
+                'booker_is_resident' => (bool) ($request->booker_is_resident ?? true),
+                'resident_name_1' => trim($request->resident_name_1 ?? '') ?: null,
+                'resident_name_2' => trim($request->resident_name_2 ?? '') ?: null,
+                'resident_name_3' => trim($request->resident_name_3 ?? '') ?: null,
                 'checkin_date' => $checkinDate,
                 'checkout_date' => $checkoutDate,
-                'guests_count' => $request->guests_count ?? $package->occupants,
+                'guests_count' => $package->occupants, // Total occupants (always equals package.occupants)
                 'price' => $total,
                 'payment_type' => $paymentType,
                 'wallet_amount' => $walletAmount,
@@ -547,6 +585,10 @@ class BookingController extends Controller
                     'status' => $booking->status,
                     'full_name' => $booking->full_name ?? $booking->guest_name,
                     'email' => $booking->email ?? $booking->guest_email,
+                    'booker_is_resident' => $booking->booker_is_resident ?? true,
+                    'resident_name_1' => $booking->resident_name_1,
+                    'resident_name_2' => $booking->resident_name_2,
+                    'resident_name_3' => $booking->resident_name_3,
                 ],
                 'payment' => [
                     'payment_type' => $paymentType,

@@ -49,6 +49,7 @@ class HotelController extends Controller
         
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'stars' => 'required|integer|between:1,5',
             'location' => 'required|string|max:255',
             'location_url' => 'nullable|url|max:500',
             'duration' => 'nullable|string|max:255',
@@ -72,6 +73,7 @@ class HotelController extends Controller
         $hotel = new Hotel();
         $hotel->event_id = $event->id;
         $hotel->name = $validated['name'];
+        $hotel->stars = $validated['stars'];
         $hotel->location = $validated['location'];
         $hotel->location_url = $validated['location_url'] ?? null;
         $hotel->duration = $validated['duration'] ?? null;
@@ -130,6 +132,7 @@ class HotelController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'stars' => 'required|integer|between:1,5',
             'location' => 'required|string|max:255',
             'location_url' => 'nullable|url|max:500',
             'duration' => 'nullable|string|max:255',
@@ -151,6 +154,7 @@ class HotelController extends Controller
         }
 
         $hotel->name = $validated['name'];
+        $hotel->stars = $validated['stars'];
         $hotel->location = $validated['location'];
         $hotel->location_url = $validated['location_url'] ?? null;
         $hotel->duration = $validated['duration'] ?? null;

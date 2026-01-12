@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('add_hotel') }} - {{ $event->name }}</h1>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('add_hotel') }} - {{ $event->name }}</h1>
     </div>
 
     <div class="mb-4">
@@ -24,6 +24,20 @@
                             <x-input-label for="name" :value="__('name')" />
                             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus />
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
+                            <x-input-label for="stars" :value="__('stars')" />
+                            <select id="stars" name="stars" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
+                                <option value="" disabled {{ old('stars') ? '' : 'selected' }}>{{ __('Select') }}</option>
+                                @for($i = 1; $i <= 5; $i++)
+                                    <option value="{{ $i }}" {{ (string) old('stars') === (string) $i ? 'selected' : '' }}>
+                                        {{ $i }} ★
+                                    </option>
+                                @endfor
+                            </select>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Hotel category (étoiles)') }}</p>
+                            <x-input-error :messages="$errors->get('stars')" class="mt-2" />
                         </div>
 
                         <div class="mb-4">
@@ -62,7 +76,7 @@
 
                         <div class="mb-4">
                             <x-input-label for="description" :value="__('description')" />
-                            <textarea id="description" name="description" rows="4" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('description') }}</textarea>
+                            <textarea id="description" name="description" rows="4" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('description') }}</textarea>
                             <x-input-error :messages="$errors->get('description')" class="mt-2" />
                         </div>
 
@@ -117,7 +131,7 @@
 
                         <div class="mb-4">
                             <x-input-label for="status" :value="__('status')" />
-                            <select id="status" name="status" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>
+                            <select id="status" name="status" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
                                 <option value="active" {{ old('status') === 'active' ? 'selected' : '' }}>{{ __('active') }}</option>
                                 <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>{{ __('inactive') }}</option>
                             </select>

@@ -2,8 +2,8 @@
 
 @section('content')
 <div class="space-y-6">
-  <div class="flex justify-between items-center">
-    <h1 class="text-4xl font-bold">{{ __('Invoices') }}</h1>
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Invoices') }}</h1>
   </div>
 
   <x-shadcn.card class="shadow-lg">
@@ -27,12 +27,12 @@
               $email = $booking?->guest_email ?: $booking?->email;
             @endphp
             <x-shadcn.table-row hover>
-              <x-shadcn.table-cell class="font-medium">{{ $invoice->invoice_number }}</x-shadcn.table-cell>
-              <x-shadcn.table-cell>
-                <div>{{ $booking?->booking_reference ?? $invoice->booking_id }}</div>
-                <div class="text-xs text-muted-foreground">{{ $booking?->full_name ?? $booking?->guest_name ?? '—' }}</div>
+              <x-shadcn.table-cell class="font-medium break-words">{{ $invoice->invoice_number }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell class="break-words">
+                <div class="break-words">{{ $booking?->booking_reference ?? $invoice->booking_id }}</div>
+                <div class="text-xs text-muted-foreground break-words">{{ $booking?->full_name ?? $booking?->guest_name ?? '—' }}</div>
               </x-shadcn.table-cell>
-              <x-shadcn.table-cell>{{ $email ?? '—' }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell class="break-all">{{ $email ?? '—' }}</x-shadcn.table-cell>
               <x-shadcn.table-cell>{{ number_format((float) $invoice->total_amount, 2, '.', '') }} MAD</x-shadcn.table-cell>
               <x-shadcn.table-cell>
                 <x-shadcn.badge variant="{{ $invoice->status === 'paid' ? 'default' : ($invoice->status === 'sent' ? 'secondary' : 'outline') }}">
@@ -41,20 +41,20 @@
               </x-shadcn.table-cell>
               <x-shadcn.table-cell>{{ $invoice->created_at?->format('Y-m-d') }}</x-shadcn.table-cell>
               <x-shadcn.table-cell>
-                <div class="flex items-center gap-2">
-                  <a href="{{ route('admin.invoices.show', $invoice) }}" class="text-logo-link hover:underline">View</a>
-                  <a href="{{ route('admin.invoices.edit', $invoice) }}" class="text-logo-link hover:underline">Edit</a>
-                  <a href="{{ route('admin.invoices.pdf', $invoice) }}" target="_blank" class="text-logo-link hover:underline">PDF</a>
+                <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                  <a href="{{ route('admin.invoices.show', $invoice) }}" class="text-logo-link hover:underline whitespace-nowrap">View</a>
+                  <a href="{{ route('admin.invoices.edit', $invoice) }}" class="text-logo-link hover:underline whitespace-nowrap">Edit</a>
+                  <a href="{{ route('admin.invoices.pdf', $invoice) }}" target="_blank" class="text-logo-link hover:underline whitespace-nowrap">PDF</a>
 
                   <form method="POST" action="{{ route('admin.invoices.send', $invoice) }}" class="inline">
                     @csrf
-                    <button type="submit" class="text-logo-link hover:underline">Envoyer</button>
+                    <button type="submit" class="text-logo-link hover:underline whitespace-nowrap">Envoyer</button>
                   </form>
 
                   <form method="POST" action="{{ route('admin.invoices.destroy', $invoice) }}" class="inline" onsubmit="return confirm('Delete this invoice?');">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">Delete</button>
+                    <button type="submit" class="text-red-600 hover:text-red-800 transition-colors whitespace-nowrap">Delete</button>
                   </form>
                 </div>
               </x-shadcn.table-cell>

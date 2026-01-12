@@ -16,6 +16,9 @@ class EventController extends Controller
      */
     public function index()
     {
+        // Avoid N+1 permission checks in views that call User::hasPermission()
+        auth()->user()?->loadMissing('permissions');
+
         // Show all events - all admins can view them
         $events = Event::latest()->paginate(15);
         return view('admin.events.index', compact('events'));

@@ -6,7 +6,7 @@
 <div class="space-y-6">
   <div class="flex items-start justify-between gap-4">
     <div>
-      <h1 class="text-4xl font-bold">Edit Invoice {{ $invoice->invoice_number }}</h1>
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Edit Invoice {{ $invoice->invoice_number }}</h1>
       <div class="text-sm text-muted-foreground">
         Booking: {{ $booking?->booking_reference ?? $invoice->booking_id }}
       </div>
@@ -32,7 +32,7 @@
 
         <div>
           <label class="block text-sm font-medium mb-1">Status</label>
-          <select name="status" class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+          <select name="status" class="w-full bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2">
             @foreach(['draft' => 'Draft', 'sent' => 'Sent', 'paid' => 'Paid'] as $value => $label)
               <option value="{{ $value }}" @selected(old('status', $invoice->status) === $value)>{{ $label }}</option>
             @endforeach
@@ -42,7 +42,7 @@
 
         <div>
           <label class="block text-sm font-medium mb-1">Notes</label>
-          <textarea name="notes" rows="6" class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">{{ old('notes', $invoice->notes) }}</textarea>
+          <textarea name="notes" rows="6" class="w-full bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2">{{ old('notes', $invoice->notes) }}</textarea>
           @error('notes') <div class="text-sm text-red-600 mt-1">{{ $message }}</div> @enderror
         </div>
 

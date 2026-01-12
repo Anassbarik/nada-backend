@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('edit_hotel') }}</h1>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('edit_hotel') }}</h1>
     </div>
 
     <div class="mb-4">
@@ -25,6 +25,20 @@
                             <x-input-label for="name" :value="__('name')" />
                             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name', $hotel->name)" required autofocus />
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
+                            <x-input-label for="stars" :value="__('stars')" />
+                            <select id="stars" name="stars" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
+                                <option value="" disabled {{ old('stars', $hotel->stars) ? '' : 'selected' }}>{{ __('Select') }}</option>
+                                @for($i = 1; $i <= 5; $i++)
+                                    <option value="{{ $i }}" {{ (string) old('stars', $hotel->stars) === (string) $i ? 'selected' : '' }}>
+                                        {{ $i }} ★
+                                    </option>
+                                @endfor
+                            </select>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Hotel category (étoiles)') }}</p>
+                            <x-input-error :messages="$errors->get('stars')" class="mt-2" />
                         </div>
 
                         <div class="mb-4">
@@ -77,7 +91,7 @@
 
                         <div class="mb-4">
                             <x-input-label for="description" :value="__('description')" />
-                            <textarea id="description" name="description" rows="4" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('description', $hotel->description) }}</textarea>
+                            <textarea id="description" name="description" rows="4" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('description', $hotel->description) }}</textarea>
                             <x-input-error :messages="$errors->get('description')" class="mt-2" />
                         </div>
 
@@ -129,14 +143,14 @@
                         <div class="mb-4">
                             <div class="flex items-center justify-between">
                                 <x-input-label :value="__('hotel_images')" />
-                                <a href="{{ route('admin.hotels.images.index', $hotel) }}" class="text-logo-link hover:underline text-sm">
+                                <a href="{{ route('admin.hotels.images.index', $hotel) }}" class="text-logo-link hover:underline text-sm px-2">
                                     {{ __('manage_images') }} ({{ $hotel->images->count() }}/10) →
                                 </a>
                             </div>
                             @if($hotel->images->count() > 0)
-                                <div class="mt-2 grid grid-cols-4 gap-2">
+                                <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                                     @foreach($hotel->images->take(4) as $image)
-                                        <img src="{{ $image->url }}" alt="{{ $image->alt_text ?? 'Hotel image' }}" class="h-20 w-full object-cover rounded">
+                                        <img src="{{ $image->url }}" alt="{{ $image->alt_text ?? 'Hotel image' }}" class="h-16 sm:h-20 w-full object-cover rounded">
                                     @endforeach
                                 </div>
                             @else
@@ -146,7 +160,7 @@
 
                         <div class="mb-4">
                             <x-input-label for="status" :value="__('Status')" />
-                            <select id="status" name="status" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>
+                            <select id="status" name="status" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
                                 <option value="active" {{ old('status', $hotel->status) === 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ old('status', $hotel->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
                             </select>

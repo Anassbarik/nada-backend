@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">Create New Airport - {{ $event->name }}</h1>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Create New Airport - {{ $event->name }}</h1>
     </div>
 
     <div class="mb-4">
@@ -46,7 +46,7 @@
 
                     <div class="md:col-span-2">
                         <x-input-label for="description" value="Description" />
-                        <textarea id="description" name="description" rows="3" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description') }}</textarea>
+                        <textarea id="description" name="description" rows="3" class="block mt-1 w-full bg-white text-gray-900 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description') }}</textarea>
                         <p class="mt-1 text-sm text-gray-500">Optional description or additional information</p>
                         <x-input-error :messages="$errors->get('description')" class="mt-2" />
                     </div>
@@ -59,7 +59,7 @@
 
                     <div>
                         <x-input-label for="distance_unit" value="Distance Unit" />
-                        <select id="distance_unit" name="distance_unit" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <select id="distance_unit" name="distance_unit" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="km" {{ old('distance_unit', 'km') === 'km' ? 'selected' : '' }}>Kilometers (km)</option>
                             <option value="miles" {{ old('distance_unit') === 'miles' ? 'selected' : '' }}>Miles</option>
                         </select>
@@ -92,4 +92,5 @@
     </x-shadcn.card>
 </div>
 @endsection
+
 

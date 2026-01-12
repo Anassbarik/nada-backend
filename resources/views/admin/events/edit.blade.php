@@ -2,8 +2,8 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('Edit Event') }}</h1>
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Edit Event') }}</h1>
     </div>
 
     <div class="mb-4">
@@ -82,7 +82,7 @@
 
                         <div class="mb-4">
                             <x-input-label for="description" :value="__('description')" />
-                            <textarea id="description" name="description" rows="4" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('description', $event->description) }}</textarea>
+                            <textarea id="description" name="description" rows="4" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('description', $event->description) }}</textarea>
                             <x-input-error :messages="$errors->get('description')" class="mt-2" />
                         </div>
 
@@ -115,7 +115,7 @@
                         <div class="mb-4">
                             <div class="flex items-center justify-between">
                                 <x-input-label :value="__('Content Pages')" />
-                                <a href="{{ route('admin.events.content.index', $event) }}" class="text-logo-link hover:underline text-sm">
+                                <a href="{{ route('admin.events.content.index', $event) }}" class="text-logo-link hover:underline text-sm px-2">
                                     Manage Content Pages →
                                 </a>
                             </div>
@@ -124,7 +124,7 @@
 
                         <div class="mb-4">
                             <x-input-label for="status" :value="__('Status')" />
-                            <select id="status" name="status" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>
+                            <select id="status" name="status" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
                                 <option value="draft" {{ old('status', $event->status) === 'draft' ? 'selected' : '' }}>Draft</option>
                                 <option value="published" {{ old('status', $event->status) === 'published' ? 'selected' : '' }}>Published</option>
                                 <option value="archived" {{ old('status', $event->status) === 'archived' ? 'selected' : '' }}>Archived</option>

@@ -2,8 +2,8 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('Contenu des Pages') }}: {{ $event->name }}</h1>
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Contenu des Pages') }}: {{ $event->name }}</h1>
     </div>
 
     <div class="mb-4">
@@ -42,9 +42,9 @@
                         @endif
                     </p>
                     @if($canEdit)
-                      <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
+                      <span class="text-logo-link text-sm mt-2 inline-block px-2">Éditer la page →</span>
                     @else
-                      <span class="text-gray-400 text-sm mt-2 inline-block" title="You cannot edit content for events created by super administrators">View Only →</span>
+                      <span class="text-gray-400 text-sm mt-2 inline-block px-2" title="You cannot edit content for events created by super administrators">View Only →</span>
                     @endif
                 </div>
 
@@ -60,9 +60,9 @@
                         @endif
                     </p>
                     @if($canEdit)
-                      <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
+                      <span class="text-logo-link text-sm mt-2 inline-block px-2">Éditer la page →</span>
                     @else
-                      <span class="text-gray-400 text-sm mt-2 inline-block" title="You cannot edit content for events created by super administrators">View Only →</span>
+                      <span class="text-gray-400 text-sm mt-2 inline-block px-2" title="You cannot edit content for events created by super administrators">View Only →</span>
                     @endif
                 </div>
 
@@ -78,9 +78,9 @@
                         @endif
                     </p>
                     @if($canEdit)
-                      <span class="text-logo-link text-sm mt-2 inline-block">Éditer la page →</span>
+                      <span class="text-logo-link text-sm mt-2 inline-block px-2">Éditer la page →</span>
                     @else
-                      <span class="text-gray-400 text-sm mt-2 inline-block" title="You cannot edit content for events created by super administrators">View Only →</span>
+                      <span class="text-gray-400 text-sm mt-2 inline-block px-2" title="You cannot edit content for events created by super administrators">View Only →</span>
                     @endif
                 </div>
             </div>

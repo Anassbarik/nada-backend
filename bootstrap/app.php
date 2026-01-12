@@ -30,5 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Cancel pending bookings that are older than 48 hours
         // Run every hour to check for bookings that need to be cancelled
         $schedule->command('bookings:cancel-pending')->hourly();
+
+        // Keep admin audit logs bounded so queries stay fast and storage doesn't grow unbounded.
+        $schedule->command('admin:prune-logs')->daily()->withoutOverlapping();
     })
     ->create();

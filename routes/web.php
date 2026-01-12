@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\HotelController;
 use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\AdminLogController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -47,7 +48,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Admin Routes (require admin role)
-    Route::middleware([\App\Http\Middleware\SetLocale::class, 'role:admin'])->name('admin.')->group(function () {
+    Route::middleware([\App\Http\Middleware\SetLocale::class, 'role:admin', \App\Http\Middleware\LogAdminActions::class])->name('admin.')->group(function () {
         // Events
         Route::resource('events', EventController::class);
         Route::post('events/{event}/duplicate', [EventController::class, 'duplicate'])->name('events.duplicate');
@@ -113,6 +114,16 @@ Route::middleware('auth')->group(function () {
         // Admins (only super-admin can manage)
         Route::middleware('role:super-admin')->group(function () {
             Route::resource('admins', \App\Http\Controllers\Admin\AdminController::class);
+            Route::get('logs', [AdminLogController::class, 'index'])->name('logs.index');
+            Route::get('logs/{log}', [AdminLogController::class, 'show'])->name('logs.show');
+            
+            // Newsletter (only super-admin can manage)
+            Route::get('newsletter', [\App\Http\Controllers\Admin\NewsletterController::class, 'index'])->name('newsletter.index');
+            Route::get('newsletter/create', [\App\Http\Controllers\Admin\NewsletterController::class, 'create'])->name('newsletter.create');
+            Route::post('newsletter/send', [\App\Http\Controllers\Admin\NewsletterController::class, 'send'])->name('newsletter.send');
+            Route::delete('newsletter/{subscriber}', [\App\Http\Controllers\Admin\NewsletterController::class, 'destroy'])->name('newsletter.destroy');
+            Route::post('newsletter/{subscriber}/unsubscribe', [\App\Http\Controllers\Admin\NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
+            Route::post('newsletter/{subscriber}/resubscribe', [\App\Http\Controllers\Admin\NewsletterController::class, 'resubscribe'])->name('newsletter.resubscribe');
         });
         
         // Maintenance

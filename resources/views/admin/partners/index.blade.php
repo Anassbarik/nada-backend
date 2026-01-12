@@ -2,9 +2,9 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('partners') }}</h1>
-        <a href="{{ route('admin.partners.create') }}" class="btn-logo-primary text-white px-8 py-3 rounded-xl font-semibold transition-all">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('partners') }}</h1>
+        <a href="{{ route('admin.partners.create') }}" class="btn-logo-primary text-white px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-xl font-semibold transition-all text-sm sm:text-base whitespace-nowrap">
             {{ __('create_partner') }}
         </a>
     </div>
@@ -32,10 +32,10 @@
                                     <span class="text-gray-400">{{ __('no_logo') }}</span>
                                 @endif
                             </x-shadcn.table-cell>
-                            <x-shadcn.table-cell class="font-medium">{{ $partner->name }}</x-shadcn.table-cell>
-                            <x-shadcn.table-cell>
+                            <x-shadcn.table-cell class="font-medium break-words">{{ $partner->name }}</x-shadcn.table-cell>
+                            <x-shadcn.table-cell class="break-all">
                                 @if($partner->url)
-                                    <a href="{{ $partner->url }}" target="_blank" rel="noopener noreferrer" class="text-logo-link hover:underline">
+                                    <a href="{{ $partner->url }}" target="_blank" rel="noopener noreferrer" class="text-logo-link hover:underline break-all">
                                         {{ Str::limit($partner->url, 30) }}
                                     </a>
                                 @else
@@ -52,19 +52,21 @@
                                     </button>
                                 </form>
                             </x-shadcn.table-cell>
-                            <x-shadcn.table-cell class="space-x-2">
-                                <a href="{{ route('admin.partners.edit', $partner) }}" class="text-logo-link hover:underline">{{ __('edit') }}</a>
-                                <form method="POST" action="{{ route('admin.partners.duplicate', $partner) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to duplicate this partner?') }}');">
-                                    @csrf
-                                    <button type="submit" class="text-orange-600 hover:underline" title="{{ __('duplicate') }}">
-                                        <i data-lucide="copy" class="w-4 h-4 inline"></i>
-                                    </button>
-                                </form>
-                                <form method="POST" action="{{ route('admin.partners.destroy', $partner) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to delete this partner?') }}');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:underline">{{ __('delete') }}</button>
-                                </form>
+                            <x-shadcn.table-cell>
+                                <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                                    <a href="{{ route('admin.partners.edit', $partner) }}" class="text-logo-link hover:underline whitespace-nowrap">{{ __('edit') }}</a>
+                                    <form method="POST" action="{{ route('admin.partners.duplicate', $partner) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to duplicate this partner?') }}');">
+                                        @csrf
+                                        <button type="submit" class="text-orange-600 hover:underline whitespace-nowrap" title="{{ __('duplicate') }}">
+                                            <i data-lucide="copy" class="w-4 h-4 inline"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('admin.partners.destroy', $partner) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to delete this partner?') }}');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:underline whitespace-nowrap">{{ __('delete') }}</button>
+                                    </form>
+                                </div>
                             </x-shadcn.table-cell>
                         </x-shadcn.table-row>
                     @empty

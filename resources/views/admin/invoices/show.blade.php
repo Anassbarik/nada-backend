@@ -6,7 +6,7 @@
 <div class="space-y-6">
   <div class="flex items-start justify-between gap-4">
     <div>
-      <h1 class="text-4xl font-bold">Invoice {{ $invoice->invoice_number }}</h1>
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Invoice {{ $invoice->invoice_number }}</h1>
       <div class="text-sm text-muted-foreground">
         Booking: {{ $booking?->booking_reference ?? $invoice->booking_id }}
       </div>

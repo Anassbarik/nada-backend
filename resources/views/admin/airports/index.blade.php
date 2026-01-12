@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">Airports - {{ $event->name }}</h1>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Airports - {{ $event->name }}</h1>
         @php
           $canEdit = $event->canBeEditedBy(auth()->user());
         @endphp

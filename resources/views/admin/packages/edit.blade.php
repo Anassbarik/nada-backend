@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('Modifier Package') }} - {{ $hotel->name }}</h1>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Modifier Package') }} - {{ $hotel->name }}</h1>
     </div>
 
     <div class="mb-4">

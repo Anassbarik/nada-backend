@@ -107,12 +107,22 @@ class Event extends Model
 
     /**
      * Check if a user can edit this event.
+     * 
+     * Rules:
+     * - Super-admins can edit everything
+     * - Regular admins can ONLY edit events THEY created
+     * - Events created by super-admins can only be edited by super-admins
      */
     public function canBeEditedBy(User $user): bool
     {
         // Super-admin can edit everything
         if ($user->isSuperAdmin()) {
             return true;
+        }
+
+        // Non-admins cannot edit
+        if (!$user->isAdmin()) {
+            return false;
         }
 
         // If event was created by a super admin, only super admins can edit it
@@ -123,8 +133,8 @@ class Event extends Model
             }
         }
 
-        // Creator can edit their own resources
-        if ($this->created_by && $this->created_by === $user->id) {
+        // Regular admins can ONLY edit their own events
+        if ($this->created_by && (int) $this->created_by === (int) $user->id) {
             return true;
         }
 

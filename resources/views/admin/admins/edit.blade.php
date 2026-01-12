@@ -2,8 +2,8 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">Edit Admin: {{ $admin->name }}</h1>
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Edit Admin: {{ $admin->name }}</h1>
     </div>
 
     <div class="mb-4">
@@ -55,7 +55,7 @@
 
                 <div class="mb-6">
                     <x-input-label for="role" value="Role" />
-                    <select id="role" name="role" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
+                    <select id="role" name="role" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm" required>
                         <option value="admin" {{ old('role', $admin->role) === 'admin' ? 'selected' : '' }}>Admin</option>
                         <option value="super-admin" {{ old('role', $admin->role) === 'super-admin' ? 'selected' : '' }}>Super Admin</option>
                     </select>

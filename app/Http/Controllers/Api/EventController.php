@@ -134,9 +134,48 @@ class EventController extends Controller
         // Format contents by page_type BEFORE converting to array
         $contents = [];
         foreach ($event->contents as $content) {
+            $sections = $content->sections ?? [];
+            
+            // Format sections to ensure proper structure (title and points)
+            $formattedSections = [];
+            foreach ($sections as $section) {
+                // Handle legacy content field - convert to points if needed
+                $points = $section['points'] ?? [];
+                if (empty($points) && isset($section['content'])) {
+                    $contentText = $section['content'] ?? '';
+                    $points = [];
+                    
+                    // Split by newlines and filter lines
+                    $lines = explode("\n", $contentText);
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if (!empty($line)) {
+                            // Remove dash prefixes (hyphen, en-dash, em-dash) if present
+                            $point = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', $line);
+                            $point = trim($point);
+                            if (!empty($point)) {
+                                $points[] = $point;
+                            }
+                        }
+                    }
+                    
+                    // If no points were found, use the original content as a single point
+                    if (empty($points) && !empty($contentText)) {
+                        $cleanedContent = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($contentText));
+                        if (!empty($cleanedContent)) {
+                            $points[] = $cleanedContent;
+                        }
+                    }
+                }
+                
+                $formattedSections[] = [
+                    'title' => $section['title'] ?? '',
+                    'points' => $points,
+                ];
+            }
+            
             $contents[$content->page_type] = [
-                'content' => $content->content ?? null,
-                'sections' => $content->sections ?? [],
+                'sections' => $formattedSections,
             ];
         }
 
@@ -197,6 +236,45 @@ class EventController extends Controller
             ], 404);
         }
 
+        // Format sections with points structure
+        $sections = $content->sections ?? [];
+        $formattedSections = [];
+        foreach ($sections as $section) {
+            // Handle legacy content field - convert to points if needed
+            $points = $section['points'] ?? [];
+            if (empty($points) && isset($section['content'])) {
+                $contentText = $section['content'] ?? '';
+                $points = [];
+                
+                // Split by newlines and filter lines
+                $lines = explode("\n", $contentText);
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if (!empty($line)) {
+                        // Remove dash prefixes (hyphen, en-dash, em-dash) if present
+                        $point = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', $line);
+                        $point = trim($point);
+                        if (!empty($point)) {
+                            $points[] = $point;
+                        }
+                    }
+                }
+                
+                // If no points were found, use the original content as a single point
+                if (empty($points) && !empty($contentText)) {
+                    $cleanedContent = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($contentText));
+                    if (!empty($cleanedContent)) {
+                        $points[] = $cleanedContent;
+                    }
+                }
+            }
+            
+            $formattedSections[] = [
+                'title' => $section['title'] ?? '',
+                'points' => $points,
+            ];
+        }
+        
         return response()->json([
             'success' => true,
             'data' => [
@@ -206,7 +284,7 @@ class EventController extends Controller
                     'slug' => $event->slug,
                 ],
                 'type' => $type,
-                'content' => $content->content ?? $content->sections ?? '',
+                'sections' => $formattedSections,
             ],
         ]);
     }

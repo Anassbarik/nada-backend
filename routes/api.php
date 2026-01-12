@@ -35,6 +35,11 @@ Route::get('/hotels', [HotelController::class, 'listAll']); // List all hotels
 // Partners
 Route::get('/partners', [\App\Http\Controllers\Api\PartnerController::class, 'apiIndex']);
 
+// Newsletter (public)
+Route::post('/newsletter/subscribe', [\App\Http\Controllers\Api\NewsletterController::class, 'subscribe'])->middleware('throttle:5,1');
+Route::post('/newsletter/unsubscribe', [\App\Http\Controllers\Api\NewsletterController::class, 'unsubscribe'])->middleware('throttle:5,1');
+Route::get('/newsletter/unsubscribe', [\App\Http\Controllers\Api\NewsletterController::class, 'unsubscribeGet'])->name('newsletter.unsubscribe.get');
+
 // Authentication routes (public, with rate limiting)
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1'); // 5 attempts per minute
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1'); // 5 attempts per minute

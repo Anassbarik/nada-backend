@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('Éditer') }}: {{ $pageName }} - {{ $event->name }}</h1>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Éditer') }}: {{ $pageName }} - {{ $event->name }}</h1>
     </div>
 
     <div class="mb-4">
@@ -59,14 +59,69 @@
                                     </div>
                                     
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
-                                        <textarea name="sections[{{ $index }}][content]"
-                                                  rows="4"
-                                                  class="block w-full border-gray-300 rounded-md shadow-sm"
-                                                  placeholder="Contenu de la section..."
-                                                  required>{{ old("sections.{$index}.content", $section['content'] ?? '') }}</textarea>
-                                        @error("sections.{$index}.content") 
-                                            <span class="text-red-500 text-xs">{{ $message }}</span> 
+                                        <div class="flex items-center justify-between mb-2">
+                                            <label class="block text-sm font-medium text-gray-700">Points/Arguments</label>
+                                            <button type="button" 
+                                                    class="add-point-btn text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                                    data-section-index="{{ $index }}">
+                                                + Ajouter Point
+                                            </button>
+                                        </div>
+                                        <div class="points-container space-y-2" data-section-index="{{ $index }}">
+                                            @php
+                                                $points = $section['points'] ?? [];
+                                                // If points is empty but content exists, parse it
+                                                if (empty($points) && isset($section['content'])) {
+                                                    $contentText = $section['content'] ?? '';
+                                                    $lines = explode("\n", $contentText);
+                                                    foreach ($lines as $line) {
+                                                        $line = trim($line);
+                                                        if (!empty($line)) {
+                                                            // Remove dash prefixes (hyphen, en-dash, em-dash) if present
+                                                            $point = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', $line);
+                                                            $point = trim($point);
+                                                            if (!empty($point)) {
+                                                                $points[] = $point;
+                                                            }
+                                                        }
+                                                    }
+                                                    if (empty($points) && !empty($contentText)) {
+                                                        $cleanedContent = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($contentText));
+                                                        if (!empty($cleanedContent)) {
+                                                            $points[] = $cleanedContent;
+                                                        }
+                                                    }
+                                                }
+                                                // Clean existing points to remove any dash prefixes
+                                                $points = array_map(function($point) {
+                                                    return preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($point));
+                                                }, $points);
+                                                // Ensure we have at least one point
+                                                if (empty($points)) {
+                                                    $points = [''];
+                                                }
+                                            @endphp
+                                            @foreach($points as $pointIndex => $point)
+                                                <div class="point-item flex items-center gap-2">
+                                                    <input type="text" 
+                                                           name="sections[{{ $index }}][points][{{ $pointIndex }}]"
+                                                           value="{{ old("sections.{$index}.points.{$pointIndex}", $point) }}"
+                                                           class="flex-1 bg-white text-gray-900 border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm"
+                                                           placeholder="Point {{ $pointIndex + 1 }}..."
+                                                           required>
+                                                    <button type="button" 
+                                                            class="remove-point-btn text-red-600 hover:text-red-800 text-sm font-medium px-2"
+                                                            @if(count($points) <= 1) style="display: none;" @endif>
+                                                        Supprimer
+                                                    </button>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                        @error("sections.{$index}.points") 
+                                            <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
+                                        @enderror
+                                        @error("sections.{$index}.points.*") 
+                                            <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
                                         @enderror
                                     </div>
                                 </div>
@@ -138,12 +193,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
-                    <textarea name="sections[${sectionIndex}][content]"
-                              rows="4"
-                              class="block w-full border-gray-300 rounded-md shadow-sm"
-                              placeholder="Contenu de la section..."
-                              required></textarea>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Points/Arguments</label>
+                        <button type="button" 
+                                class="add-point-btn text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                data-section-index="${sectionIndex}">
+                            + Ajouter Point
+                        </button>
+                    </div>
+                    <div class="points-container space-y-2" data-section-index="${sectionIndex}">
+                        <div class="point-item flex items-center gap-2">
+                            <input type="text" 
+                                   name="sections[${sectionIndex}][points][0]"
+                                   class="flex-1 bg-white text-gray-900 border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm"
+                                   placeholder="Point 1..."
+                                   required>
+                            <button type="button" 
+                                    class="remove-point-btn text-red-600 hover:text-red-800 text-sm font-medium px-2"
+                                    style="display: none;">
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -194,6 +265,89 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.classList.contains('remove-section-btn')) {
             removeSection(e.target);
         }
+    });
+    
+    // Add point functionality
+    function addPoint(sectionIndex) {
+        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"]`);
+        if (!pointsContainer) return;
+        
+        const pointIndex = pointsContainer.querySelectorAll('.point-item').length;
+        const pointHtml = `
+            <div class="point-item flex items-center gap-2">
+                <input type="text" 
+                       name="sections[${sectionIndex}][points][${pointIndex}]"
+                       class="flex-1 bg-white text-gray-900 border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm"
+                       placeholder="Point ${pointIndex + 1}..."
+                       required>
+                <button type="button" 
+                        class="remove-point-btn text-red-600 hover:text-red-800 text-sm font-medium px-2">
+                    Supprimer
+                </button>
+            </div>
+        `;
+        
+        pointsContainer.insertAdjacentHTML('beforeend', pointHtml);
+        updateRemoveButtonsVisibility(sectionIndex);
+    }
+    
+    // Remove point functionality
+    function removePoint(button) {
+        const pointItem = button.closest('.point-item');
+        const pointsContainer = pointItem.closest('.points-container');
+        const sectionIndex = pointsContainer.getAttribute('data-section-index');
+        
+        pointItem.remove();
+        
+        // Re-index remaining points
+        reindexPoints(sectionIndex);
+        updateRemoveButtonsVisibility(sectionIndex);
+    }
+    
+    // Re-index points to ensure sequential array keys
+    function reindexPoints(sectionIndex) {
+        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"]`);
+        if (!pointsContainer) return;
+        
+        const pointItems = pointsContainer.querySelectorAll('.point-item');
+        pointItems.forEach((item, index) => {
+            const input = item.querySelector('input[type="text"]');
+            if (input) {
+                input.name = `sections[${sectionIndex}][points][${index}]`;
+                input.placeholder = `Point ${index + 1}...`;
+            }
+        });
+    }
+    
+    // Update remove button visibility (hide if only one point remains)
+    function updateRemoveButtonsVisibility(sectionIndex) {
+        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"]`);
+        if (!pointsContainer) return;
+        
+        const pointItems = pointsContainer.querySelectorAll('.point-item');
+        const removeButtons = pointsContainer.querySelectorAll('.remove-point-btn');
+        
+        removeButtons.forEach(btn => {
+            btn.style.display = pointItems.length > 1 ? '' : 'none';
+        });
+    }
+    
+    // Handle add point button clicks
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('add-point-btn')) {
+            const sectionIndex = e.target.getAttribute('data-section-index');
+            addPoint(sectionIndex);
+        }
+        
+        if (e.target.classList.contains('remove-point-btn')) {
+            removePoint(e.target);
+        }
+    });
+    
+    // Initialize remove button visibility for existing sections
+    document.querySelectorAll('.points-container').forEach(container => {
+        const sectionIndex = container.getAttribute('data-section-index');
+        updateRemoveButtonsVisibility(sectionIndex);
     });
 });
 </script>

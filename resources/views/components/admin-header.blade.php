@@ -50,7 +50,7 @@
                             <div class="text-sm font-medium text-gray-900">{{ Auth::user()->name }}</div>
                             <div class="text-xs text-gray-500">{{ Auth::user()->email }}</div>
                         </div>
-                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500"></i>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 ml-3"></i>
                     </button>
                 </x-slot>
 

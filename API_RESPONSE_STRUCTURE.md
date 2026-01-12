@@ -202,54 +202,54 @@
     ],
     "contents": {
       "conditions": {
-        "hero_image": "https://example.com/storage/events/1/conditions-hero.jpg",
-        "hero_image_path": "events/1/conditions-hero.jpg",
-        "content": "Simple text content (if using content field instead of sections)",
         "sections": [
           {
-            "type": "heading",
-            "content": "Terms and Conditions"
+            "title": "Terms and Conditions",
+            "points": [
+              "Reservation modifications must be requested in writing via email",
+              "Cancellations made 30 days before the event will receive a full refund",
+              "Cancellations made less than 30 days before will incur a 50% cancellation fee"
+            ]
           },
           {
-            "type": "paragraph",
-            "content": "Lorem ipsum dolor sit amet..."
-          },
-          {
-            "type": "list",
-            "items": [
-              "Item 1",
-              "Item 2",
-              "Item 3"
+            "title": "Payment Terms",
+            "points": [
+              "Payment must be made in full at the time of booking",
+              "We accept credit cards and bank transfers",
+              "All prices are in MAD and include taxes"
             ]
           }
         ]
       },
       "info": {
-        "hero_image": "https://example.com/storage/events/1/info-hero.jpg",
-        "hero_image_path": "events/1/info-hero.jpg",
         "sections": [
           {
-            "type": "heading",
-            "content": "Event Information"
+            "title": "Event Information",
+            "points": [
+              "The event will take place from February 2nd to February 7th, 2026",
+              "Location: Exhibition Center, Dakhla, Morocco",
+              "Registration opens at 8:00 AM daily"
+            ]
           },
           {
-            "type": "paragraph",
-            "content": "Event details..."
+            "title": "Transportation",
+            "points": [
+              "Shuttle service available from hotels to venue",
+              "Free parking available at the venue",
+              "Airport transfers can be arranged"
+            ]
           }
         ]
       },
       "faq": {
-        "hero_image": "https://example.com/storage/events/1/faq-hero.jpg",
-        "hero_image_path": "events/1/faq-hero.jpg",
         "sections": [
           {
-            "type": "heading",
-            "content": "Frequently Asked Questions"
-          },
-          {
-            "type": "faq_item",
-            "question": "What is the event about?",
-            "answer": "This event is about..."
+            "title": "General Questions",
+            "points": [
+              "What is the event about? - This event showcases seafood industry innovations",
+              "Who can attend? - The event is open to industry professionals and registered guests",
+              "Is there parking available? - Yes, free parking is available at the venue"
+            ]
           }
         ]
       }
@@ -318,19 +318,30 @@ The `contents` object contains content for different page types:
 - `faq`: Frequently asked questions page
 
 **Each Content Object Contains:**
-- `hero_image`: Full URL to the hero image
-- `hero_image_path`: Storage path to the hero image
-- `content`: Simple text content (nullable, used for simple text-based content)
-- `sections`: Array of content sections (structure varies by page type, used for structured content)
+- `sections`: Array of content sections, each with a title and points
 
-**Section Types:**
-- `heading`: Section heading
-- `paragraph`: Text paragraph
-- `list`: List of items
-- `faq_item`: FAQ question/answer pair
-- Custom types as needed
+**Section Structure:**
+Each section is an object with:
+- `title`: String - The section title/heading
+- `points`: Array of strings - List of points/arguments for this section
 
-**Note:** If a page type doesn't exist, it won't be in the `contents` object. Always check if the key exists before accessing.
+**Example Section:**
+```json
+{
+  "title": "Terms and Conditions",
+  "points": [
+    "Reservation modifications must be requested in writing via email",
+    "Cancellations made 30 days before the event will receive a full refund",
+    "Cancellations made less than 30 days before will incur a 50% cancellation fee"
+  ]
+}
+```
+
+**Important Notes:**
+- Points are stored without dash/bullet prefixes (e.g., no "-" or "–" at the start)
+- The frontend should handle adding bullet points or dashes when displaying
+- Each section must have at least one point
+- If a page type doesn't exist, it won't be in the `contents` object. Always check if the key exists before accessing
 
 **Airports Array:**
 - Contains all active airports for the event
@@ -401,13 +412,41 @@ Where `type` can be: `conditions`, `info`, `informations`, or `faq`
     "event": {
       "id": 1,
       "name": "Seafood4Africa",
-      "slug": "seafood4africa"
+      "slug": "seafood4africa",
+      "venue": "Exhibition Center",
+      "start_date": "2026-02-02",
+      "end_date": "2026-02-07"
     },
     "type": "conditions",
-    "content": "Content text or JSON string of sections"
+    "page_type": "conditions",
+    "sections": [
+      {
+        "title": "Terms and Conditions",
+        "points": [
+          "Reservation modifications must be requested in writing via email",
+          "Cancellations made 30 days before the event will receive a full refund",
+          "Cancellations made less than 30 days before will incur a 50% cancellation fee"
+        ]
+      },
+      {
+        "title": "Payment Terms",
+        "points": [
+          "Payment must be made in full at the time of booking",
+          "We accept credit cards and bank transfers"
+        ]
+      }
+    ]
   }
 }
 ```
+
+**Response Fields:**
+- `event`: Basic event information (id, name, slug, venue, dates)
+- `type`: The requested content type (conditions, info, faq)
+- `page_type`: The database page type (conditions, informations, faq)
+- `sections`: Array of sections, each containing:
+  - `title`: Section title/heading
+  - `points`: Array of strings (points/arguments for this section)
 
 ---
 

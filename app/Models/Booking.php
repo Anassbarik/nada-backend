@@ -26,6 +26,8 @@ class Booking extends Model
         'special_instructions',
         'resident_name_1',
         'resident_name_2',
+        'resident_name_3',
+        'booker_is_resident',
         'guest_name',
         'guest_email',
         'guest_phone',
@@ -54,6 +56,7 @@ class Booking extends Model
         'bank_amount' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'refunded_at' => 'datetime',
+        'booker_is_resident' => 'boolean',
     ];
 
     protected static function boot()

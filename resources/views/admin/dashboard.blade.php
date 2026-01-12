@@ -5,10 +5,10 @@
   {{-- Maintenance Mode Toggle --}}
   <x-shadcn.card class="shadow-lg border-l-4" style="border-left-color: #f59e0b;">
     <x-shadcn.card-content class="p-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-lg font-semibold mb-1">Maintenance Mode</h3>
-          <p class="text-sm text-muted-foreground">Control maintenance status for the frontend application</p>
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <h3 class="text-base sm:text-lg font-semibold mb-1 break-words">Maintenance Mode</h3>
+          <p class="text-xs sm:text-sm text-muted-foreground break-words">Control maintenance status for the frontend application</p>
         </div>
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-3">
@@ -58,15 +58,15 @@
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     <x-shadcn.card class="border-0 shadow-lg hover:shadow-xl transition-all" style="border-top: 4px solid #00adf1;">
       <x-shadcn.card-content class="p-8 text-center">
-        <div class="text-3xl font-bold mb-2" style="color: #00adf1;">{{ number_format($stats['revenue'], 2) }} MAD</div>
-        <div class="text-muted-foreground font-medium">Revenue Today</div>
+        <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 break-words" style="color: #00adf1;">{{ number_format($stats['revenue'], 2) }} MAD</div>
+        <div class="text-xs sm:text-sm text-muted-foreground font-medium">Revenue Today</div>
       </x-shadcn.card-content>
     </x-shadcn.card>
     
     <x-shadcn.card class="border-0 shadow-lg hover:shadow-xl transition-all" style="border-top: 4px solid #83ce2f;">
-      <x-shadcn.card-content class="p-8 text-center">
-        <div class="text-3xl font-bold mb-2" style="color: #83ce2f;">{{ $stats['bookings'] }}</div>
-        <div class="text-muted-foreground font-medium">New Bookings</div>
+      <x-shadcn.card-content class="p-4 sm:p-6 lg:p-8 text-center">
+        <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 break-words" style="color: #83ce2f;">{{ $stats['bookings'] }}</div>
+        <div class="text-xs sm:text-sm text-muted-foreground font-medium">New Bookings</div>
       </x-shadcn.card-content>
     </x-shadcn.card>
   </div>

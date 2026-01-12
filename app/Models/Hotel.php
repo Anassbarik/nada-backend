@@ -12,6 +12,7 @@ class Hotel extends Model
     protected $fillable = [
         'event_id',
         'name',
+        'stars',
         'slug',
         'location',
         'location_url',
@@ -26,6 +27,7 @@ class Hotel extends Model
     ];
 
     protected $casts = [
+        'stars' => 'integer',
         'rating' => 'decimal:2',
         'inclusions' => 'array',
     ];

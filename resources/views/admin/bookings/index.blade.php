@@ -2,20 +2,20 @@
 
 @section('content')
 <div class="space-y-6">
-  <div class="flex justify-between items-center">
-    <h1 class="text-4xl font-bold">{{ __('Bookings') }}</h1>
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Bookings') }}</h1>
   </div>
 
   {{-- Filters --}}
   <x-shadcn.card class="shadow-lg">
     <x-shadcn.card-content class="p-6">
-      <form method="GET" action="{{ route('admin.bookings.index') }}" class="flex gap-4 flex-wrap">
-        <div class="flex-1 min-w-[200px]">
+      <form method="GET" action="{{ route('admin.bookings.index') }}" class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <div class="flex-1 min-w-0">
           <input type="text" name="search" placeholder="Search by reference, name, email, phone..." value="{{ request('search') }}" 
-                 class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" style="focus:border-color: #00adf1; focus:ring-color: #00adf1;">
+                 class="w-full bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm sm:text-base" style="focus:border-color: #00adf1; focus:ring-color: #00adf1;">
         </div>
-        <div>
-          <select name="status" class="border border-gray-300 rounded-md shadow-sm px-3 py-2" style="focus:border-color: #00adf1; focus:ring-color: #00adf1;">
+        <div class="w-full sm:w-auto">
+          <select name="status" class="w-full sm:w-auto bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm sm:text-base" style="focus:border-color: #00adf1; focus:ring-color: #00adf1;">
             <option value="">All Statuses</option>
             <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
             <option value="confirmed" {{ request('status') === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
@@ -24,16 +24,16 @@
             <option value="refunded" {{ request('status') === 'refunded' ? 'selected' : '' }}>Remboursé</option>
           </select>
         </div>
-        <div>
-          <select name="event_id" class="border border-gray-300 rounded-md shadow-sm px-3 py-2" style="focus:border-color: #00adf1; focus:ring-color: #00adf1;">
+        <div class="w-full sm:w-auto">
+          <select name="event_id" class="w-full sm:w-auto bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm sm:text-base" style="focus:border-color: #00adf1; focus:ring-color: #00adf1;">
             <option value="">All Events</option>
             @foreach($events as $event)
               <option value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>{{ $event->name }}</option>
             @endforeach
           </select>
         </div>
-        <button type="submit" class="text-white px-6 py-2 rounded-md font-semibold transition-all" style="background-color: #00adf1;" onmouseover="this.style.backgroundColor='#0099d8'" onmouseout="this.style.backgroundColor='#00adf1'">Filter</button>
-        <a href="{{ route('admin.bookings.index') }}" class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all">Clear</a>
+        <button type="submit" class="text-white px-4 sm:px-6 py-2 rounded-md font-semibold transition-all text-sm sm:text-base whitespace-nowrap" style="background-color: #00adf1;" onmouseover="this.style.backgroundColor='#0099d8'" onmouseout="this.style.backgroundColor='#00adf1'">Filter</button>
+        <a href="{{ route('admin.bookings.index') }}" class="px-4 sm:px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all text-sm sm:text-base text-center whitespace-nowrap">Clear</a>
       </form>
     </x-shadcn.card-content>
   </x-shadcn.card>
@@ -66,14 +66,14 @@
                   <i data-lucide="chevron-down" id="icon-{{ $booking->id }}" class="w-5 h-5 transition-transform"></i>
                 </button>
               </x-shadcn.table-cell>
-              <x-shadcn.table-cell class="font-medium">{{ $booking->booking_reference ?? 'N/A' }}</x-shadcn.table-cell>
-              <x-shadcn.table-cell>
-                <div>{{ $booking->full_name ?? $booking->guest_name ?? 'N/A' }}</div>
-                <div class="text-xs text-muted-foreground">{{ $booking->email ?? $booking->guest_email ?? '-' }}</div>
+              <x-shadcn.table-cell class="font-medium break-words">{{ $booking->booking_reference ?? 'N/A' }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell class="break-words">
+                <div class="break-words">{{ $booking->full_name ?? $booking->guest_name ?? 'N/A' }}</div>
+                <div class="text-xs text-muted-foreground break-all">{{ $booking->email ?? $booking->guest_email ?? '-' }}</div>
               </x-shadcn.table-cell>
-              <x-shadcn.table-cell>{{ $booking->event->name ?? 'N/A' }}</x-shadcn.table-cell>
-              <x-shadcn.table-cell>{{ $booking->hotel->name ?? 'N/A' }}</x-shadcn.table-cell>
-              <x-shadcn.table-cell>{{ $booking->package->nom_package ?? 'N/A' }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell class="break-words">{{ $booking->event->name ?? 'N/A' }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell class="break-words">{{ $booking->hotel->name ?? 'N/A' }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell class="break-words">{{ $booking->package->nom_package ?? 'N/A' }}</x-shadcn.table-cell>
               <x-shadcn.table-cell>
                 @php
                   $bookingPrice = $booking->price ?? ($booking->package->prix_ttc ?? null);
@@ -163,7 +163,7 @@
                   <form method="POST" action="{{ route('admin.bookings.updateStatus', $booking) }}" class="inline">
                     @csrf
                     @method('PATCH')
-                    <select name="status" onchange="this.form.submit()" class="text-xs border border-gray-300 rounded px-2 py-1" {{ $booking->status === 'refunded' ? 'disabled' : '' }}>
+                    <select name="status" onchange="this.form.submit()" class="text-xs bg-white text-gray-900 border border-gray-300 rounded px-2 py-1" {{ $booking->status === 'refunded' ? 'disabled' : '' }}>
                       <option value="pending" {{ $booking->status === 'pending' ? 'selected' : '' }}>Pending</option>
                       <option value="confirmed" {{ $booking->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
                       <option value="paid" {{ $booking->status === 'paid' ? 'selected' : '' }}>Paid</option>
@@ -195,7 +195,7 @@
             {{-- Expanded Details Row --}}
             <x-shadcn.table-row id="details-{{ $booking->id }}" class="hidden">
               <x-shadcn.table-cell colspan="12" class="bg-gray-50">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs sm:text-sm p-4">
                   {{-- Client Information --}}
                   <div class="space-y-2">
                     <h4 class="font-semibold mb-2">Client Information</h4>
@@ -453,7 +453,7 @@
               max="{{ $totalPrice }}"
               value="{{ $totalPrice }}"
               required
-              class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:border-blue-500 focus:ring-blue-500">
+              class="w-full bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:border-blue-500 focus:ring-blue-500">
             <p class="text-xs text-gray-500 mt-1">Maximum: {{ number_format($totalPrice, 2, '.', '') }} MAD</p>
           </div>
 
@@ -466,7 +466,7 @@
               name="notes"
               rows="3"
               maxlength="1000"
-              class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+              class="w-full bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
               placeholder="Raison du remboursement, détails, etc."></textarea>
           </div>
         </div>

@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('Add Night Price') }} - {{ $hotel->name }}</h1>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Add Night Price') }} - {{ $hotel->name }}</h1>
     </div>
 
     <div class="mb-4">
@@ -41,7 +41,7 @@
 
                 <div class="mb-4">
                     <x-input-label for="status" :value="__('Status')" />
-                    <select id="status" name="status" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
+                    <select id="status" name="status" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm" required>
                         <option value="active" {{ old('status') === 'active' ? 'selected' : '' }}>Active</option>
                         <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
                     </select>

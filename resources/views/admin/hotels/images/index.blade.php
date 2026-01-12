@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('Hotel Images') }}: {{ $hotel->name }}</h1>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Hotel Images') }}: {{ $hotel->name }}</h1>
     </div>
 
     <div class="mb-4">
@@ -48,7 +48,7 @@
                 <div class="mb-2 text-sm text-gray-600">
                     <p>💡 Drag and drop images to reorder them</p>
                 </div>
-                <div class="grid grid-cols-3 gap-4" 
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" 
                      x-data="{
                          draggedId: null,
                          draggedOverIndex: null,
@@ -148,10 +148,10 @@
                             </div>
                             <img src="{{ $image->url }}" 
                                  alt="{{ $image->alt_text ?? 'Hotel image' }}" 
-                                 class="w-full h-48 object-cover"
+                                 class="w-full h-40 sm:h-48 object-cover"
                                  draggable="false">
                             
-                            <div class="delete-button-container absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                            <div class="delete-button-container absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20"
                                  @dragstart.stop.prevent
                                  @dragover.stop
                                  @dragend.stop>
@@ -162,7 +162,7 @@
                                             onclick="event.stopPropagation(); return confirm('Are you sure you want to delete this image?');"
                                             draggable="false"
                                             style="pointer-events: auto; z-index: 30; position: relative;"
-                                            class="bg-red-500 hover:bg-red-700 text-white p-2 rounded-full text-xs cursor-pointer">
+                                            class="bg-red-500 hover:bg-red-700 active:bg-red-800 text-white p-2 rounded-full text-xs cursor-pointer touch-manipulation">
                                         🗑️
                                     </button>
                                 </form>
@@ -182,7 +182,7 @@
                                            onblur="this.form.submit()">
                                     <div class="mt-1 flex items-center justify-between text-xs text-gray-500">
                                         <span>Order: {{ $image->sort_order + 1 }}</span>
-                                        <select name="status" onchange="this.form.submit()" class="text-xs px-2 py-1 rounded {{ $image->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                        <select name="status" onchange="this.form.submit()" class="text-xs px-3 py-1 pr-6 rounded {{ $image->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
                                             <option value="active" {{ $image->status === 'active' ? 'selected' : '' }}>Active</option>
                                             <option value="inactive" {{ $image->status === 'inactive' ? 'selected' : '' }}>Inactive</option>
                                         </select>

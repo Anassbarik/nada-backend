@@ -2,9 +2,9 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <h1 class="text-4xl font-bold">{{ __('Night Prices for') }}: {{ $hotel->name }}</h1>
-        <a href="{{ route('admin.hotels.night-prices.create', $hotel) }}" class="btn-logo-primary text-white px-8 py-3 rounded-xl font-semibold transition-all">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{{ __('Night Prices for') }}: {{ $hotel->name }}</h1>
+        <a href="{{ route('admin.hotels.night-prices.create', $hotel) }}" class="btn-logo-primary text-white px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-xl font-semibold transition-all text-sm sm:text-base whitespace-nowrap">
             Add Night Price
         </a>
     </div>

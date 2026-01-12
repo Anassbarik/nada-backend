@@ -44,6 +44,52 @@ class EventContentController extends Controller
             ->where('page_type', $pageType)
             ->first();
 
+        // Convert existing content to points structure if needed
+        if ($content && isset($content->sections)) {
+            // Get sections as array to avoid indirect modification error
+            $sections = $content->sections ?? [];
+            
+            foreach ($sections as $index => $section) {
+                // If content exists and points don't exist, parse content into points
+                if (isset($section['content']) && !isset($section['points'])) {
+                    $contentText = $section['content'] ?? '';
+                    $points = [];
+                    
+                    // Split by newlines and filter lines starting with dashes
+                    $lines = explode("\n", $contentText);
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if (!empty($line)) {
+                            // Remove dash prefixes (hyphen, en-dash, em-dash) if present and trim whitespace
+                            $point = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', $line);
+                            $point = trim($point);
+                            if (!empty($point)) {
+                                $points[] = $point;
+                            }
+                        }
+                    }
+                    
+                    // If no points were found, use the original content as a single point (without dash)
+                    if (empty($points) && !empty($contentText)) {
+                        $cleanedContent = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($contentText));
+                        if (!empty($cleanedContent)) {
+                            $points[] = $cleanedContent;
+                        }
+                    }
+                    
+                    // Replace content with points
+                    $sections[$index]['points'] = $points;
+                    unset($sections[$index]['content']);
+                } elseif (!isset($section['points'])) {
+                    // Initialize empty points array if neither content nor points exist
+                    $sections[$index]['points'] = [];
+                }
+            }
+            
+            // Set the modified sections back to the content object
+            $content->sections = $sections;
+        }
+
         $pageNames = [
             'conditions' => 'Conditions de Réservation',
             'informations' => 'Informations Générales',
@@ -86,8 +132,33 @@ class EventContentController extends Controller
         $validated = $request->validate([
             'sections' => 'required|array|min:1',
             'sections.*.title' => 'required|string|max:255',
-            'sections.*.content' => 'required|string',
+            'sections.*.points' => 'required|array|min:1',
+            'sections.*.points.*' => 'required|string',
         ]);
+
+        // Process sections to ensure points are properly formatted
+        $processedSections = [];
+        foreach ($validated['sections'] as $section) {
+            // Filter out empty points and remove dash prefixes (hyphen, en-dash, em-dash)
+            $points = array_map(function($point) {
+                // Remove dash prefixes if present and trim
+                $cleaned = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($point));
+                return trim($cleaned);
+            }, $section['points']);
+            
+            // Filter out empty points after cleaning
+            $points = array_filter($points, function($point) {
+                return !empty($point);
+            });
+            
+            // Re-index array to ensure sequential keys
+            $points = array_values($points);
+            
+            $processedSections[] = [
+                'title' => $section['title'],
+                'points' => $points,
+            ];
+        }
 
         EventContent::updateOrCreate(
             [
@@ -95,7 +166,7 @@ class EventContentController extends Controller
                 'page_type' => $pageType,
             ],
             [
-                'sections' => $validated['sections'],
+                'sections' => $processedSections,
                 'created_by' => auth()->id(),
             ]
         );

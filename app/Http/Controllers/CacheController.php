@@ -54,6 +54,14 @@ class CacheController extends Controller
                 $results['view'] = 'skipped';
             }
 
+            // Clear event cache
+            try {
+                Artisan::call('event:clear');
+                $results['event'] = 'cleared';
+            } catch (\Exception $e) {
+                $results['event'] = 'skipped';
+            }
+
             // Clear compiled classes
             try {
                 Artisan::call('clear-compiled');

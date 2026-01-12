@@ -6,6 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use App\Models\Airport;
+use App\Models\Event;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +25,29 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
        Schema::defaultStringLength(191);
+
+       // Add scoped route model binding for airports within events
+       Route::bind('airport', function ($value, $route) {
+           // If we have an event in the route, scope the airport to that event
+           $event = $route->parameter('event');
+           
+           if ($event) {
+               // Handle both Event model instance and slug/ID string
+               if (!($event instanceof Event)) {
+                   // Try to find by slug first (since Event uses slug as route key)
+                   $event = Event::where('slug', $event)->orWhere('id', $event)->first();
+               }
+               
+               if ($event && $event instanceof Event) {
+                   return Airport::where('id', $value)
+                       ->where('event_id', $event->id)
+                       ->firstOrFail();
+               }
+           }
+           
+           // Fallback to standard binding if no event context
+           return Airport::findOrFail($value);
+       });
 
        // If the app is served from a subdirectory (ex: /admin/public), ensure generated
        // URLs (routes/assets + Livewire endpoints) include that base path in production.
