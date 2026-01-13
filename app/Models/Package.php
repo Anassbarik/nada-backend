@@ -25,6 +25,8 @@ class Package extends Model
     ];
 
     protected $casts = [
+        'hotel_id' => 'integer',
+        'created_by' => 'integer',
         'check_in' => 'date',
         'check_out' => 'date',
         'occupants' => 'integer',

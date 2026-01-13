@@ -22,6 +22,8 @@ class Airport extends Model
     ];
 
     protected $casts = [
+        'event_id' => 'integer',
+        'created_by' => 'integer',
         'distance_from_venue' => 'decimal:2',
         'sort_order' => 'integer',
         'active' => 'boolean',

@@ -84,9 +84,9 @@ class AirportController extends Controller
             abort(403, 'You do not have permission to modify this event. Events created by super administrators can only be modified by super administrators.');
         }
         
-        // Ensure airport belongs to event
-        if ($airport->event_id !== $event->id) {
-            abort(404);
+        // Ensure airport belongs to event (use loose comparison to handle type mismatches)
+        if ($airport->event_id != $event->id) {
+            abort(404, 'Airport does not belong to this event.');
         }
 
         return view('admin.airports.edit', compact('event', 'airport'));
@@ -102,9 +102,9 @@ class AirportController extends Controller
             abort(403, 'You do not have permission to modify this event. Events created by super administrators can only be modified by super administrators.');
         }
         
-        // Ensure airport belongs to event
-        if ($airport->event_id !== $event->id) {
-            abort(404);
+        // Ensure airport belongs to event (use loose comparison to handle type mismatches)
+        if ($airport->event_id != $event->id) {
+            abort(404, 'Airport does not belong to this event.');
         }
 
         // Check ownership
@@ -143,9 +143,9 @@ class AirportController extends Controller
             abort(403, 'You do not have permission to modify this event. Events created by super administrators can only be modified by super administrators.');
         }
         
-        // Ensure airport belongs to event
-        if ($airport->event_id !== $event->id) {
-            abort(404);
+        // Ensure airport belongs to event (use loose comparison to handle type mismatches)
+        if ($airport->event_id != $event->id) {
+            abort(404, 'Airport does not belong to this event.');
         }
 
         // Check ownership
@@ -169,9 +169,9 @@ class AirportController extends Controller
             abort(403, 'You do not have permission to modify this event. Events created by super administrators can only be modified by super administrators.');
         }
         
-        // Ensure airport belongs to event
-        if ($airport->event_id !== $event->id) {
-            abort(404);
+        // Ensure airport belongs to event (use loose comparison to handle type mismatches)
+        if ($airport->event_id != $event->id) {
+            abort(404, 'Airport does not belong to this event.');
         }
 
         $duplicate = $airport->replicate();

@@ -27,6 +27,8 @@ class Hotel extends Model
     ];
 
     protected $casts = [
+        'event_id' => 'integer',
+        'created_by' => 'integer',
         'stars' => 'integer',
         'rating' => 'decimal:2',
         'inclusions' => 'array',
