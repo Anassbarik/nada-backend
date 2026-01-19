@@ -2,10 +2,29 @@
 
 @section('content')
 <div class="space-y-6">
+  @if(session('success'))
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+      <span class="block sm:inline">{{ session('success') }}</span>
+      @if(session('organizer_pdf_url'))
+        <div class="mt-2">
+          <a href="{{ session('organizer_pdf_url') }}" class="text-green-800 underline font-semibold" download>
+            Download Organizer Credentials PDF
+          </a>
+        </div>
+      @endif
+      @if(session('organizer_password'))
+        <div class="mt-2 text-sm">
+          <strong>Organizer Password:</strong> {{ session('organizer_password') }}<br>
+          <strong>Organizer Email:</strong> {{ session('organizer_email') }}
+        </div>
+      @endif
+    </div>
+  @endif
+
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-    <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Events Management</h1>
+    <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Accommodation Management</h1>
     <a href="{{ route('admin.events.create') }}" class="text-white px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-xl font-semibold transition-all text-sm sm:text-base whitespace-nowrap" style="background-color: #00adf1;" onmouseover="this.style.backgroundColor='#0099d8'" onmouseout="this.style.backgroundColor='#00adf1'">
-      + New Event
+      + New Accommodation
     </a>
   </div>
   

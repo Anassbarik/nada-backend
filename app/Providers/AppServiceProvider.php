@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use App\Models\Airport;
-use App\Models\Event;
+use App\Models\Accommodation;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,15 +32,15 @@ class AppServiceProvider extends ServiceProvider
            $event = $route->parameter('event');
            
            if ($event) {
-               // Handle both Event model instance and slug/ID string
-               if (!($event instanceof Event)) {
-                   // Try to find by slug first (since Event uses slug as route key)
-                   $event = Event::where('slug', $event)->orWhere('id', $event)->first();
+               // Handle both Accommodation model instance and slug/ID string
+               if (!($event instanceof Accommodation)) {
+                   // Try to find by slug first (since Accommodation uses slug as route key)
+                   $event = Accommodation::where('slug', $event)->orWhere('id', $event)->first();
                }
                
-               if ($event && $event instanceof Event) {
+               if ($event && $event instanceof Accommodation) {
                    return Airport::where('id', $value)
-                       ->where('event_id', $event->id)
+                       ->where('accommodation_id', $event->id)
                        ->firstOrFail();
                }
            }

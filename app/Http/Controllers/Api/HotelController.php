@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Event;
+use App\Models\Accommodation;
 use App\Models\Hotel;
 use Illuminate\Http\Request;
 
@@ -13,7 +13,7 @@ class HotelController extends Controller
      * Display a listing of hotels for an event.
      * Route: GET /api/events/{slug}/hotels
      */
-    public function index(Event $event)
+    public function index(Accommodation $event)
     {
         if ($event->status !== 'published') {
             return response()->json([
@@ -26,7 +26,7 @@ class HotelController extends Controller
             ->where('status', 'active')
             ->select([
                 'id',
-                'event_id',
+                'accommodation_id',
                 'name',
                 'stars',
                 'slug',
@@ -86,7 +86,7 @@ class HotelController extends Controller
         $hotels = Hotel::where('status', 'active')
             ->select([
                 'id',
-                'event_id',
+                'accommodation_id',
                 'name',
                 'stars',
                 'slug',
@@ -121,7 +121,7 @@ class HotelController extends Controller
 
         // Filter out hotels that don't belong to published events
         $hotels = $hotels->filter(function ($hotel) {
-            return $hotel->event !== null;
+            return $hotel->accommodation !== null;
         });
 
         // Format images and add rating_stars for frontend display
@@ -163,9 +163,9 @@ class HotelController extends Controller
         // Route model binding resolves hotels by slug globally, not scoped to event
         // Ensure the hotel belongs to this event
         // If route model binding found a hotel from a different event, re-resolve scoped to this event
-        if ($hotel->event_id !== $event->id) {
+        if ($hotel->accommodation_id !== $event->id) {
             $hotel = Hotel::where('slug', $hotel->slug)
-                ->where('event_id', $event->id)
+                ->where('accommodation_id', $event->id)
                 ->firstOrFail();
         }
 

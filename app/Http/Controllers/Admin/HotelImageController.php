@@ -17,7 +17,7 @@ class HotelImageController extends Controller
     public function index(Hotel $hotel)
     {
         // All admins can view hotel images (read-only)
-        if (!$hotel->event->canBeViewedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeViewedBy(auth()->user())) {
             abort(403, 'You do not have permission to view this hotel.');
         }
         
@@ -31,7 +31,7 @@ class HotelImageController extends Controller
     public function store(Request $request, Hotel $hotel)
     {
         // Only allow uploading images if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
         }
         
@@ -111,7 +111,7 @@ class HotelImageController extends Controller
     public function update(Request $request, Hotel $hotel, $image)
     {
         // Only allow updating if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
         }
         
@@ -141,7 +141,7 @@ class HotelImageController extends Controller
     public function destroy(Hotel $hotel, $image)
     {
         // Only allow deleting if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
         }
         
@@ -171,7 +171,7 @@ class HotelImageController extends Controller
     public function reorder(Request $request, Hotel $hotel)
     {
         // Only allow reordering if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
         }
         

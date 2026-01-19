@@ -43,6 +43,15 @@ class Package extends Model
     }
 
     /**
+     * Get the resource permissions (sub-permissions) for this package.
+     */
+    public function resourcePermissions()
+    {
+        return $this->hasMany(ResourcePermission::class, 'resource_id')
+            ->where('resource_type', 'package');
+    }
+
+    /**
      * Get the event through the hotel relationship.
      */
     public function getEventAttribute()
@@ -95,15 +104,34 @@ class Package extends Model
 
     /**
      * Check if a user can edit this package.
+     * 
+     * Rules:
+     * - Super-admins can edit everything
+     * - Regular admins can edit packages THEY created
+     * - Regular admins can edit packages if they have sub-permission OR if they can edit the parent hotel/event
      */
     public function canBeEditedBy(User $user): bool
     {
+        // Super-admin can edit everything
         if ($user->isSuperAdmin()) {
             return true;
         }
+
+        // Check if user can edit the parent hotel or event
+        if ($this->hotel && $this->hotel->canBeEditedBy($user)) {
+            return true;
+        }
+
+        // Check if user has sub-permission for this package
+        if ($user->hasResourcePermission('package', $this->id)) {
+            return true;
+        }
+
+        // Regular admins can edit packages they created
         if ($this->created_by && $this->created_by === $user->id) {
             return true;
         }
+
         return false;
     }
 

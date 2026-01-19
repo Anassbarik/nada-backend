@@ -21,82 +21,67 @@
 
                 <div class="mb-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">{{ $pageName }}</h3>
+                    <p class="text-sm text-gray-600 mb-4">Veuillez remplir le contenu en anglais et en français. Les admins peuvent uniquement modifier le contenu, pas le créer de zéro.</p>
                 </div>
 
-                <div class="mb-6">
+                <!-- English Sections -->
+                <div class="mb-8">
                     <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-md font-medium text-gray-900">Sections</h4>
+                        <h4 class="text-md font-medium text-gray-900">Sections (English)</h4>
                         <button type="button" 
-                                id="add-section-btn"
+                                id="add-section-en-btn"
                                 class="btn-logo-primary text-white font-bold py-2 px-4 rounded text-sm">
-                            + Ajouter Section
+                            + Add Section
                         </button>
                     </div>
 
-                    <div id="sections-container" class="space-y-4">
-                        @if($content && isset($content->sections) && count($content->sections) > 0)
-                            @foreach($content->sections as $index => $section)
-                                <div class="border rounded-lg p-4 bg-gray-50 section-item" data-index="{{ $index }}">
+                    <div id="sections-en-container" class="space-y-4">
+                        @php
+                            $sectionsEn = [];
+                            if ($content) {
+                                $sectionsEn = $content->sections_en ?? [];
+                                if (empty($sectionsEn) && isset($content->sections)) {
+                                    $sectionsEn = $content->sections;
+                                }
+                            }
+                        @endphp
+                        @if(!empty($sectionsEn))
+                            @foreach($sectionsEn as $index => $section)
+                                <div class="border rounded-lg p-4 bg-blue-50 section-item-en" data-index="{{ $index }}">
                                     <div class="flex items-start justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-500">Section {{ $index + 1 }}</span>
+                                        <span class="text-sm font-medium text-gray-500">Section {{ $index + 1 }} (EN)</span>
                                         <button type="button" 
                                                 class="remove-section-btn text-red-600 hover:text-red-900 text-sm">
-                                            Supprimer
+                                            Remove
                                         </button>
                                     </div>
                                     
                                     <div class="mb-3">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Title (English)</label>
                                         <input type="text" 
-                                               name="sections[{{ $index }}][title]"
-                                               value="{{ old("sections.{$index}.title", $section['title'] ?? '') }}"
+                                               name="sections_en[{{ $index }}][title]"
+                                               value="{{ old("sections_en.{$index}.title", $section['title'] ?? '') }}"
                                                class="block w-full border-gray-300 rounded-md shadow-sm"
-                                               placeholder="Ex: Conditions Générales"
+                                               placeholder="e.g., Terms and Conditions"
                                                required>
-                                        @error("sections.{$index}.title") 
+                                        @error("sections_en.{$index}.title") 
                                             <span class="text-red-500 text-xs">{{ $message }}</span> 
                                         @enderror
                                     </div>
                                     
                                     <div>
                                         <div class="flex items-center justify-between mb-2">
-                                            <label class="block text-sm font-medium text-gray-700">Points/Arguments</label>
+                                            <label class="block text-sm font-medium text-gray-700">Points</label>
                                             <button type="button" 
                                                     class="add-point-btn text-sm text-blue-600 hover:text-blue-800 font-medium"
-                                                    data-section-index="{{ $index }}">
-                                                + Ajouter Point
+                                                    data-section-index="{{ $index }}"
+                                                    data-lang="en">
+                                                + Add Point
                                             </button>
                                         </div>
-                                        <div class="points-container space-y-2" data-section-index="{{ $index }}">
+                                        <div class="points-container space-y-2" data-section-index="{{ $index }}" data-lang="en">
                                             @php
                                                 $points = $section['points'] ?? [];
-                                                // If points is empty but content exists, parse it
-                                                if (empty($points) && isset($section['content'])) {
-                                                    $contentText = $section['content'] ?? '';
-                                                    $lines = explode("\n", $contentText);
-                                                    foreach ($lines as $line) {
-                                                        $line = trim($line);
-                                                        if (!empty($line)) {
-                                                            // Remove dash prefixes (hyphen, en-dash, em-dash) if present
-                                                            $point = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', $line);
-                                                            $point = trim($point);
-                                                            if (!empty($point)) {
-                                                                $points[] = $point;
-                                                            }
-                                                        }
-                                                    }
-                                                    if (empty($points) && !empty($contentText)) {
-                                                        $cleanedContent = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($contentText));
-                                                        if (!empty($cleanedContent)) {
-                                                            $points[] = $cleanedContent;
-                                                        }
-                                                    }
-                                                }
-                                                // Clean existing points to remove any dash prefixes
-                                                $points = array_map(function($point) {
-                                                    return preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($point));
-                                                }, $points);
-                                                // Ensure we have at least one point
                                                 if (empty($points)) {
                                                     $points = [''];
                                                 }
@@ -104,8 +89,102 @@
                                             @foreach($points as $pointIndex => $point)
                                                 <div class="point-item flex items-center gap-2">
                                                     <input type="text" 
-                                                           name="sections[{{ $index }}][points][{{ $pointIndex }}]"
-                                                           value="{{ old("sections.{$index}.points.{$pointIndex}", $point) }}"
+                                                           name="sections_en[{{ $index }}][points][{{ $pointIndex }}]"
+                                                           value="{{ old("sections_en.{$index}.points.{$pointIndex}", $point) }}"
+                                                           class="flex-1 bg-white text-gray-900 border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm"
+                                                           placeholder="Point {{ $pointIndex + 1 }}..."
+                                                           required>
+                                                    <button type="button" 
+                                                            class="remove-point-btn text-red-600 hover:text-red-800 text-sm font-medium px-2"
+                                                            @if(count($points) <= 1) style="display: none;" @endif>
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div id="empty-state-en" class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                                <p class="text-gray-500 mb-4">No sections created.</p>
+                                <button type="button" 
+                                        id="add-first-section-en-btn"
+                                        class="btn-logo-primary text-white font-bold py-2 px-4 rounded">
+                                    + Add First Section
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- French Sections -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-md font-medium text-gray-900">Sections (Français)</h4>
+                        <button type="button" 
+                                id="add-section-fr-btn"
+                                class="btn-logo-primary text-white font-bold py-2 px-4 rounded text-sm">
+                            + Ajouter Section
+                        </button>
+                    </div>
+
+                    <div id="sections-fr-container" class="space-y-4">
+                        @php
+                            $sectionsFr = [];
+                            if ($content) {
+                                $sectionsFr = $content->sections_fr ?? [];
+                                if (empty($sectionsFr) && isset($content->sections)) {
+                                    $sectionsFr = $content->sections;
+                                }
+                            }
+                        @endphp
+                        @if(!empty($sectionsFr))
+                            @foreach($sectionsFr as $index => $section)
+                                <div class="border rounded-lg p-4 bg-green-50 section-item-fr" data-index="{{ $index }}">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-500">Section {{ $index + 1 }} (FR)</span>
+                                        <button type="button" 
+                                                class="remove-section-btn text-red-600 hover:text-red-900 text-sm">
+                                            Supprimer
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Titre (Français)</label>
+                                        <input type="text" 
+                                               name="sections_fr[{{ $index }}][title]"
+                                               value="{{ old("sections_fr.{$index}.title", $section['title'] ?? '') }}"
+                                               class="block w-full border-gray-300 rounded-md shadow-sm"
+                                               placeholder="Ex: Conditions Générales"
+                                               required>
+                                        @error("sections_fr.{$index}.title") 
+                                            <span class="text-red-500 text-xs">{{ $message }}</span> 
+                                        @enderror
+                                    </div>
+                                    
+                                    <div>
+                                        <div class="flex items-center justify-between mb-2">
+                                            <label class="block text-sm font-medium text-gray-700">Points</label>
+                                            <button type="button" 
+                                                    class="add-point-btn text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                                    data-section-index="{{ $index }}"
+                                                    data-lang="fr">
+                                                + Ajouter Point
+                                            </button>
+                                        </div>
+                                        <div class="points-container space-y-2" data-section-index="{{ $index }}" data-lang="fr">
+                                            @php
+                                                $points = $section['points'] ?? [];
+                                                if (empty($points)) {
+                                                    $points = [''];
+                                                }
+                                            @endphp
+                                            @foreach($points as $pointIndex => $point)
+                                                <div class="point-item flex items-center gap-2">
+                                                    <input type="text" 
+                                                           name="sections_fr[{{ $index }}][points][{{ $pointIndex }}]"
+                                                           value="{{ old("sections_fr.{$index}.points.{$pointIndex}", $point) }}"
                                                            class="flex-1 bg-white text-gray-900 border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm"
                                                            placeholder="Point {{ $pointIndex + 1 }}..."
                                                            required>
@@ -117,20 +196,14 @@
                                                 </div>
                                             @endforeach
                                         </div>
-                                        @error("sections.{$index}.points") 
-                                            <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
-                                        @enderror
-                                        @error("sections.{$index}.points.*") 
-                                            <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
-                                        @enderror
                                     </div>
                                 </div>
                             @endforeach
                         @else
-                            <div id="empty-state" class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                            <div id="empty-state-fr" class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
                                 <p class="text-gray-500 mb-4">Aucune section créée.</p>
                                 <button type="button" 
-                                        id="add-first-section-btn"
+                                        id="add-first-section-fr-btn"
                                         class="btn-logo-primary text-white font-bold py-2 px-4 rounded">
                                     + Ajouter Première Section
                                 </button>
@@ -164,54 +237,88 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let sectionIndex = {{ ($content && isset($content->sections) && count($content->sections) > 0) ? count($content->sections) : 0 }};
-    const sectionsContainer = document.getElementById('sections-container');
-    const emptyState = document.getElementById('empty-state');
+    @php
+        $sectionsEnCount = 0;
+        $sectionsFrCount = 0;
+        if ($content) {
+            $sectionsEn = $content->sections_en ?? [];
+            if (empty($sectionsEn) && isset($content->sections)) {
+                $sectionsEn = $content->sections;
+            }
+            $sectionsEnCount = count($sectionsEn);
+            
+            $sectionsFr = $content->sections_fr ?? [];
+            if (empty($sectionsFr) && isset($content->sections)) {
+                $sectionsFr = $content->sections;
+            }
+            $sectionsFrCount = count($sectionsFr);
+        }
+    @endphp
+    let sectionIndexEn = {{ $sectionsEnCount }};
+    let sectionIndexFr = {{ $sectionsFrCount }};
+    const sectionsEnContainer = document.getElementById('sections-en-container');
+    const sectionsFrContainer = document.getElementById('sections-fr-container');
     
-    function addSection() {
+    // Helper function to add section
+    function addSection(lang) {
+        const container = lang === 'en' ? sectionsEnContainer : sectionsFrContainer;
+        const emptyState = container.querySelector(`#empty-state-${lang}`);
+        const sectionIndex = lang === 'en' ? sectionIndexEn : sectionIndexFr;
+        
         if (emptyState) {
             emptyState.remove();
         }
         
+        const bgColor = lang === 'en' ? 'bg-blue-50' : 'bg-green-50';
+        const sectionLabel = lang === 'en' ? 'Section' : 'Section';
+        const titleLabel = lang === 'en' ? 'Title (English)' : 'Titre (Français)';
+        const titlePlaceholder = lang === 'en' ? 'e.g., Terms and Conditions' : 'Ex: Conditions Générales';
+        const pointsLabel = lang === 'en' ? 'Points' : 'Points';
+        const addPointText = lang === 'en' ? '+ Add Point' : '+ Ajouter Point';
+        const removeText = lang === 'en' ? 'Remove' : 'Supprimer';
+        const pointPlaceholder = lang === 'en' ? 'Point' : 'Point';
+        const namePrefix = lang === 'en' ? 'sections_en' : 'sections_fr';
+        
         const sectionHtml = `
-            <div class="border rounded-lg p-4 bg-gray-50 section-item" data-index="${sectionIndex}">
+            <div class="border rounded-lg p-4 ${bgColor} section-item-${lang}" data-index="${sectionIndex}">
                 <div class="flex items-start justify-between mb-2">
-                    <span class="text-sm font-medium text-gray-500">Section ${sectionIndex + 1}</span>
+                    <span class="text-sm font-medium text-gray-500">${sectionLabel} ${sectionIndex + 1} (${lang.toUpperCase()})</span>
                     <button type="button" 
                             class="remove-section-btn text-red-600 hover:text-red-900 text-sm">
-                        Supprimer
+                        ${removeText}
                     </button>
                 </div>
                 
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">${titleLabel}</label>
                     <input type="text" 
-                           name="sections[${sectionIndex}][title]"
+                           name="${namePrefix}[${sectionIndex}][title]"
                            class="block w-full border-gray-300 rounded-md shadow-sm"
-                           placeholder="Ex: Conditions Générales"
+                           placeholder="${titlePlaceholder}"
                            required>
                 </div>
                 
                 <div>
                     <div class="flex items-center justify-between mb-2">
-                        <label class="block text-sm font-medium text-gray-700">Points/Arguments</label>
+                        <label class="block text-sm font-medium text-gray-700">${pointsLabel}</label>
                         <button type="button" 
                                 class="add-point-btn text-sm text-blue-600 hover:text-blue-800 font-medium"
-                                data-section-index="${sectionIndex}">
-                            + Ajouter Point
+                                data-section-index="${sectionIndex}"
+                                data-lang="${lang}">
+                            ${addPointText}
                         </button>
                     </div>
-                    <div class="points-container space-y-2" data-section-index="${sectionIndex}">
+                    <div class="points-container space-y-2" data-section-index="${sectionIndex}" data-lang="${lang}">
                         <div class="point-item flex items-center gap-2">
                             <input type="text" 
-                                   name="sections[${sectionIndex}][points][0]"
+                                   name="${namePrefix}[${sectionIndex}][points][0]"
                                    class="flex-1 bg-white text-gray-900 border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm"
-                                   placeholder="Point 1..."
+                                   placeholder="${pointPlaceholder} 1..."
                                    required>
                             <button type="button" 
                                     class="remove-point-btn text-red-600 hover:text-red-800 text-sm font-medium px-2"
                                     style="display: none;">
-                                Supprimer
+                                ${removeText}
                             </button>
                         </div>
                     </div>
@@ -219,109 +326,125 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        sectionsContainer.insertAdjacentHTML('beforeend', sectionHtml);
-        sectionIndex++;
-        updateSectionNumbers();
+        container.insertAdjacentHTML('beforeend', sectionHtml);
+        if (lang === 'en') {
+            sectionIndexEn++;
+        } else {
+            sectionIndexFr++;
+        }
+        updateSectionNumbers(lang);
     }
     
-    function removeSection(button) {
-        const sectionItem = button.closest('.section-item');
+    function removeSection(button, lang) {
+        const sectionItem = button.closest(`.section-item-${lang}`);
+        const container = lang === 'en' ? sectionsEnContainer : sectionsFrContainer;
         sectionItem.remove();
-        updateSectionNumbers();
+        updateSectionNumbers(lang);
         
-        // Show empty state if no sections remain
-        if (sectionsContainer.querySelectorAll('.section-item').length === 0) {
+        if (container.querySelectorAll(`.section-item-${lang}`).length === 0) {
             const emptyStateHtml = `
-                <div id="empty-state" class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                    <p class="text-gray-500 mb-4">Aucune section créée.</p>
+                <div id="empty-state-${lang}" class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <p class="text-gray-500 mb-4">${lang === 'en' ? 'No sections created.' : 'Aucune section créée.'}</p>
                     <button type="button" 
-                            id="add-first-section-btn"
+                            id="add-first-section-${lang}-btn"
                             class="btn-logo-primary text-white font-bold py-2 px-4 rounded">
-                        + Ajouter Première Section
+                        ${lang === 'en' ? '+ Add First Section' : '+ Ajouter Première Section'}
                     </button>
                 </div>
             `;
-            sectionsContainer.insertAdjacentHTML('beforeend', emptyStateHtml);
-            document.getElementById('add-first-section-btn').addEventListener('click', addSection);
+            container.insertAdjacentHTML('beforeend', emptyStateHtml);
+            document.getElementById(`add-first-section-${lang}-btn`).addEventListener('click', () => addSection(lang));
         }
     }
     
-    function updateSectionNumbers() {
-        const sections = sectionsContainer.querySelectorAll('.section-item');
+    function updateSectionNumbers(lang) {
+        const container = lang === 'en' ? sectionsEnContainer : sectionsFrContainer;
+        const sections = container.querySelectorAll(`.section-item-${lang}`);
         sections.forEach((section, index) => {
             const numberSpan = section.querySelector('.text-gray-500');
             if (numberSpan) {
-                numberSpan.textContent = `Section ${index + 1}`;
+                numberSpan.textContent = `Section ${index + 1} (${lang.toUpperCase()})`;
             }
         });
     }
     
     // Add section buttons
-    document.getElementById('add-section-btn')?.addEventListener('click', addSection);
-    document.getElementById('add-first-section-btn')?.addEventListener('click', addSection);
+    document.getElementById('add-section-en-btn')?.addEventListener('click', () => addSection('en'));
+    document.getElementById('add-section-fr-btn')?.addEventListener('click', () => addSection('fr'));
+    document.getElementById('add-first-section-en-btn')?.addEventListener('click', () => addSection('en'));
+    document.getElementById('add-first-section-fr-btn')?.addEventListener('click', () => addSection('fr'));
     
     // Remove section buttons
-    sectionsContainer.addEventListener('click', function(e) {
+    sectionsEnContainer.addEventListener('click', function(e) {
         if (e.target.classList.contains('remove-section-btn')) {
-            removeSection(e.target);
+            removeSection(e.target, 'en');
+        }
+    });
+    sectionsFrContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-section-btn')) {
+            removeSection(e.target, 'fr');
         }
     });
     
     // Add point functionality
-    function addPoint(sectionIndex) {
-        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"]`);
+    function addPoint(sectionIndex, lang) {
+        const namePrefix = lang === 'en' ? 'sections_en' : 'sections_fr';
+        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"][data-lang="${lang}"]`);
         if (!pointsContainer) return;
         
         const pointIndex = pointsContainer.querySelectorAll('.point-item').length;
+        const removeText = lang === 'en' ? 'Remove' : 'Supprimer';
+        const pointPlaceholder = lang === 'en' ? 'Point' : 'Point';
+        
         const pointHtml = `
             <div class="point-item flex items-center gap-2">
                 <input type="text" 
-                       name="sections[${sectionIndex}][points][${pointIndex}]"
+                       name="${namePrefix}[${sectionIndex}][points][${pointIndex}]"
                        class="flex-1 bg-white text-gray-900 border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm"
-                       placeholder="Point ${pointIndex + 1}..."
+                       placeholder="${pointPlaceholder} ${pointIndex + 1}..."
                        required>
                 <button type="button" 
                         class="remove-point-btn text-red-600 hover:text-red-800 text-sm font-medium px-2">
-                    Supprimer
+                    ${removeText}
                 </button>
             </div>
         `;
         
         pointsContainer.insertAdjacentHTML('beforeend', pointHtml);
-        updateRemoveButtonsVisibility(sectionIndex);
+        updateRemoveButtonsVisibility(sectionIndex, lang);
     }
     
     // Remove point functionality
-    function removePoint(button) {
+    function removePoint(button, lang) {
         const pointItem = button.closest('.point-item');
         const pointsContainer = pointItem.closest('.points-container');
         const sectionIndex = pointsContainer.getAttribute('data-section-index');
         
         pointItem.remove();
-        
-        // Re-index remaining points
-        reindexPoints(sectionIndex);
-        updateRemoveButtonsVisibility(sectionIndex);
+        reindexPoints(sectionIndex, lang);
+        updateRemoveButtonsVisibility(sectionIndex, lang);
     }
     
-    // Re-index points to ensure sequential array keys
-    function reindexPoints(sectionIndex) {
-        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"]`);
+    // Re-index points
+    function reindexPoints(sectionIndex, lang) {
+        const namePrefix = lang === 'en' ? 'sections_en' : 'sections_fr';
+        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"][data-lang="${lang}"]`);
         if (!pointsContainer) return;
         
         const pointItems = pointsContainer.querySelectorAll('.point-item');
+        const pointPlaceholder = lang === 'en' ? 'Point' : 'Point';
         pointItems.forEach((item, index) => {
             const input = item.querySelector('input[type="text"]');
             if (input) {
-                input.name = `sections[${sectionIndex}][points][${index}]`;
-                input.placeholder = `Point ${index + 1}...`;
+                input.name = `${namePrefix}[${sectionIndex}][points][${index}]`;
+                input.placeholder = `${pointPlaceholder} ${index + 1}...`;
             }
         });
     }
     
-    // Update remove button visibility (hide if only one point remains)
-    function updateRemoveButtonsVisibility(sectionIndex) {
-        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"]`);
+    // Update remove button visibility
+    function updateRemoveButtonsVisibility(sectionIndex, lang) {
+        const pointsContainer = document.querySelector(`.points-container[data-section-index="${sectionIndex}"][data-lang="${lang}"]`);
         if (!pointsContainer) return;
         
         const pointItems = pointsContainer.querySelectorAll('.point-item');
@@ -336,18 +459,22 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('add-point-btn')) {
             const sectionIndex = e.target.getAttribute('data-section-index');
-            addPoint(sectionIndex);
+            const lang = e.target.getAttribute('data-lang');
+            addPoint(sectionIndex, lang);
         }
         
         if (e.target.classList.contains('remove-point-btn')) {
-            removePoint(e.target);
+            const pointsContainer = e.target.closest('.points-container');
+            const lang = pointsContainer.getAttribute('data-lang');
+            removePoint(e.target, lang);
         }
     });
     
-    // Initialize remove button visibility for existing sections
+    // Initialize remove button visibility
     document.querySelectorAll('.points-container').forEach(container => {
         const sectionIndex = container.getAttribute('data-section-index');
-        updateRemoveButtonsVisibility(sectionIndex);
+        const lang = container.getAttribute('data-lang');
+        updateRemoveButtonsVisibility(sectionIndex, lang);
     });
 });
 </script>

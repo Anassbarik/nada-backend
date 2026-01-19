@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Event;
+use App\Models\Accommodation;
+use App\Models\ResourcePermission;
+use App\Models\User;
 use App\Services\DualStorageService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class EventController extends Controller
@@ -19,8 +24,8 @@ class EventController extends Controller
         // Avoid N+1 permission checks in views that call User::hasPermission()
         auth()->user()?->loadMissing('permissions');
 
-        // Show all events - all admins can view them
-        $events = Event::latest()->paginate(15);
+        // Show all accommodations - all admins can view them
+        $events = Accommodation::latest()->paginate(15);
         return view('admin.events.index', compact('events'));
     }
 
@@ -29,7 +34,15 @@ class EventController extends Controller
      */
     public function create()
     {
-        return view('admin.events.create');
+        // Get regular admins for sub-permissions assignment (only for super-admin)
+        $admins = auth()->user()->isSuperAdmin() 
+            ? User::where('role', 'admin')->orderBy('name')->get()
+            : collect();
+
+        // Get current sub-permissions (empty for create)
+        $subPermissions = collect();
+
+        return view('admin.events.create', compact('admins', 'subPermissions'));
     }
 
     /**
@@ -47,15 +60,19 @@ class EventController extends Controller
             'website_url' => 'nullable|url|max:500',
             'organizer_logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'description' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
             'banner' => 'nullable|image|max:5120',
             'menu_links' => 'nullable|array',
             'menu_links.*.label' => 'required_with:menu_links|string',
             'menu_links.*.url' => 'required_with:menu_links|url',
             'status' => 'required|in:draft,published,archived',
+            'sub_permissions' => 'nullable|array',
+            'sub_permissions.*' => 'exists:users,id',
         ]);
 
-        $event = new Event();
+        $event = new Accommodation();
         $event->name = $validated['name'];
         $event->venue = $validated['venue'] ?? null;
         $event->location = $validated['location'] ?? null;
@@ -64,9 +81,26 @@ class EventController extends Controller
         $event->end_date = $validated['end_date'] ?? null;
         $event->website_url = $validated['website_url'] ?? null;
         $event->description = $validated['description'] ?? null;
+        $event->description_en = $validated['description_en'] ?? null;
+        $event->description_fr = $validated['description_fr'] ?? null;
         $event->menu_links = $validated['menu_links'] ?? null;
         $event->status = $validated['status'];
         $event->created_by = auth()->id();
+
+        // Generate password for organizer
+        $organizerPassword = Str::random(12);
+
+        // Create organizer user
+        $organizer = User::create([
+            'name' => $validated['organizer_name'],
+            'email' => $validated['organizer_email'],
+            'password' => Hash::make($organizerPassword),
+            'role' => 'organizer',
+            'email_verified_at' => now(),
+        ]);
+
+        // Link organizer to event
+        $event->organizer_id = $organizer->id;
 
         if ($request->hasFile('organizer_logo')) {
             $event->organizer_logo = DualStorageService::store($request->file('organizer_logo'), 'events/organizers', 'public');
@@ -82,13 +116,49 @@ class EventController extends Controller
 
         $event->save();
 
-        return redirect()->route('admin.events.index')->with('success', 'Event created successfully.');
+        // Handle sub-permissions (only for super-admin)
+        if (auth()->user()->isSuperAdmin() && isset($validated['sub_permissions'])) {
+            foreach ($validated['sub_permissions'] as $adminId) {
+                ResourcePermission::firstOrCreate([
+                    'resource_type' => 'event',
+                    'resource_id' => $event->id,
+                    'user_id' => $adminId,
+                ]);
+            }
+        }
+
+        // Generate organizer credentials PDF
+        try {
+            $pdf = Pdf::loadView('admin.organizers.credentials', [
+                'event' => $event,
+                'organizer' => $organizer,
+                'password' => $organizerPassword,
+            ]);
+            
+            DualStorageService::makeDirectory('organizers');
+            $relativePath = "organizers/{$organizer->id}-credentials.pdf";
+            DualStorageService::put($relativePath, $pdf->output(), 'public');
+            
+            return redirect()->route('admin.events.index')
+                ->with('success', 'Event created successfully.')
+                ->with('organizer_pdf_url', route('admin.organizers.download-credentials', $organizer));
+        } catch (\Throwable $e) {
+            \Log::error('Failed to generate organizer credentials PDF', [
+                'organizer_id' => $organizer->id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return redirect()->route('admin.events.index')
+                ->with('success', 'Event created successfully. Organizer created but PDF generation failed.')
+                ->with('organizer_password', $organizerPassword)
+                ->with('organizer_email', $organizer->email);
+        }
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Event $event)
+    public function show(Accommodation $event)
     {
         // All admins can view events (read-only)
         if (!$event->canBeViewedBy(auth()->user())) {
@@ -101,20 +171,31 @@ class EventController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Event $event)
+    public function edit(Accommodation $event)
     {
         // Only allow editing if user has permission
         if (!$event->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to edit this event. Events created by super administrators can only be edited by super administrators.');
         }
         
-        return view('admin.events.edit', compact('event'));
+        // Get regular admins for sub-permissions assignment (only for super-admin)
+        $admins = auth()->user()->isSuperAdmin() 
+            ? User::where('role', 'admin')->orderBy('name')->get()
+            : collect();
+
+        // Get current sub-permissions for this event
+        $subPermissions = $event->resourcePermissions()->pluck('user_id')->toArray();
+        
+        // Load organizer relationship
+        $event->load('organizer');
+        
+        return view('admin.events.edit', compact('event', 'admins', 'subPermissions'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Event $event)
+    public function update(Request $request, Accommodation $event)
     {
         // Check ownership
         if (!$event->canBeEditedBy(auth()->user())) {
@@ -131,12 +212,16 @@ class EventController extends Controller
             'website_url' => 'nullable|url|max:500',
             'organizer_logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'description' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
             'banner' => 'nullable|image|max:5120',
             'menu_links' => 'nullable|array',
             'menu_links.*.label' => 'required_with:menu_links|string',
             'menu_links.*.url' => 'required_with:menu_links|url',
             'status' => 'required|in:draft,published,archived',
+            'sub_permissions' => 'nullable|array',
+            'sub_permissions.*' => 'exists:users,id',
         ]);
 
         $event->name = $validated['name'];
@@ -147,6 +232,8 @@ class EventController extends Controller
         $event->end_date = $validated['end_date'] ?? null;
         $event->website_url = $validated['website_url'] ?? null;
         $event->description = $validated['description'] ?? null;
+        $event->description_en = $validated['description_en'] ?? null;
+        $event->description_fr = $validated['description_fr'] ?? null;
         $event->menu_links = $validated['menu_links'] ?? null;
         $event->status = $validated['status'];
 
@@ -173,13 +260,32 @@ class EventController extends Controller
 
         $event->save();
 
+        // Handle sub-permissions (only for super-admin)
+        if (auth()->user()->isSuperAdmin()) {
+            // Remove all existing sub-permissions for this event
+            ResourcePermission::where('resource_type', 'event')
+                ->where('resource_id', $event->id)
+                ->delete();
+
+            // Add new sub-permissions
+            if (isset($validated['sub_permissions'])) {
+                foreach ($validated['sub_permissions'] as $adminId) {
+                    ResourcePermission::create([
+                        'resource_type' => 'event',
+                        'resource_id' => $event->id,
+                        'user_id' => $adminId,
+                    ]);
+                }
+            }
+        }
+
         return redirect()->route('admin.events.index')->with('success', 'Event updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Event $event)
+    public function destroy(Accommodation $event)
     {
         // Check ownership
         if (!$event->canBeDeletedBy(auth()->user())) {
@@ -204,7 +310,7 @@ class EventController extends Controller
     /**
      * Duplicate an event.
      */
-    public function duplicate(Event $event)
+    public function duplicate(Accommodation $event)
     {
         // All admins can duplicate events (it creates a new event they own)
         if (!$event->canBeViewedBy(auth()->user())) {
@@ -218,7 +324,7 @@ class EventController extends Controller
         $duplicate->slug = $baseSlug . '-duplicated';
         // Ensure uniqueness if -duplicated already exists
         $count = 1;
-        while (\App\Models\Event::where('slug', $duplicate->slug)->exists()) {
+        while (\App\Models\Accommodation::where('slug', $duplicate->slug)->exists()) {
             $duplicate->slug = $baseSlug . '-duplicated-' . $count;
             $count++;
         }
@@ -238,10 +344,10 @@ class EventController extends Controller
         }
         $duplicate->save();
 
-        // Copy event contents
+        // Copy accommodation contents
         foreach ($event->contents as $content) {
             $content->replicate()->fill([
-                'event_id' => $duplicate->id,
+                'accommodation_id' => $duplicate->id,
                 'created_by' => auth()->id(),
             ])->save();
         }
@@ -249,7 +355,7 @@ class EventController extends Controller
         // Copy airports
         foreach ($event->airports as $airport) {
             $airport->replicate()->fill([
-                'event_id' => $duplicate->id,
+                'accommodation_id' => $duplicate->id,
                 'created_by' => auth()->id(),
             ])->save();
         }
@@ -257,7 +363,7 @@ class EventController extends Controller
         // Copy hotels and their related data
         foreach ($event->hotels as $hotel) {
             $duplicateHotel = $hotel->replicate();
-            $duplicateHotel->event_id = $duplicate->id;
+            $duplicateHotel->accommodation_id = $duplicate->id;
             // Append -duplicated to slug to ensure uniqueness
             $baseSlug = \Illuminate\Support\Str::slug($hotel->name);
             $duplicateHotel->slug = $baseSlug . '-duplicated';
@@ -289,5 +395,36 @@ class EventController extends Controller
         }
 
         return redirect()->route('admin.events.edit', $duplicate)->with('success', 'Event duplicated successfully. You can now modify it.');
+    }
+
+    /**
+     * Download organizer credentials PDF.
+     */
+    public function downloadOrganizerCredentials(User $organizer)
+    {
+        // Only super-admin can download credentials
+        if (!auth()->user()->isSuperAdmin()) {
+            abort(403, 'You do not have permission to download organizer credentials.');
+        }
+
+        // Verify user is an organizer
+        if (!$organizer->isOrganizer()) {
+            abort(404, 'User is not an organizer.');
+        }
+
+        $event = $organizer->organizedAccommodations()->first();
+
+        if (!$event) {
+            abort(404, 'Organizer has no associated event.');
+        }
+
+        // Check if PDF exists
+        $pdfPath = "organizers/{$organizer->id}-credentials.pdf";
+        if (file_exists(public_path('storage/' . $pdfPath))) {
+            return response()->file(public_path('storage/' . $pdfPath));
+        }
+
+        // If PDF doesn't exist, return error (password is not stored)
+        return back()->with('error', 'Credentials PDF not found. Please regenerate it from the event edit page.');
     }
 }

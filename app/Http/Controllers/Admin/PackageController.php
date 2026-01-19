@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hotel;
+use App\Models\ResourcePermission;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class PackageController extends Controller
@@ -14,7 +16,7 @@ class PackageController extends Controller
     public function index(Hotel $hotel)
     {
         // All admins can view packages (read-only)
-        if (!$hotel->event->canBeViewedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeViewedBy(auth()->user())) {
             abort(403, 'You do not have permission to view this hotel.');
         }
         
@@ -31,11 +33,18 @@ class PackageController extends Controller
     public function create(Hotel $hotel)
     {
         // Only allow creating packages if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
         }
         
-        return view('admin.packages.create', compact('hotel'));
+        // Get regular admins for sub-permissions assignment (only for super-admin)
+        $admins = auth()->user()->isSuperAdmin() 
+            ? User::where('role', 'admin')->orderBy('name')->get()
+            : collect();
+
+        $subPermissions = collect();
+        
+        return view('admin.packages.create', compact('hotel', 'admins', 'subPermissions'));
     }
 
     /**
@@ -44,7 +53,7 @@ class PackageController extends Controller
     public function store(Request $request, Hotel $hotel)
     {
         // Only allow creating packages if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this hotel. Events created by super administrators can only be modified by super administrators.');
         }
         
@@ -57,6 +66,8 @@ class PackageController extends Controller
             'prix_ht' => 'required|numeric|min:0',
             'quantite_chambres' => 'required|integer|min:1',
             'chambres_restantes' => 'required|integer|min:0',
+            'sub_permissions' => 'nullable|array',
+            'sub_permissions.*' => 'exists:users,id',
         ]);
 
         // Auto-calculate TTC (+20% VAT)
@@ -68,6 +79,17 @@ class PackageController extends Controller
 
         $package = $hotel->packages()->create($validated);
 
+        // Handle sub-permissions (only for super-admin)
+        if (auth()->user()->isSuperAdmin() && isset($validated['sub_permissions'])) {
+            foreach ($validated['sub_permissions'] as $adminId) {
+                ResourcePermission::firstOrCreate([
+                    'resource_type' => 'package',
+                    'resource_id' => $package->id,
+                    'user_id' => $adminId,
+                ]);
+            }
+        }
+
         return redirect()->route('admin.hotels.packages.index', $hotel)->with('success', 'Package créé avec succès!');
     }
 
@@ -77,7 +99,7 @@ class PackageController extends Controller
     public function edit(Hotel $hotel, $package)
     {
         // Only allow editing if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this package. Events created by super administrators can only be modified by super administrators.');
         }
         
@@ -89,7 +111,15 @@ class PackageController extends Controller
             abort(403, 'You do not have permission to edit this package.');
         }
 
-        return view('admin.packages.edit', compact('hotel', 'package'));
+        // Get regular admins for sub-permissions assignment (only for super-admin)
+        $admins = auth()->user()->isSuperAdmin() 
+            ? User::where('role', 'admin')->orderBy('name')->get()
+            : collect();
+
+        // Get current sub-permissions for this package
+        $subPermissions = $package->resourcePermissions()->pluck('user_id')->toArray();
+
+        return view('admin.packages.edit', compact('hotel', 'package', 'admins', 'subPermissions'));
     }
 
     /**
@@ -98,7 +128,7 @@ class PackageController extends Controller
     public function update(Request $request, Hotel $hotel, $package)
     {
         // Only allow updating if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this package. Events created by super administrators can only be modified by super administrators.');
         }
         
@@ -119,6 +149,8 @@ class PackageController extends Controller
             'prix_ht' => 'required|numeric|min:0',
             'quantite_chambres' => 'required|integer|min:1',
             'chambres_restantes' => 'required|integer|min:0',
+            'sub_permissions' => 'nullable|array',
+            'sub_permissions.*' => 'exists:users,id',
         ]);
 
         // Auto-calculate TTC (+20% VAT)
@@ -129,6 +161,25 @@ class PackageController extends Controller
 
         $package->update($validated);
 
+        // Handle sub-permissions (only for super-admin)
+        if (auth()->user()->isSuperAdmin()) {
+            // Remove all existing sub-permissions for this package
+            ResourcePermission::where('resource_type', 'package')
+                ->where('resource_id', $package->id)
+                ->delete();
+
+            // Add new sub-permissions
+            if (isset($validated['sub_permissions'])) {
+                foreach ($validated['sub_permissions'] as $adminId) {
+                    ResourcePermission::create([
+                        'resource_type' => 'package',
+                        'resource_id' => $package->id,
+                        'user_id' => $adminId,
+                    ]);
+                }
+            }
+        }
+
         return redirect()->route('admin.hotels.packages.index', $hotel)->with('success', 'Package mis à jour avec succès!');
     }
 
@@ -138,7 +189,7 @@ class PackageController extends Controller
     public function destroy(Hotel $hotel, $package)
     {
         // Only allow deleting if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this package. Events created by super administrators can only be modified by super administrators.');
         }
         
@@ -160,7 +211,7 @@ class PackageController extends Controller
     public function duplicate(Hotel $hotel, $package)
     {
         // Only allow duplicating if user can edit the event
-        if (!$hotel->event->canBeEditedBy(auth()->user())) {
+        if (!$hotel->accommodation->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to modify this package. Events created by super administrators can only be modified by super administrators.');
         }
         

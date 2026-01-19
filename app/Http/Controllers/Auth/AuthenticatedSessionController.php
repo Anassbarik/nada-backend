@@ -28,8 +28,15 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = Auth::user();
+        
+        // Redirect organizers to their dashboard
+        if ($user->isOrganizer()) {
+            return redirect()->intended(route('organizer.dashboard', absolute: false));
+        }
+        
         // Check if user is admin or super-admin before redirecting to dashboard
-        if (!Auth::user()->isAdmin()) {
+        if (!$user->isAdmin()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

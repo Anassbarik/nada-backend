@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Event;
-use App\Models\EventContent;
+use App\Models\Accommodation;
+use App\Models\AccommodationContent;
 use Illuminate\Http\Request;
 
 class EventContentController extends Controller
@@ -28,7 +28,7 @@ class EventContentController extends Controller
      * Route: GET /api/events/{event:slug}/{type}
      * Types: conditions, info, faq
      */
-    public function show(Event $event, $type)
+    public function show(Accommodation $event, $type)
     {
         // Validate event is published
         if ($event->status !== 'published') {
@@ -51,7 +51,7 @@ class EventContentController extends Controller
         $pageType = $this->mapPageType($type);
 
         // Get content
-        $content = EventContent::where('event_id', $event->id)
+        $content = AccommodationContent::where('accommodation_id', $event->id)
             ->where('page_type', $pageType)
             ->first();
 

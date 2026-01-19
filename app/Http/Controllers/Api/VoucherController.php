@@ -41,10 +41,10 @@ class VoucherController extends Controller
                     'checkin_date' => $voucher->booking->checkin_date?->format('Y-m-d'),
                     'checkout_date' => $voucher->booking->checkout_date?->format('Y-m-d'),
                     'price' => $voucher->booking->price,
-                    'event' => $voucher->booking->event ? [
-                        'id' => $voucher->booking->event->id,
-                        'name' => $voucher->booking->event->name,
-                        'slug' => $voucher->booking->event->slug,
+                    'event' => $voucher->booking->accommodation ? [
+                        'id' => $voucher->booking->accommodation->id,
+                        'name' => $voucher->booking->accommodation->name,
+                        'slug' => $voucher->booking->accommodation->slug,
                     ] : null,
                     'hotel' => $voucher->booking->hotel ? [
                         'id' => $voucher->booking->hotel->id,

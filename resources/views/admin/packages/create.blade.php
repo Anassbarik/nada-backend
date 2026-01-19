@@ -26,6 +26,36 @@
                       updateDisponibilite() { this.disponibilite = this.chambres_restantes > 0; }
                   }">
                 @csrf
+
+                @if(auth()->user()->isSuperAdmin() && isset($admins) && $admins->count() > 0)
+                    <div class="mt-6 mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
+                        <x-input-label value="Sub-Permissions (Grant Access to Other Admins)" />
+                        <p class="mt-1 mb-3 text-sm text-gray-600">
+                            Select admins who should be able to edit this package even if they didn't create it.
+                        </p>
+                        
+                        <div class="space-y-2 max-h-60 overflow-y-auto">
+                            @foreach($admins as $admin)
+                                <label class="flex items-center">
+                                    <input 
+                                        type="checkbox" 
+                                        name="sub_permissions[]" 
+                                        value="{{ $admin->id }}"
+                                        {{ in_array($admin->id, old('sub_permissions', [])) ? 'checked' : '' }}
+                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                    <span class="ml-2 text-sm text-gray-700">{{ $admin->name }} ({{ $admin->email }})</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        
+                        @if($admins->isEmpty())
+                            <p class="mt-2 text-sm text-gray-500">No regular admins available.</p>
+                        @endif
+                        
+                        <x-input-error :messages="$errors->get('sub_permissions')" class="mt-2" />
+                    </div>
+                @endif
+
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                         <x-input-label for="nom_package" :value="__('nom_package')" />

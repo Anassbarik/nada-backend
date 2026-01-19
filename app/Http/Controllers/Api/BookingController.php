@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\BookingConfirmation;
 use App\Mail\BookingNotification;
 use App\Models\Booking;
-use App\Models\Event;
+use App\Models\Accommodation;
 use App\Models\Hotel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -39,7 +39,7 @@ class BookingController extends Controller
                             });
                       });
             })
-            ->with(['event', 'hotel', 'package', 'user'])
+            ->with(['accommodation', 'hotel', 'package', 'user'])
             ->latest()
             ->get();
 
@@ -63,15 +63,15 @@ class BookingController extends Controller
                 'resident_name_1' => $booking->resident_name_1,
                 'resident_name_2' => $booking->resident_name_2,
                 'special_instructions' => $booking->special_instructions ?? $booking->special_requests,
-                'event' => $booking->event ? [
-                    'id' => $booking->event->id,
-                    'name' => $booking->event->name,
-                    'slug' => $booking->event->slug,
-                    'venue' => $booking->event->venue,
-                    'location' => $booking->event->location,
-                    'google_maps_url' => $booking->event->google_maps_url,
-                    'start_date' => $booking->event->start_date?->format('Y-m-d'),
-                    'end_date' => $booking->event->end_date?->format('Y-m-d'),
+                'event' => $booking->accommodation ? [
+                    'id' => $booking->accommodation->id,
+                    'name' => $booking->accommodation->name,
+                    'slug' => $booking->accommodation->slug,
+                    'venue' => $booking->accommodation->venue,
+                    'location' => $booking->accommodation->location,
+                    'google_maps_url' => $booking->accommodation->google_maps_url,
+                    'start_date' => $booking->accommodation->start_date?->format('Y-m-d'),
+                    'end_date' => $booking->accommodation->end_date?->format('Y-m-d'),
                 ] : null,
                 'hotel' => $booking->hotel ? [
                     'id' => $booking->hotel->id,
@@ -99,7 +99,7 @@ class BookingController extends Controller
      * Store a newly created booking.
      * Route: POST /api/bookings or POST /api/events/{event:slug}/hotels/{hotel:slug}/bookings
      */
-    public function store(Request $request, Event $event = null, Hotel $hotel = null)
+    public function store(Request $request, Accommodation $event = null, Hotel $hotel = null)
     {
         // DEBUG: Log incoming request
         Log::info('Booking request received:', [
@@ -163,7 +163,7 @@ class BookingController extends Controller
 
         // If using direct /bookings route, require event_id and hotel_id
         if (!$event || !$hotel) {
-            $validationRules['event_id'] = 'required|exists:events,id';
+            $validationRules['accommodation_id'] = 'required|exists:accommodations,id';
             $validationRules['hotel_id'] = 'required|exists:hotels,id';
         }
 
@@ -222,7 +222,7 @@ class BookingController extends Controller
             // Route: /events/{event:slug}/hotels/{hotel:slug}/bookings
             // $event and $hotel are already Event and Hotel models from route binding
             // Verify hotel belongs to event
-            if ($hotel->event_id != $event->id) {
+            if ($hotel->accommodation_id != $event->id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Hotel does not belong to the specified event.',
@@ -232,7 +232,7 @@ class BookingController extends Controller
             // Route: /bookings (using request parameters)
             $hotelId = $request->hotel_id;
         $hotel = Hotel::findOrFail($hotelId);
-            $event = Event::findOrFail($request->event_id);
+            $event = Accommodation::findOrFail($request->accommodation_id);
 
             // Verify event_id matches the hotel's event
         if ($hotel->event_id != $event->id) {
@@ -381,7 +381,7 @@ class BookingController extends Controller
             $bookingData = [
                 'user_id' => $user->id,
                 'created_by' => $createdBy,
-                'event_id' => $event->id,
+                'accommodation_id' => $event->id,
                 'hotel_id' => $hotel->id,
                 'package_id' => $package->id,
                 'flight_number' => $flightNumber,

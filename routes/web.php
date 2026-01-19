@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\HotelController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\AdminLogController;
 use App\Http\Controllers\ProfileController;
+use App\Models\Accommodation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
@@ -13,18 +14,29 @@ use Illuminate\Support\Facades\Route;
 // Cache clearing route (secure, requires token from .env)
 Route::get('/clear-cache', [\App\Http\Controllers\CacheController::class, 'clear']);
 
+// Route model binding for accommodations (using 'event' parameter name for backward compatibility)
+Route::bind('event', function ($value) {
+    return Accommodation::where('slug', $value)->firstOrFail();
+});
+
 Route::get('/', function () {
-    if (Auth::check() && (Auth::user()->isAdmin() || Auth::user()->isSuperAdmin())) {
-        $stats = [
-            'revenue' => \App\Models\Booking::whereDate('created_at', today())
-                ->where('status', 'confirmed')
-                ->with('package')
-                ->get()
-                ->sum(fn($b) => $b->package->prix_ttc ?? 0),
-            'bookings' => \App\Models\Booking::whereDate('created_at', today())->count(),
-            'recent' => \App\Models\Booking::with(['event', 'hotel', 'package'])->latest()->take(5)->get(),
-        ];
-        return view('admin.dashboard', compact('stats'));
+    if (Auth::check()) {
+        $user = Auth::user();
+        if ($user->isOrganizer()) {
+            return redirect()->route('organizer.dashboard');
+        }
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
+            $stats = [
+                'revenue' => \App\Models\Booking::whereDate('created_at', today())
+                    ->where('status', 'confirmed')
+                    ->with('package')
+                    ->get()
+                    ->sum(fn($b) => $b->package->prix_ttc ?? 0),
+                'bookings' => \App\Models\Booking::whereDate('created_at', today())->count(),
+                'recent' => \App\Models\Booking::with(['accommodation', 'hotel', 'package'])->latest()->take(5)->get(),
+            ];
+            return view('admin.dashboard', compact('stats'));
+        }
     }
     return view('auth.login');
 });
@@ -37,7 +49,7 @@ Route::get('/dashboard', function () {
             ->get()
             ->sum(fn($b) => $b->package->prix_ttc ?? 0),
         'bookings' => \App\Models\Booking::whereDate('created_at', today())->count(),
-        'recent' => \App\Models\Booking::with(['event', 'hotel', 'package'])->latest()->take(5)->get(),
+        'recent' => \App\Models\Booking::with(['accommodation', 'hotel', 'package'])->latest()->take(5)->get(),
     ];
     return view('admin.dashboard', compact('stats'));
 })->middleware(['auth', 'verified', 'role:admin'])->name('dashboard');
@@ -47,11 +59,21 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Organizer routes
+    Route::middleware('role:organizer')->prefix('organizer')->name('organizer.')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\OrganizerController::class, 'dashboard'])->name('dashboard');
+        Route::get('/bookings', [\App\Http\Controllers\OrganizerController::class, 'bookings'])->name('bookings');
+        Route::get('/bookings/{booking}/voucher', [\App\Http\Controllers\OrganizerController::class, 'downloadVoucher'])->name('bookings.voucher');
+    });
+
     // Admin Routes (require admin role)
     Route::middleware([\App\Http\Middleware\SetLocale::class, 'role:admin', \App\Http\Middleware\LogAdminActions::class])->name('admin.')->group(function () {
-        // Events
-        Route::resource('events', EventController::class);
+        // Accommodation Events (renamed from Events)
+        Route::resource('events', EventController::class)->parameters(['events' => 'event:slug']);
         Route::post('events/{event}/duplicate', [EventController::class, 'duplicate'])->name('events.duplicate');
+        
+        // Event Packages
+        Route::get('event-packages', [\App\Http\Controllers\Admin\EventPackageController::class, 'index'])->name('event-packages.index');
         
         // Event Content
         Route::get('events/{event}/content', [\App\Http\Controllers\Admin\EventContentController::class, 'index'])->name('events.content.index');
@@ -114,6 +136,7 @@ Route::middleware('auth')->group(function () {
         // Admins (only super-admin can manage)
         Route::middleware('role:super-admin')->group(function () {
             Route::resource('admins', \App\Http\Controllers\Admin\AdminController::class);
+            Route::get('organizers/{organizer}/credentials', [EventController::class, 'downloadOrganizerCredentials'])->name('organizers.download-credentials');
             Route::get('logs', [AdminLogController::class, 'index'])->name('logs.index');
             Route::get('logs/{log}', [AdminLogController::class, 'show'])->name('logs.show');
             

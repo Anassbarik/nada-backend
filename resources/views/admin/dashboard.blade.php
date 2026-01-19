@@ -91,7 +91,7 @@
           @foreach($stats['recent'] as $booking)
           <x-shadcn.table-row hover>
             <x-shadcn.table-cell>#{{ $booking->id }}</x-shadcn.table-cell>
-            <x-shadcn.table-cell>{{ $booking->event->name ?? 'N/A' }}</x-shadcn.table-cell>
+            <x-shadcn.table-cell>{{ $booking->accommodation->name ?? 'N/A' }}</x-shadcn.table-cell>
             <x-shadcn.table-cell>{{ $booking->hotel->name ?? 'N/A' }}</x-shadcn.table-cell>
             <x-shadcn.table-cell>{{ $booking->package->prix_ttc ?? 0 }} MAD</x-shadcn.table-cell>
             <x-shadcn.table-cell>

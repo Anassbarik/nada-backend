@@ -25,10 +25,10 @@
           </select>
         </div>
         <div class="w-full sm:w-auto">
-          <select name="event_id" class="w-full sm:w-auto bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm sm:text-base" style="focus:border-color: #00adf1; focus:ring-color: #00adf1;">
-            <option value="">All Events</option>
-            @foreach($events as $event)
-              <option value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>{{ $event->name }}</option>
+          <select name="accommodation_id" class="w-full sm:w-auto bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm sm:text-base" style="focus:border-color: #00adf1; focus:ring-color: #00adf1;">
+            <option value="">All Accommodations</option>
+            @foreach($accommodations as $accommodation)
+              <option value="{{ $accommodation->id }}" {{ request('accommodation_id') == $accommodation->id ? 'selected' : '' }}>{{ $accommodation->name }}</option>
             @endforeach
           </select>
         </div>
@@ -71,7 +71,7 @@
                 <div class="break-words">{{ $booking->full_name ?? $booking->guest_name ?? 'N/A' }}</div>
                 <div class="text-xs text-muted-foreground break-all">{{ $booking->email ?? $booking->guest_email ?? '-' }}</div>
               </x-shadcn.table-cell>
-              <x-shadcn.table-cell class="break-words">{{ $booking->event->name ?? 'N/A' }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell class="break-words">{{ $booking->accommodation->name ?? 'N/A' }}</x-shadcn.table-cell>
               <x-shadcn.table-cell class="break-words">{{ $booking->hotel->name ?? 'N/A' }}</x-shadcn.table-cell>
               <x-shadcn.table-cell class="break-words">{{ $booking->package->nom_package ?? 'N/A' }}</x-shadcn.table-cell>
               <x-shadcn.table-cell>
@@ -249,7 +249,7 @@
                   {{-- Event & Hotel --}}
                   <div class="space-y-2">
                     <h4 class="font-semibold mb-2">Event & Hotel</h4>
-                    <div><span class="font-medium">Event:</span> {{ $booking->event->name ?? 'N/A' }}</div>
+                    <div><span class="font-medium">Accommodation:</span> {{ $booking->accommodation->name ?? 'N/A' }}</div>
                     <div><span class="font-medium">Hotel:</span> {{ $booking->hotel->name ?? 'N/A' }}</div>
                     <div><span class="font-medium">Package:</span> {{ $booking->package->nom_package ?? 'N/A' }}</div>
                     <div><span class="font-medium">Package Type:</span> {{ $booking->package->type_chambre ?? 'N/A' }}</div>

@@ -68,6 +68,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is an organizer.
+     */
+    public function isOrganizer(): bool
+    {
+        return $this->role === 'organizer';
+    }
+
+    /**
      * Check if user has a specific permission.
      */
     public function hasPermission(string $resource, string $action): bool
@@ -120,5 +128,32 @@ class User extends Authenticatable
     public function wallet()
     {
         return $this->hasOne(Wallet::class);
+    }
+
+    /**
+     * Get the accommodations (events) organized by this user.
+     */
+    public function organizedAccommodations()
+    {
+        return $this->hasMany(Accommodation::class, 'organizer_id');
+    }
+
+    /**
+     * Get the resource permissions (sub-permissions) for the user.
+     */
+    public function resourcePermissions()
+    {
+        return $this->hasMany(ResourcePermission::class, 'user_id');
+    }
+
+    /**
+     * Check if user has sub-permission to edit a specific resource.
+     */
+    public function hasResourcePermission(string $resourceType, int $resourceId): bool
+    {
+        return $this->resourcePermissions()
+            ->where('resource_type', $resourceType)
+            ->where('resource_id', $resourceId)
+            ->exists();
     }
 }

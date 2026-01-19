@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 class Hotel extends Model
 {
     protected $fillable = [
-        'event_id',
+        'accommodation_id',
         'name',
         'stars',
         'slug',
@@ -18,6 +18,8 @@ class Hotel extends Model
         'location_url',
         'duration',
         'description',
+        'description_en',
+        'description_fr',
         'inclusions',
         'website',
         'rating',
@@ -27,7 +29,7 @@ class Hotel extends Model
     ];
 
     protected $casts = [
-        'event_id' => 'integer',
+        'accommodation_id' => 'integer',
         'created_by' => 'integer',
         'stars' => 'integer',
         'rating' => 'decimal:2',
@@ -45,7 +47,7 @@ class Hotel extends Model
                 // Ensure uniqueness within the event
                 $originalSlug = $hotel->slug;
                 $count = 1;
-                while (static::where('event_id', $hotel->event_id)
+                while (static::where('accommodation_id', $hotel->accommodation_id)
                     ->where('slug', $hotel->slug)
                     ->exists()) {
                     $hotel->slug = $originalSlug . '-' . $count;
@@ -61,7 +63,7 @@ class Hotel extends Model
                 // Ensure uniqueness within the event
                 $originalSlug = $hotel->slug;
                 $count = 1;
-                while (static::where('event_id', $hotel->event_id)
+                while (static::where('accommodation_id', $hotel->accommodation_id)
                     ->where('slug', $hotel->slug)
                     ->where('id', '!=', $hotel->id)
                     ->exists()) {
@@ -80,9 +82,9 @@ class Hotel extends Model
         return 'slug';
     }
 
-    public function event(): BelongsTo
+    public function accommodation(): BelongsTo
     {
-        return $this->belongsTo(Event::class);
+        return $this->belongsTo(Accommodation::class);
     }
 
     public function bookings(): HasMany
@@ -103,6 +105,15 @@ class Hotel extends Model
     public function images(): HasMany
     {
         return $this->hasMany(HotelImage::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Get the resource permissions (sub-permissions) for this hotel.
+     */
+    public function resourcePermissions()
+    {
+        return $this->hasMany(ResourcePermission::class, 'resource_id')
+            ->where('resource_type', 'hotel');
     }
 
     /**
@@ -141,15 +152,34 @@ class Hotel extends Model
 
     /**
      * Check if a user can edit this hotel.
+     * 
+     * Rules:
+     * - Super-admins can edit everything
+     * - Regular admins can edit hotels THEY created
+     * - Regular admins can edit hotels if they have sub-permission OR if they can edit the parent event
      */
     public function canBeEditedBy(User $user): bool
     {
+        // Super-admin can edit everything
         if ($user->isSuperAdmin()) {
             return true;
         }
+
+        // Check if user can edit the parent accommodation/event
+        if ($this->accommodation && $this->accommodation->canBeEditedBy($user)) {
+            return true;
+        }
+
+        // Check if user has sub-permission for this hotel
+        if ($user->hasResourcePermission('hotel', $this->id)) {
+            return true;
+        }
+
+        // Regular admins can edit hotels they created
         if ($this->created_by && $this->created_by === $user->id) {
             return true;
         }
+
         return false;
     }
 

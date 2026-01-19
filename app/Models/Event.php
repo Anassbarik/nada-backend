@@ -23,8 +23,11 @@ class Event extends Model
         'logo_path',
         'banner_path',
         'description',
+        'description_en',
+        'description_fr',
         'menu_links',
         'status',
+        'event_type',
         'created_by',
     ];
 
@@ -48,6 +51,31 @@ class Event extends Model
                 while (static::where('slug', $event->slug)->exists()) {
                     $event->slug = $originalSlug . '-' . $count;
                     $count++;
+                }
+            }
+        });
+
+        static::created(function ($event) {
+            // Seed content pages from seafood4africa event as default
+            $referenceEvent = static::where('slug', 'seafood4africa')
+                ->orWhere('name', 'LIKE', '%Seafood%')
+                ->first();
+            
+            if ($referenceEvent) {
+                $referenceContents = $referenceEvent->contents;
+                
+                foreach ($referenceContents as $referenceContent) {
+                    // Copy the content structure with both English and French translations
+                    EventContent::create([
+                        'event_id' => $event->id,
+                        'page_type' => $referenceContent->page_type,
+                        'hero_image' => null,
+                        'sections' => $referenceContent->sections, // Keep original as fallback
+                        'sections_en' => $referenceContent->sections_en ?? $referenceContent->sections,
+                        'sections_fr' => $referenceContent->sections_fr ?? $referenceContent->sections,
+                        'content' => $referenceContent->content,
+                        'created_by' => $event->created_by,
+                    ]);
                 }
             }
         });

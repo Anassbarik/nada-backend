@@ -18,6 +18,35 @@
                     <form method="POST" action="{{ route('admin.events.store') }}" enctype="multipart/form-data">
                         @csrf
 
+                        @if(auth()->user()->isSuperAdmin() && $admins->count() > 0)
+                            <div class="mt-6 mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
+                                <x-input-label value="Sub-Permissions (Grant Access to Other Admins)" />
+                                <p class="mt-1 mb-3 text-sm text-gray-600">
+                                    Select admins who should be able to edit this event even if they didn't create it.
+                                </p>
+                                
+                                <div class="space-y-2 max-h-60 overflow-y-auto">
+                                    @foreach($admins as $admin)
+                                        <label class="flex items-center">
+                                            <input 
+                                                type="checkbox" 
+                                                name="sub_permissions[]" 
+                                                value="{{ $admin->id }}"
+                                                {{ in_array($admin->id, old('sub_permissions', [])) ? 'checked' : '' }}
+                                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                            <span class="ml-2 text-sm text-gray-700">{{ $admin->name }} ({{ $admin->email }})</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                
+                                @if($admins->isEmpty())
+                                    <p class="mt-2 text-sm text-gray-500">No regular admins available.</p>
+                                @endif
+                                
+                                <x-input-error :messages="$errors->get('sub_permissions')" class="mt-2" />
+                            </div>
+                        @endif
+
                         <div class="mb-4">
                             <x-input-label for="name" :value="__('name')" />
                             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus />
@@ -75,7 +104,20 @@
                         <div class="mb-4">
                             <x-input-label for="description" :value="__('description')" />
                             <textarea id="description" name="description" rows="4" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('description') }}</textarea>
+                            <p class="mt-1 text-sm text-gray-500">Legacy description field (optional)</p>
                             <x-input-error :messages="$errors->get('description')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
+                            <x-input-label for="description_en" :value="__('Description (English)')" />
+                            <textarea id="description_en" name="description_en" rows="4" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('description_en') }}</textarea>
+                            <x-input-error :messages="$errors->get('description_en')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
+                            <x-input-label for="description_fr" :value="__('Description (Français)')" />
+                            <textarea id="description_fr" name="description_fr" rows="4" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('description_fr') }}</textarea>
+                            <x-input-error :messages="$errors->get('description_fr')" class="mt-2" />
                         </div>
 
                         <div class="mb-4">
@@ -88,6 +130,24 @@
                             <x-input-label for="banner" :value="__('banner')" />
                             <x-text-input id="banner" class="block mt-1 w-full" type="file" name="banner" accept="image/*" />
                             <x-input-error :messages="$errors->get('banner')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-6 p-4 border border-gray-300 rounded-md bg-blue-50">
+                            <h3 class="text-lg font-semibold mb-4">Organizer Information</h3>
+                            
+                            <div class="mb-4">
+                                <x-input-label for="organizer_name" :value="__('Organizer Name')" />
+                                <x-text-input id="organizer_name" class="block mt-1 w-full" type="text" name="organizer_name" :value="old('organizer_name')" required />
+                                <p class="mt-1 text-sm text-gray-500">Full name of the event organizer</p>
+                                <x-input-error :messages="$errors->get('organizer_name')" class="mt-2" />
+                            </div>
+
+                            <div class="mb-4">
+                                <x-input-label for="organizer_email" :value="__('Organizer Email')" />
+                                <x-text-input id="organizer_email" class="block mt-1 w-full" type="email" name="organizer_email" :value="old('organizer_email')" required />
+                                <p class="mt-1 text-sm text-gray-500">Email address for the organizer login. A password will be automatically generated and a PDF with credentials will be available for download.</p>
+                                <x-input-error :messages="$errors->get('organizer_email')" class="mt-2" />
+                            </div>
                         </div>
 
                         <div class="mb-4">

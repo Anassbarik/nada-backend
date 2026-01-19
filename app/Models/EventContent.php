@@ -15,12 +15,16 @@ class EventContent extends Model
         'type', // Alias for page_type for simpler API
         'hero_image',
         'sections',
+        'sections_en',
+        'sections_fr',
         'content', // Simple longText content field
         'created_by',
     ];
 
     protected $casts = [
         'sections' => 'array',
+        'sections_en' => 'array',
+        'sections_fr' => 'array',
     ];
 
     public function event(): BelongsTo

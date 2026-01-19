@@ -56,6 +56,23 @@ class CheckRole
             ]);
         }
 
+        // For organizer role, only organizer can access
+        if ($role === 'organizer' && $user->role !== 'organizer') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Unauthorized. Required role: ' . $role
+                ], 403);
+            }
+            
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            
+            return redirect()->route('login')->withErrors([
+                'email' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page.'),
+            ]);
+        }
+
         return $next($request);
     }
 }

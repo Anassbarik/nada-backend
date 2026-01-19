@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Airport extends Model
 {
     protected $fillable = [
-        'event_id',
+        'accommodation_id',
         'name',
         'code',
         'city',
@@ -22,16 +22,16 @@ class Airport extends Model
     ];
 
     protected $casts = [
-        'event_id' => 'integer',
+        'accommodation_id' => 'integer',
         'created_by' => 'integer',
         'distance_from_venue' => 'decimal:2',
         'sort_order' => 'integer',
         'active' => 'boolean',
     ];
 
-    public function event(): BelongsTo
+    public function accommodation(): BelongsTo
     {
-        return $this->belongsTo(Event::class);
+        return $this->belongsTo(Accommodation::class);
     }
 
     /**

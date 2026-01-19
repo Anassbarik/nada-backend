@@ -161,16 +161,42 @@
                           style="background: linear-gradient(135deg, rgba(131, 206, 47, 0.15) 0%, rgba(131, 206, 47, 0.05) 100%); color: #83ce2f; border: 2px solid rgba(131, 206, 47, 0.3); box-shadow: 0 4px 12px rgba(131, 206, 47, 0.15);"
                           @endif>
                     <div class="relative">
-                        <i data-lucide="calendar" class="w-5 h-5 transition-colors relative z-10" style="@if(request()->routeIs('admin.events.*')) color: #83ce2f; @else color: #6b7280; @endif"></i>
+                        <i data-lucide="building" class="w-5 h-5 transition-colors relative z-10" style="@if(request()->routeIs('admin.events.*')) color: #83ce2f; @else color: #6b7280; @endif"></i>
                         @if(request()->routeIs('admin.events.*'))
                             <div class="absolute inset-0 bg-green-100 rounded-full blur-sm opacity-50"></div>
                         @endif
                     </div>
-                    <span>Events</span>
+                    <span>Accommodation</span>
                     @if(request()->routeIs('admin.events.*'))
                         <div class="ml-auto flex items-center gap-1">
                             <div class="w-1.5 h-1.5 rounded-full" style="background-color: #83ce2f;"></div>
                             <div class="w-1 h-1 rounded-full opacity-60" style="background-color: #83ce2f;"></div>
+                        </div>
+                    @endif
+                </a>
+                
+                <a href="{{ route('admin.event-packages.index') }}" 
+                   @click="sidebarOpen = false"
+                   class="group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                          @if(request()->routeIs('admin.event-packages.*'))
+                            font-semibold shadow-lg
+                          @else
+                            hover:bg-gray-50 text-gray-700 hover:text-gray-900
+                          @endif"
+                          @if(request()->routeIs('admin.event-packages.*'))
+                          style="background: linear-gradient(135deg, rgba(235, 11, 105, 0.15) 0%, rgba(235, 11, 105, 0.05) 100%); color: #eb0b69; border: 2px solid rgba(235, 11, 105, 0.3); box-shadow: 0 4px 12px rgba(235, 11, 105, 0.15);"
+                          @endif>
+                    <div class="relative">
+                        <i data-lucide="package" class="w-5 h-5 transition-colors relative z-10" style="@if(request()->routeIs('admin.event-packages.*')) color: #eb0b69; @else color: #6b7280; @endif"></i>
+                        @if(request()->routeIs('admin.event-packages.*'))
+                            <div class="absolute inset-0 bg-pink-100 rounded-full blur-sm opacity-50"></div>
+                        @endif
+                    </div>
+                    <span>Event Packages</span>
+                    @if(request()->routeIs('admin.event-packages.*'))
+                        <div class="ml-auto flex items-center gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full" style="background-color: #eb0b69;"></div>
+                            <div class="w-1 h-1 rounded-full opacity-60" style="background-color: #eb0b69;"></div>
                         </div>
                     @endif
                 </a>

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Event;
+use App\Models\Accommodation;
 use App\Models\Airport;
 use Illuminate\Http\Request;
 
@@ -12,7 +12,7 @@ class AirportController extends Controller
     /**
      * Display a listing of airports for an event.
      */
-    public function index(Event $event)
+    public function index(Accommodation $event)
     {
         // All admins can view airports (read-only)
         if (!$event->canBeViewedBy(auth()->user())) {
@@ -30,7 +30,7 @@ class AirportController extends Controller
     /**
      * Show the form for creating a new airport.
      */
-    public function create(Event $event)
+    public function create(Accommodation $event)
     {
         // Only allow creating airports if user can edit the event
         if (!$event->canBeEditedBy(auth()->user())) {
@@ -43,7 +43,7 @@ class AirportController extends Controller
     /**
      * Store a newly created airport.
      */
-    public function store(Request $request, Event $event)
+    public function store(Request $request, Accommodation $event)
     {
         // Only allow creating airports if user can edit the event
         if (!$event->canBeEditedBy(auth()->user())) {
@@ -62,7 +62,7 @@ class AirportController extends Controller
             'active' => 'nullable|boolean',
         ]);
 
-        $validated['event_id'] = $event->id;
+        $validated['accommodation_id'] = $event->id;
         $validated['created_by'] = auth()->id();
         $validated['distance_unit'] = $validated['distance_unit'] ?? 'km';
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
@@ -77,7 +77,7 @@ class AirportController extends Controller
     /**
      * Show the form for editing the specified airport.
      */
-    public function edit(Event $event, Airport $airport)
+    public function edit(Accommodation $event, Airport $airport)
     {
         // Only allow editing if user can edit the event
         if (!$event->canBeEditedBy(auth()->user())) {
@@ -85,7 +85,7 @@ class AirportController extends Controller
         }
         
         // Ensure airport belongs to event (use loose comparison to handle type mismatches)
-        if ($airport->event_id != $event->id) {
+        if ($airport->accommodation_id != $event->id) {
             abort(404, 'Airport does not belong to this event.');
         }
 
@@ -103,7 +103,7 @@ class AirportController extends Controller
         }
         
         // Ensure airport belongs to event (use loose comparison to handle type mismatches)
-        if ($airport->event_id != $event->id) {
+        if ($airport->accommodation_id != $event->id) {
             abort(404, 'Airport does not belong to this event.');
         }
 
@@ -144,7 +144,7 @@ class AirportController extends Controller
         }
         
         // Ensure airport belongs to event (use loose comparison to handle type mismatches)
-        if ($airport->event_id != $event->id) {
+        if ($airport->accommodation_id != $event->id) {
             abort(404, 'Airport does not belong to this event.');
         }
 
@@ -170,13 +170,13 @@ class AirportController extends Controller
         }
         
         // Ensure airport belongs to event (use loose comparison to handle type mismatches)
-        if ($airport->event_id != $event->id) {
+        if ($airport->accommodation_id != $event->id) {
             abort(404, 'Airport does not belong to this event.');
         }
 
         $duplicate = $airport->replicate();
         $duplicate->name = $airport->name . ' (Copy)';
-        $duplicate->event_id = $event->id;
+        $duplicate->accommodation_id = $event->id;
         $duplicate->created_by = auth()->id();
         $duplicate->save();
 

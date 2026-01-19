@@ -12,7 +12,7 @@ class Booking extends Model
     protected $fillable = [
         'user_id',
         'created_by',
-        'event_id',
+        'accommodation_id',
         'hotel_id',
         'package_id',
         'flight_number',
@@ -163,9 +163,18 @@ class Booking extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function accommodation(): BelongsTo
+    {
+        return $this->belongsTo(Accommodation::class);
+    }
+
+    /**
+     * Alias for accommodation() for backward compatibility.
+     * The table was renamed from events to accommodations.
+     */
     public function event(): BelongsTo
     {
-        return $this->belongsTo(Event::class);
+        return $this->accommodation();
     }
 
     public function hotel(): BelongsTo

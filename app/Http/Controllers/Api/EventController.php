@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Event;
-use App\Models\EventContent;
+use App\Models\Accommodation;
+use App\Models\AccommodationContent;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
@@ -15,7 +15,7 @@ class EventController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Event::where('status', 'published')
+        $query = Accommodation::where('status', 'published')
             ->latest('created_at'); // Always order by latest first
 
         // Get limit from query param
@@ -69,7 +69,7 @@ class EventController extends Controller
      */
     public function show($slug)
     {
-        $event = Event::where('slug', $slug)
+        $event = Accommodation::where('slug', $slug)
             ->where('status', 'published')
             ->with([
                 'contents',
@@ -216,7 +216,7 @@ class EventController extends Controller
         $pageType = $pageTypeMap[$type] ?? $type;
 
         // Find content
-        $content = EventContent::where('event_id', $event->id)
+        $content = AccommodationContent::where('accommodation_id', $event->id)
             ->where('page_type', $pageType)
             ->first();
 

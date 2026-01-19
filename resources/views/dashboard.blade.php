@@ -16,8 +16,8 @@
                             </svg>
                         </div>
                         <div class="ml-4">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Events</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Manage events</p>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Accommodation</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Manage accommodation</p>
                         </div>
                     </div>
                 </a>

@@ -17,14 +17,14 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Booking::with(['event', 'hotel', 'package', 'invoice'])->latest();
+        $query = Booking::with(['accommodation', 'hotel', 'package', 'invoice'])->latest();
 
         if ($request->has('status') && $request->status !== '') {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('event_id') && $request->event_id !== '') {
-            $query->where('event_id', $request->event_id);
+        if ($request->has('accommodation_id') && $request->accommodation_id !== '') {
+            $query->where('accommodation_id', $request->accommodation_id);
         }
 
         if ($request->has('search') && $request->search !== '') {
@@ -43,9 +43,9 @@ class BookingController extends Controller
         }
 
         $bookings = $query->paginate(20);
-        $events = \App\Models\Event::all();
+        $accommodations = \App\Models\Accommodation::all();
 
-        return view('admin.bookings.index', compact('bookings', 'events'));
+        return view('admin.bookings.index', compact('bookings', 'accommodations'));
     }
 
     /**

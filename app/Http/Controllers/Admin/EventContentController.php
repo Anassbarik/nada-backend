@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Event;
-use App\Models\EventContent;
+use App\Models\Accommodation;
+use App\Models\AccommodationContent;
 use Illuminate\Http\Request;
 
 class EventContentController extends Controller
@@ -12,7 +12,7 @@ class EventContentController extends Controller
     /**
      * Display content management page for an event.
      */
-    public function index(Event $event)
+    public function index(Accommodation $event)
     {
         // All admins can view content pages (read-only)
         if (!$event->canBeViewedBy(auth()->user())) {
@@ -27,7 +27,7 @@ class EventContentController extends Controller
     /**
      * Show the editor for a specific content page.
      */
-    public function edit(Event $event, $pageType)
+    public function edit(Accommodation $event, $pageType)
     {
         // Only allow editing if user can edit the event
         if (!$event->canBeEditedBy(auth()->user())) {
@@ -40,27 +40,23 @@ class EventContentController extends Controller
             abort(404, 'Invalid page type.');
         }
 
-        $content = EventContent::where('event_id', $event->id)
+        $content = AccommodationContent::where('accommodation_id', $event->id)
             ->where('page_type', $pageType)
             ->first();
 
-        // Convert existing content to points structure if needed
-        if ($content && isset($content->sections)) {
-            // Get sections as array to avoid indirect modification error
-            $sections = $content->sections ?? [];
+        // Helper function to convert content to points structure
+        $convertToPoints = function($sections) {
+            if (!$sections) return [];
             
             foreach ($sections as $index => $section) {
-                // If content exists and points don't exist, parse content into points
                 if (isset($section['content']) && !isset($section['points'])) {
                     $contentText = $section['content'] ?? '';
                     $points = [];
                     
-                    // Split by newlines and filter lines starting with dashes
                     $lines = explode("\n", $contentText);
                     foreach ($lines as $line) {
                         $line = trim($line);
                         if (!empty($line)) {
-                            // Remove dash prefixes (hyphen, en-dash, em-dash) if present and trim whitespace
                             $point = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', $line);
                             $point = trim($point);
                             if (!empty($point)) {
@@ -69,7 +65,6 @@ class EventContentController extends Controller
                         }
                     }
                     
-                    // If no points were found, use the original content as a single point (without dash)
                     if (empty($points) && !empty($contentText)) {
                         $cleanedContent = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($contentText));
                         if (!empty($cleanedContent)) {
@@ -77,17 +72,28 @@ class EventContentController extends Controller
                         }
                     }
                     
-                    // Replace content with points
                     $sections[$index]['points'] = $points;
                     unset($sections[$index]['content']);
                 } elseif (!isset($section['points'])) {
-                    // Initialize empty points array if neither content nor points exist
                     $sections[$index]['points'] = [];
                 }
             }
             
-            // Set the modified sections back to the content object
-            $content->sections = $sections;
+            return $sections;
+        };
+
+        // Get English and French sections, with fallback to sections
+        if ($content) {
+            $sectionsEn = $content->sections_en ?? $content->sections ?? [];
+            $sectionsFr = $content->sections_fr ?? $content->sections ?? [];
+            
+            // Convert to points structure if needed
+            $sectionsEn = $convertToPoints($sectionsEn);
+            $sectionsFr = $convertToPoints($sectionsFr);
+            
+            // Set them back to the content object for the view
+            $content->sections_en = $sectionsEn;
+            $content->sections_fr = $sectionsFr;
         }
 
         $pageNames = [
@@ -120,7 +126,7 @@ class EventContentController extends Controller
             abort(404, 'Invalid page type.');
         }
 
-        $existingContent = EventContent::where('event_id', $event->id)
+        $existingContent = AccommodationContent::where('accommodation_id', $event->id)
             ->where('page_type', $pageType)
             ->first();
 
@@ -130,43 +136,65 @@ class EventContentController extends Controller
         }
 
         $validated = $request->validate([
-            'sections' => 'required|array|min:1',
-            'sections.*.title' => 'required|string|max:255',
-            'sections.*.points' => 'required|array|min:1',
-            'sections.*.points.*' => 'required|string',
+            'sections_en' => 'required|array|min:1',
+            'sections_en.*.title' => 'required|string|max:255',
+            'sections_en.*.points' => 'required|array|min:1',
+            'sections_en.*.points.*' => 'required|string',
+            'sections_fr' => 'required|array|min:1',
+            'sections_fr.*.title' => 'required|string|max:255',
+            'sections_fr.*.points' => 'required|array|min:1',
+            'sections_fr.*.points.*' => 'required|string',
         ]);
 
-        // Process sections to ensure points are properly formatted
-        $processedSections = [];
-        foreach ($validated['sections'] as $section) {
-            // Filter out empty points and remove dash prefixes (hyphen, en-dash, em-dash)
+        // Process English sections
+        $processedSectionsEn = [];
+        foreach ($validated['sections_en'] as $section) {
             $points = array_map(function($point) {
-                // Remove dash prefixes if present and trim
                 $cleaned = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($point));
                 return trim($cleaned);
             }, $section['points']);
             
-            // Filter out empty points after cleaning
             $points = array_filter($points, function($point) {
                 return !empty($point);
             });
             
-            // Re-index array to ensure sequential keys
             $points = array_values($points);
             
-            $processedSections[] = [
+            $processedSectionsEn[] = [
                 'title' => $section['title'],
                 'points' => $points,
             ];
         }
 
-        EventContent::updateOrCreate(
+        // Process French sections
+        $processedSectionsFr = [];
+        foreach ($validated['sections_fr'] as $section) {
+            $points = array_map(function($point) {
+                $cleaned = preg_replace('/^[-\x{2013}\x{2014}]\s*/u', '', trim($point));
+                return trim($cleaned);
+            }, $section['points']);
+            
+            $points = array_filter($points, function($point) {
+                return !empty($point);
+            });
+            
+            $points = array_values($points);
+            
+            $processedSectionsFr[] = [
+                'title' => $section['title'],
+                'points' => $points,
+            ];
+        }
+
+        AccommodationContent::updateOrCreate(
             [
-                'event_id' => $event->id,
+                'accommodation_id' => $event->id,
                 'page_type' => $pageType,
             ],
             [
-                'sections' => $processedSections,
+                'sections' => $processedSectionsEn, // Keep English as default/fallback
+                'sections_en' => $processedSectionsEn,
+                'sections_fr' => $processedSectionsFr,
                 'created_by' => auth()->id(),
             ]
         );
