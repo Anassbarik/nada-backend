@@ -4,22 +4,55 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
+use App\Models\Event;
 use App\Models\Hotel;
 use Illuminate\Http\Request;
 
 class HotelController extends Controller
 {
     /**
+     * Find event or accommodation by slug.
+     * Checks both Event and Accommodation models.
+     */
+    private function findEventBySlug($slug)
+    {
+        // First try Accommodation (most common)
+        $event = Accommodation::where('slug', $slug)
+            ->where('status', 'published')
+            ->first();
+        
+        // If not found, try Event
+        if (!$event) {
+            $event = Event::where('slug', $slug)
+                ->where('status', 'published')
+                ->first();
+        }
+        
+        return $event;
+    }
+
+    /**
      * Display a listing of hotels for an event.
      * Route: GET /api/events/{slug}/hotels
+     * Note: Hotels are only available for Accommodations, not Events
      */
-    public function index(Accommodation $event)
+    public function index($slug)
     {
-        if ($event->status !== 'published') {
+        $event = $this->findEventBySlug($slug);
+
+        if (!$event) {
             return response()->json([
                 'success' => false,
                 'message' => 'Event not found.',
             ], 404);
+        }
+
+        // Hotels are only for Accommodations
+        if (!($event instanceof Accommodation)) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+            ]);
         }
 
         $hotels = $event->hotels()
@@ -148,15 +181,25 @@ class HotelController extends Controller
 
     /**
      * Display the specified hotel within an event context.
-     * Route: GET /api/events/{event:slug}/hotels/{hotel:slug}
+     * Route: GET /api/events/{slug}/hotels/{hotel:slug}
+     * Note: Hotels are only available for Accommodations, not Events
      */
-    public function show(Event $event, Hotel $hotel)
+    public function show($slug, Hotel $hotel)
     {
-        // Ensure event is published
-        if ($event->status !== 'published') {
+        $event = $this->findEventBySlug($slug);
+
+        if (!$event) {
             return response()->json([
                 'success' => false,
                 'message' => 'Event not found.',
+            ], 404);
+        }
+
+        // Hotels are only for Accommodations
+        if (!($event instanceof Accommodation)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hotels are not available for this event type.',
             ], 404);
         }
 

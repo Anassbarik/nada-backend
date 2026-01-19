@@ -7,6 +7,7 @@ use App\Mail\BookingConfirmation;
 use App\Mail\BookingNotification;
 use App\Models\Booking;
 use App\Models\Accommodation;
+use App\Models\Event;
 use App\Models\Hotel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -96,10 +97,31 @@ class BookingController extends Controller
     }
 
     /**
-     * Store a newly created booking.
-     * Route: POST /api/bookings or POST /api/events/{event:slug}/hotels/{hotel:slug}/bookings
+     * Find event or accommodation by slug.
+     * Checks both Event and Accommodation models.
      */
-    public function store(Request $request, Accommodation $event = null, Hotel $hotel = null)
+    private function findEventBySlug($slug)
+    {
+        // First try Accommodation (most common)
+        $event = Accommodation::where('slug', $slug)
+            ->where('status', 'published')
+            ->first();
+        
+        // If not found, try Event
+        if (!$event) {
+            $event = Event::where('slug', $slug)
+                ->where('status', 'published')
+                ->first();
+        }
+        
+        return $event;
+    }
+
+    /**
+     * Store a newly created booking.
+     * Route: POST /api/bookings or POST /api/events/{slug}/hotels/{hotel:slug}/bookings
+     */
+    public function store(Request $request, $slug = null, Hotel $hotel = null)
     {
         // DEBUG: Log incoming request
         Log::info('Booking request received:', [
@@ -160,6 +182,25 @@ class BookingController extends Controller
             // User ID (will be overridden by auth()->id())
             'user_id' => 'nullable|exists:users,id',
         ];
+
+        // Resolve event from slug if provided
+        $event = null;
+        if ($slug) {
+            $event = $this->findEventBySlug($slug);
+            if (!$event) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Event not found.',
+                ], 404);
+            }
+            // Hotels are only for Accommodations
+            if (!($event instanceof Accommodation)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hotels are not available for this event type.',
+                ], 404);
+            }
+        }
 
         // If using direct /bookings route, require event_id and hotel_id
         if (!$event || !$hotel) {

@@ -60,3 +60,4 @@ class BookingConfirmation extends Mailable
 
 
 
+

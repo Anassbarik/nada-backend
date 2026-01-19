@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\AccommodationContent;
+use App\Models\Event;
+use App\Models\EventContent;
 use Illuminate\Http\Request;
 
 class EventController extends Controller
@@ -65,13 +67,44 @@ class EventController extends Controller
     }
 
     /**
+     * Find event or accommodation by slug.
+     * Checks both Event and Accommodation models.
+     */
+    private function findEventBySlug($slug)
+    {
+        // First try Accommodation (most common)
+        $event = Accommodation::where('slug', $slug)
+            ->where('status', 'published')
+            ->first();
+        
+        // If not found, try Event
+        if (!$event) {
+            $event = Event::where('slug', $slug)
+                ->where('status', 'published')
+                ->first();
+        }
+        
+        return $event;
+    }
+
+    /**
      * Display the specified event by slug.
+     * Works for both Event and Accommodation types.
      */
     public function show($slug)
     {
-        $event = Accommodation::where('slug', $slug)
-            ->where('status', 'published')
-            ->with([
+        $event = $this->findEventBySlug($slug);
+
+        if (!$event) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Event not found.',
+            ], 404);
+        }
+
+        // Load relationships based on model type
+        if ($event instanceof Accommodation) {
+            $event->load([
                 'contents',
                 'airports' => function ($query) {
                     $query->where('active', true);
@@ -87,14 +120,15 @@ class EventController extends Controller
                             }
                         ]);
                 }
-            ])
-            ->first();
-
-        if (!$event) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Event not found.',
-            ], 404);
+            ]);
+        } else {
+            // Event model
+            $event->load([
+                'contents',
+                'airports' => function ($query) {
+                    $query->where('active', true);
+                },
+            ]);
         }
 
         // Ensure contents relationship is loaded
@@ -102,17 +136,19 @@ class EventController extends Controller
             $event->load('contents');
         }
 
-        // Format images to each hotel using URL accessor
-        $event->hotels->each(function ($hotel) {
-            $hotel->images = $hotel->images->map(function ($image) {
-                return [
-                    'id' => $image->id,
-                    'url' => $image->url,
-                    'alt_text' => $image->alt_text,
-                    'is_primary' => $image->sort_order === 0,
-                ];
+        // Format images to each hotel using URL accessor (only for Accommodations)
+        if ($event instanceof Accommodation && $event->relationLoaded('hotels')) {
+            $event->hotels->each(function ($hotel) {
+                $hotel->images = $hotel->images->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'url' => $image->url,
+                        'alt_text' => $image->alt_text,
+                        'is_primary' => $image->sort_order === 0,
+                    ];
+                });
             });
-        });
+        }
 
         // Add URL accessors for event images (using model accessors)
         // Store original path before overwriting with URL
@@ -192,13 +228,16 @@ class EventController extends Controller
 
     /**
      * Get event content by type.
-     * Route: GET /api/events/{event:slug}/{type}
+     * Route: GET /api/events/{slug}/{type}
      * Types: conditions, info, faq
+     * Works for both Event and Accommodation types.
      */
-    public function getContentByType(Event $event, string $type)
+    public function getContentByType($slug, string $type)
     {
-        // Ensure event is published
-        if ($event->status !== 'published') {
+        // Find event or accommodation by slug
+        $event = $this->findEventBySlug($slug);
+
+        if (!$event) {
             return response()->json([
                 'success' => false,
                 'message' => 'Event not found.',
@@ -215,10 +254,16 @@ class EventController extends Controller
 
         $pageType = $pageTypeMap[$type] ?? $type;
 
-        // Find content
-        $content = AccommodationContent::where('accommodation_id', $event->id)
-            ->where('page_type', $pageType)
-            ->first();
+        // Find content based on model type
+        if ($event instanceof Accommodation) {
+            $content = AccommodationContent::where('accommodation_id', $event->id)
+                ->where('page_type', $pageType)
+                ->first();
+        } else {
+            $content = EventContent::where('event_id', $event->id)
+                ->where('page_type', $pageType)
+                ->first();
+        }
 
         if (!$content) {
             return response()->json([

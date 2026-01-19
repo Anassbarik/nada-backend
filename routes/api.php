@@ -17,15 +17,15 @@ Route::get('/maintenance', [\App\Http\Controllers\Api\MaintenanceController::cla
 Route::get('/events', [EventController::class, 'index']);
 
 // Event content pages (must come before /events/{slug} to avoid route conflicts)
-Route::get('/events/{event:slug}/{type}', [EventController::class, 'getContentByType'])
+Route::get('/events/{slug}/{type}', [EventController::class, 'getContentByType'])
     ->where('type', 'conditions|info|faq');
 
 // Hotels by event slug (must come before /events/{slug} to avoid route conflicts)
-Route::get('/events/{event:slug}/hotels', [HotelController::class, 'index']); // Uses slug via getRouteKeyName()
-Route::get('/events/{event:slug}/hotels/{hotel:slug}', [HotelController::class, 'show']); // Hotel details within event context
+Route::get('/events/{slug}/hotels', [HotelController::class, 'index']);
+Route::get('/events/{slug}/hotels/{hotel:slug}', [HotelController::class, 'show']); // Hotel details within event context
 
 // Airports by event slug
-Route::get('/events/{event:slug}/airports', [\App\Http\Controllers\Api\AirportController::class, 'index']); // List airports for an event
+Route::get('/events/{slug}/airports', [\App\Http\Controllers\Api\AirportController::class, 'index']); // List airports for an event
 
 // Event by slug (generic route - must come after specific routes)
 Route::get('/events/{slug}', [EventController::class, 'show']);
@@ -62,7 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Booking routes (now requires authentication)
     Route::post('/bookings', [BookingController::class, 'store']);
-    Route::post('/events/{event:slug}/hotels/{hotel:slug}/bookings', [BookingController::class, 'store']); // Legacy route
+    Route::post('/events/{slug}/hotels/{hotel:slug}/bookings', [BookingController::class, 'store']); // Legacy route
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
     Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
