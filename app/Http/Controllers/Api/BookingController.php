@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Services\DualStorageService;
 
 class BookingController extends Controller
 {
@@ -64,6 +65,10 @@ class BookingController extends Controller
                 'resident_name_1' => $booking->resident_name_1,
                 'resident_name_2' => $booking->resident_name_2,
                 'special_instructions' => $booking->special_instructions ?? $booking->special_requests,
+                'payment_document_path' => $booking->payment_document_path,
+                'payment_document_url' => $booking->payment_document_url,
+                'flight_ticket_path' => $booking->flight_ticket_path,
+                'flight_ticket_url' => $booking->flight_ticket_url,
                 'event' => $booking->accommodation ? [
                     'id' => $booking->accommodation->id,
                     'name' => $booking->accommodation->name,
@@ -707,5 +712,159 @@ class BookingController extends Controller
             'message' => 'Booking status updated successfully.',
             'data' => $booking,
         ]);
+    }
+
+    /**
+     * Upload payment document for a booking.
+     */
+    public function uploadPaymentDocument(Request $request, Booking $booking)
+    {
+        // Ensure user can only upload documents for their own bookings
+        $user = $request->user();
+        if ($booking->user_id !== $user->id && 
+            $booking->email !== $user->email && 
+            $booking->guest_email !== $user->email) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'payment_document' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240', // 10MB max
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // Delete old document if exists
+            if ($booking->payment_document_path) {
+                DualStorageService::delete($booking->payment_document_path, 'public');
+            }
+
+            // Store new document using DualStorageService
+            $file = $request->file('payment_document');
+            $filename = 'booking-' . $booking->id . '-ordre-paiement-' . time() . '.' . $file->getClientOriginalExtension();
+            $path = DualStorageService::store($file, 'payment-documents', 'public');
+            
+            // Rename the file to our desired format
+            $newPath = 'payment-documents/' . $filename;
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->move($path, $newPath);
+                // Also move in public storage
+                if (file_exists(public_path('storage/' . $path))) {
+                    rename(public_path('storage/' . $path), public_path('storage/' . $newPath));
+                }
+            } else {
+                $newPath = $path; // Use original path if move failed
+            }
+
+            $booking->update(['payment_document_path' => $newPath]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment document uploaded successfully',
+                'data' => [
+                    'booking' => [
+                        'id' => $booking->id,
+                        'payment_document_path' => $booking->payment_document_path,
+                        'payment_document_url' => $booking->payment_document_url,
+                    ],
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to upload payment document', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload payment document.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload flight ticket for a booking.
+     */
+    public function uploadFlightTicket(Request $request, Booking $booking)
+    {
+        // Ensure user can only upload documents for their own bookings
+        $user = $request->user();
+        if ($booking->user_id !== $user->id && 
+            $booking->email !== $user->email && 
+            $booking->guest_email !== $user->email) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'flight_ticket' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240', // 10MB max
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // Delete old document if exists
+            if ($booking->flight_ticket_path) {
+                DualStorageService::delete($booking->flight_ticket_path, 'public');
+            }
+
+            // Store new document using DualStorageService
+            $file = $request->file('flight_ticket');
+            $filename = 'booking-' . $booking->id . '-flight-ticket-' . time() . '.' . $file->getClientOriginalExtension();
+            $path = DualStorageService::store($file, 'flight-tickets', 'public');
+            
+            // Rename the file to our desired format
+            $newPath = 'flight-tickets/' . $filename;
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->move($path, $newPath);
+                // Also move in public storage
+                if (file_exists(public_path('storage/' . $path))) {
+                    rename(public_path('storage/' . $path), public_path('storage/' . $newPath));
+                }
+            } else {
+                $newPath = $path; // Use original path if move failed
+            }
+
+            $booking->update(['flight_ticket_path' => $newPath]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Flight ticket uploaded successfully',
+                'data' => [
+                    'booking' => [
+                        'id' => $booking->id,
+                        'flight_ticket_path' => $booking->flight_ticket_path,
+                        'flight_ticket_url' => $booking->flight_ticket_url,
+                    ],
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to upload flight ticket', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload flight ticket.',
+            ], 500);
+        }
     }
 }

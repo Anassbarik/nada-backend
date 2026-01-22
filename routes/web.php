@@ -119,6 +119,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('bookings/{booking}/status', [AdminBookingController::class, 'updateStatus'])->name('bookings.updateStatus');
         Route::post('bookings/{booking}/refund', [AdminBookingController::class, 'refund'])->name('bookings.refund');
         Route::delete('bookings/{booking}', [AdminBookingController::class, 'destroy'])->name('bookings.destroy');
+        Route::get('bookings/{booking}/payment-document', [AdminBookingController::class, 'downloadPaymentDocument'])->name('bookings.downloadPaymentDocument');
+        Route::get('bookings/{booking}/flight-ticket', [AdminBookingController::class, 'downloadFlightTicket'])->name('bookings.downloadFlightTicket');
 
         // Invoices
         Route::prefix('admin')->group(function () {

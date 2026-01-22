@@ -66,4 +66,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
     Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
+    Route::post('/bookings/{booking}/payment-document', [BookingController::class, 'uploadPaymentDocument']);
+    Route::post('/bookings/{booking}/flight-ticket', [BookingController::class, 'uploadFlightTicket']);
 });

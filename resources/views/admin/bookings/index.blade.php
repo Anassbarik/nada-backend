@@ -52,6 +52,7 @@
             <x-shadcn.table-head>Package</x-shadcn.table-head>
             <x-shadcn.table-head>Price (HT/TTC)</x-shadcn.table-head>
             <x-shadcn.table-head>Payment</x-shadcn.table-head>
+            <x-shadcn.table-head>Documents</x-shadcn.table-head>
             <x-shadcn.table-head>Status</x-shadcn.table-head>
             <x-shadcn.table-head>Invoice</x-shadcn.table-head>
             <x-shadcn.table-head>Date</x-shadcn.table-head>
@@ -131,6 +132,32 @@
                 @else
                   <span class="text-xs text-muted-foreground">N/A</span>
                 @endif
+              </x-shadcn.table-cell>
+              <x-shadcn.table-cell>
+                <div class="flex flex-col gap-1">
+                  @if($booking->payment_document_path)
+                    <a href="{{ route('admin.bookings.downloadPaymentDocument', $booking) }}" 
+                       target="_blank"
+                       class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                       title="Télécharger l'ordre de paiement">
+                      <i data-lucide="file-text" class="w-3 h-3"></i>
+                      <span>Ordre de paiement</span>
+                    </a>
+                  @else
+                    <span class="text-xs text-gray-400">Pas d'ordre de paiement</span>
+                  @endif
+                  @if($booking->flight_ticket_path)
+                    <a href="{{ route('admin.bookings.downloadFlightTicket', $booking) }}" 
+                       target="_blank"
+                       class="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 transition-colors"
+                       title="Télécharger le billet d'avion">
+                      <i data-lucide="plane" class="w-3 h-3"></i>
+                      <span>Billet d'avion</span>
+                    </a>
+                  @else
+                    <span class="text-xs text-gray-400">Pas de billet</span>
+                  @endif
+                </div>
               </x-shadcn.table-cell>
               <x-shadcn.table-cell>
                 <x-shadcn.badge variant="{{ $booking->status === 'confirmed' || $booking->status === 'paid' ? 'default' : ($booking->status === 'pending' ? 'secondary' : ($booking->status === 'refunded' ? 'outline' : 'destructive')) }}">
@@ -260,6 +287,37 @@
                     <h4 class="font-semibold mb-2">Resident Names</h4>
                     <div><span class="font-medium">Resident 1:</span> {{ $booking->resident_name_1 ?? 'N/A' }}</div>
                     <div><span class="font-medium">Resident 2:</span> {{ $booking->resident_name_2 ?? 'N/A' }}</div>
+                  </div>
+
+                  {{-- Documents --}}
+                  <div class="space-y-2">
+                    <h4 class="font-semibold mb-2">Documents</h4>
+                    @if($booking->payment_document_path)
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium">Ordre de paiement:</span>
+                        <a href="{{ route('admin.bookings.downloadPaymentDocument', $booking) }}" 
+                           target="_blank"
+                           class="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1">
+                          <i data-lucide="download" class="w-4 h-4"></i>
+                          Télécharger
+                        </a>
+                      </div>
+                    @else
+                      <div class="text-sm text-gray-500">Pas d'ordre de paiement</div>
+                    @endif
+                    @if($booking->flight_ticket_path)
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium">Billet d'avion:</span>
+                        <a href="{{ route('admin.bookings.downloadFlightTicket', $booking) }}" 
+                           target="_blank"
+                           class="text-green-600 hover:text-green-800 text-sm flex items-center gap-1">
+                          <i data-lucide="download" class="w-4 h-4"></i>
+                          Télécharger
+                        </a>
+                      </div>
+                    @else
+                      <div class="text-sm text-gray-500">Pas de billet d'avion</div>
+                    @endif
                   </div>
 
                   {{-- Payment Information --}}

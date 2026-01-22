@@ -44,6 +44,8 @@ class Booking extends Model
         'refund_amount',
         'refunded_at',
         'refund_notes',
+        'payment_document_path',
+        'flight_ticket_path',
     ];
 
     protected $casts = [
@@ -225,5 +227,27 @@ class Booking extends Model
     public function canBeDeletedBy(User $user): bool
     {
         return $this->canBeEditedBy($user);
+    }
+
+    /**
+     * Get payment document URL.
+     */
+    public function getPaymentDocumentUrlAttribute(): ?string
+    {
+        if (!$this->payment_document_path) {
+            return null;
+        }
+        return \App\Services\DualStorageService::url($this->payment_document_path);
+    }
+
+    /**
+     * Get flight ticket URL.
+     */
+    public function getFlightTicketUrlAttribute(): ?string
+    {
+        if (!$this->flight_ticket_path) {
+            return null;
+        }
+        return \App\Services\DualStorageService::url($this->flight_ticket_path);
     }
 }

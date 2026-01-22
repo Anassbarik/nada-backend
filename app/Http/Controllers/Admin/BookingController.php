@@ -5,10 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\VoucherMail;
 use App\Models\Booking;
+use App\Models\Voucher;
+use App\Services\DualStorageService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
@@ -72,23 +76,63 @@ class BookingController extends Controller
             $booking->save(); // Model event will handle package room count update
             // When status changes to 'refunded' or 'cancelled', room availability is restored
 
-            // If status changed to 'paid' and voucher exists, email it to user
-            if ($validated['status'] === 'paid' && $oldStatus !== 'paid' && $booking->voucher) {
+            // If status changed to 'paid', generate voucher if missing and email it to user
+            if ($validated['status'] === 'paid' && $oldStatus !== 'paid') {
                 try {
-                    $booking->loadMissing(['user', 'voucher', 'event', 'hotel', 'package']);
+                    $booking->loadMissing(['accommodation', 'hotel', 'package', 'user']);
                     
-                    if ($booking->user && $booking->user->email) {
-                        Mail::to($booking->user->email)
-                            ->send(new VoucherMail($booking));
+                    // Generate voucher if it doesn't exist
+                    if (!$booking->voucher) {
+                        $voucherNumber = 'VOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
+                        while (Voucher::where('voucher_number', $voucherNumber)->exists()) {
+                            $voucherNumber = 'VOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
+                        }
+
+                        $userId = $booking->user_id ?? null;
+                        if (!$userId) {
+                            Log::warning('Cannot create voucher: booking has no user_id', [
+                                'booking_id' => $booking->id,
+                            ]);
+                        } else {
+                            $voucher = $booking->voucher()->create([
+                                'user_id' => $userId,
+                                'voucher_number' => $voucherNumber,
+                                'emailed' => false,
+                            ]);
+
+                            // Generate voucher PDF
+                            $pdf = Pdf::loadView('vouchers.template', [
+                                'booking' => $booking,
+                                'voucher' => $voucher,
+                            ]);
+                            DualStorageService::makeDirectory('vouchers');
+                            $relativePath = "vouchers/{$voucher->id}.pdf";
+                            DualStorageService::put($relativePath, $pdf->output(), 'public');
+                            $voucher->update(['pdf_path' => $relativePath]);
+                            
+                            $booking->load('voucher');
+                        }
+                    }
+                    
+                    // Send voucher email if voucher exists
+                    if ($booking->voucher) {
+                        $booking->loadMissing(['user', 'voucher', 'accommodation', 'hotel', 'package']);
                         
-                        $booking->voucher->update(['emailed' => true]);
+                        $email = $booking->user->email ?? $booking->email ?? $booking->guest_email ?? null;
+                        if ($email) {
+                            Mail::to($email)
+                                ->send(new VoucherMail($booking));
+                            
+                            $booking->voucher->update(['emailed' => true]);
+                        }
                     }
                 } catch (\Throwable $e) {
-                    Log::error('Failed to send voucher email', [
+                    Log::error('Failed to generate voucher or send voucher email', [
                         'booking_id' => $booking->id,
                         'error_message' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                     ]);
-                    // Don't fail the status update if email fails
+                    // Don't fail the status update if voucher generation/email fails
                 }
             }
         });
@@ -154,5 +198,55 @@ class BookingController extends Controller
 
         return redirect()->route('admin.bookings.index')
             ->with('success', 'Remboursement traité avec succès.');
+    }
+
+    /**
+     * Download payment document.
+     */
+    public function downloadPaymentDocument(Booking $booking)
+    {
+        if (!$booking->payment_document_path) {
+            abort(404, 'Payment document not found.');
+        }
+
+        $path = storage_path('app/public/' . $booking->payment_document_path);
+        
+        // Also check public storage
+        if (!file_exists($path)) {
+            $path = public_path('storage/' . $booking->payment_document_path);
+        }
+
+        if (!file_exists($path)) {
+            abort(404, 'Payment document file not found.');
+        }
+
+        $filename = 'ordre-paiement-booking-' . $booking->booking_reference . '.' . pathinfo($booking->payment_document_path, PATHINFO_EXTENSION);
+        
+        return response()->download($path, $filename);
+    }
+
+    /**
+     * Download flight ticket.
+     */
+    public function downloadFlightTicket(Booking $booking)
+    {
+        if (!$booking->flight_ticket_path) {
+            abort(404, 'Flight ticket not found.');
+        }
+
+        $path = storage_path('app/public/' . $booking->flight_ticket_path);
+        
+        // Also check public storage
+        if (!file_exists($path)) {
+            $path = public_path('storage/' . $booking->flight_ticket_path);
+        }
+
+        if (!file_exists($path)) {
+            abort(404, 'Flight ticket file not found.');
+        }
+
+        $filename = 'billet-avion-booking-' . $booking->booking_reference . '.' . pathinfo($booking->flight_ticket_path, PATHINFO_EXTENSION);
+        
+        return response()->download($path, $filename);
     }
 }
