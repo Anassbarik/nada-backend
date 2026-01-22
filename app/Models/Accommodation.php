@@ -117,6 +117,11 @@ class Accommodation extends Model
         return $this->hasMany(Airport::class)->orderBy('sort_order')->orderBy('name');
     }
 
+    public function flights(): HasMany
+    {
+        return $this->hasMany(Flight::class);
+    }
+
     /**
      * Get the resource permissions (sub-permissions) for this accommodation.
      */

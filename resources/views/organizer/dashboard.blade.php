@@ -4,9 +4,14 @@
 <div class="space-y-8">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Organizer Dashboard</h1>
-        <a href="{{ route('organizer.bookings') }}" class="text-logo-link hover:underline inline-flex items-center">
-            View Bookings →
-        </a>
+        <div class="flex gap-4">
+            <a href="{{ route('organizer.flights') }}" class="text-logo-link hover:underline inline-flex items-center">
+                View Flights →
+            </a>
+            <a href="{{ route('organizer.bookings') }}" class="text-logo-link hover:underline inline-flex items-center">
+                View Bookings →
+            </a>
+        </div>
     </div>
 
     {{-- Event Info --}}
@@ -30,11 +35,18 @@
     </x-shadcn.card>
 
     {{-- Stats Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <x-shadcn.card class="border-0 shadow-lg hover:shadow-xl transition-all" style="border-top: 4px solid #00adf1;">
             <x-shadcn.card-content class="p-8 text-center">
                 <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 break-words" style="color: #00adf1;">{{ $stats['total_bookings'] }}</div>
                 <div class="text-xs sm:text-sm text-muted-foreground font-medium">Total Bookings</div>
+            </x-shadcn.card-content>
+        </x-shadcn.card>
+        
+        <x-shadcn.card class="border-0 shadow-lg hover:shadow-xl transition-all" style="border-top: 4px solid #8b5cf6;">
+            <x-shadcn.card-content class="p-8 text-center">
+                <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 break-words" style="color: #8b5cf6;">{{ $flightsCount ?? 0 }}</div>
+                <div class="text-xs sm:text-sm text-muted-foreground font-medium">Total Flights</div>
             </x-shadcn.card-content>
         </x-shadcn.card>
         

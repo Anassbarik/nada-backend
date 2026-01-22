@@ -66,7 +66,7 @@ class InvoiceController extends Controller
 
     public function stream(Request $request, Invoice $invoice)
     {
-        $invoice->load('booking.event', 'booking.hotel', 'booking.package');
+        $invoice->load('booking.event', 'booking.hotel', 'booking.package', 'booking.flight');
 
         $booking = $invoice->booking;
         $pdf = Pdf::loadView('invoices.template', compact('booking', 'invoice'));
@@ -93,7 +93,7 @@ class InvoiceController extends Controller
 
     public function send(Invoice $invoice)
     {
-        $invoice->load('booking.event', 'booking.hotel', 'booking.package');
+        $invoice->load('booking.event', 'booking.hotel', 'booking.package', 'booking.flight');
 
         $booking = $invoice->booking;
         $to = $booking?->guest_email ?: $booking?->email;

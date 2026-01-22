@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\OrganizerController::class, 'dashboard'])->name('dashboard');
         Route::get('/bookings', [\App\Http\Controllers\OrganizerController::class, 'bookings'])->name('bookings');
         Route::get('/bookings/{booking}/voucher', [\App\Http\Controllers\OrganizerController::class, 'downloadVoucher'])->name('bookings.voucher');
+        Route::get('/flights', [\App\Http\Controllers\OrganizerController::class, 'flights'])->name('flights');
     });
 
     // Admin Routes (require admin role)
@@ -121,6 +122,16 @@ Route::middleware('auth')->group(function () {
         Route::delete('bookings/{booking}', [AdminBookingController::class, 'destroy'])->name('bookings.destroy');
         Route::get('bookings/{booking}/payment-document', [AdminBookingController::class, 'downloadPaymentDocument'])->name('bookings.downloadPaymentDocument');
         Route::get('bookings/{booking}/flight-ticket', [AdminBookingController::class, 'downloadFlightTicket'])->name('bookings.downloadFlightTicket');
+
+        // Flights
+        Route::get('events/{accommodation}/flights', [\App\Http\Controllers\Admin\FlightController::class, 'index'])->name('flights.index');
+        Route::get('events/{accommodation}/flights/create', [\App\Http\Controllers\Admin\FlightController::class, 'create'])->name('flights.create');
+        Route::post('events/{accommodation}/flights', [\App\Http\Controllers\Admin\FlightController::class, 'store'])->name('flights.store');
+        Route::get('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'show'])->name('flights.show');
+        Route::get('events/{accommodation}/flights/{flight}/edit', [\App\Http\Controllers\Admin\FlightController::class, 'edit'])->name('flights.edit');
+        Route::patch('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'update'])->name('flights.update');
+        Route::delete('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'destroy'])->name('flights.destroy');
+        Route::get('events/{accommodation}/flights/{flight}/credentials', [\App\Http\Controllers\Admin\FlightController::class, 'downloadCredentials'])->name('flights.downloadCredentials');
 
         // Invoices
         Route::prefix('admin')->group(function () {

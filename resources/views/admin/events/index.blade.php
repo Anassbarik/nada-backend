@@ -116,6 +116,11 @@
                    title="Airports {{ !$canEdit ? '(View Only)' : '' }}">
                   <i data-lucide="plane" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
                 </a>
+                <a href="{{ route('admin.flights.index', $event) }}" 
+                   class="p-1.5 sm:p-2 rounded-lg text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors group"
+                   title="Flights">
+                  <i data-lucide="plane" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                </a>
                 @if($canEdit)
                   <form action="{{ route('admin.events.duplicate', $event) }}" method="POST" class="inline">
                     @csrf

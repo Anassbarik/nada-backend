@@ -113,6 +113,38 @@
                 <td>Package</td>
                 <td>{{ $booking->package->nom_package ?? '—' }}</td>
             </tr>
+            @if($booking->flight)
+            <tr>
+                <td>Type de vol</td>
+                <td>{{ $booking->flight->flight_category_label ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td>Vol Aller</td>
+                <td>
+                    {{ $booking->flight->departure_flight_number ?? '—' }}
+                    @if($booking->flight->departure_date)
+                        - {{ $booking->flight->departure_date->format('d/m/Y') }} à {{ $booking->flight->departure_time ? \Carbon\Carbon::parse($booking->flight->departure_time)->format('H:i') : '' }}
+                    @endif
+                    @if($booking->flight->departure_airport || $booking->flight->arrival_airport)
+                        <br><span class="text-gray-500 text-sm">{{ $booking->flight->departure_airport ?? '—' }} → {{ $booking->flight->arrival_airport ?? '—' }}</span>
+                    @endif
+                </td>
+            </tr>
+            @if($booking->flight->flight_category === 'round_trip' && $booking->flight->return_flight_number)
+            <tr>
+                <td>Vol Retour</td>
+                <td>
+                    {{ $booking->flight->return_flight_number }}
+                    @if($booking->flight->return_date)
+                        - {{ $booking->flight->return_date->format('d/m/Y') }} à {{ $booking->flight->return_departure_time ? \Carbon\Carbon::parse($booking->flight->return_departure_time)->format('H:i') : '' }}
+                    @endif
+                    @if($booking->flight->return_departure_airport || $booking->flight->return_arrival_airport)
+                        <br><span class="text-gray-500 text-sm">{{ $booking->flight->return_departure_airport ?? '—' }} → {{ $booking->flight->return_arrival_airport ?? '—' }}</span>
+                    @endif
+                </td>
+            </tr>
+            @endif
+            @elseif($booking->flight_number || $booking->flight_date)
             <tr>
                 <td>Vol</td>
                 <td>{{ $booking->flight_number ?? '—' }}</td>
@@ -124,6 +156,7 @@
                     {{ $booking->flight_time?->format('H:i') ?? '' }}
                 </td>
             </tr>
+            @endif
             <tr>
                 <td>Email invité</td>
                 <td>{{ $booking->guest_email ?? $booking->email ?? '—' }}</td>
@@ -137,17 +170,58 @@
                 <th>Description</th>
                 <th class="right">Montant</th>
             </tr>
+            @php
+                $hotelPrice = 0;
+                $flightPrice = 0;
+                $departurePrice = 0;
+                $returnPrice = 0;
+                
+                // Calculate hotel package price
+                if ($booking->package && $booking->package->prix_ttc) {
+                    $hotelPrice = (float) $booking->package->prix_ttc;
+                }
+                
+                // Calculate flight prices
+                if ($booking->flight) {
+                    $departurePrice = (float) ($booking->flight->departure_price_ttc ?? 0);
+                    if ($booking->flight->flight_category === 'round_trip' && $booking->flight->return_price_ttc) {
+                        $returnPrice = (float) $booking->flight->return_price_ttc;
+                    }
+                    $flightPrice = $departurePrice + $returnPrice;
+                }
+            @endphp
+            
+            @if($hotelPrice > 0)
             <tr>
-                <td class="right muted">Total HT</td>
-                <td class="right">{{ number_format($ht, 2, '.', '') }} MAD</td>
+                <td>Hébergement (Package Hôtel)</td>
+                <td class="right">{{ number_format($hotelPrice, 2, '.', ' ') }} MAD</td>
+            </tr>
+            @endif
+            
+            @if($flightPrice > 0)
+            <tr>
+                <td>Vol Aller{{ $booking->flight && $booking->flight->flight_category === 'round_trip' ? ' + Retour' : '' }}</td>
+                <td class="right">
+                    @if($booking->flight && $booking->flight->flight_category === 'round_trip')
+                        {{ number_format($departurePrice, 2, '.', ' ') }} + {{ number_format($returnPrice, 2, '.', ' ') }} = {{ number_format($flightPrice, 2, '.', ' ') }} MAD
+                    @else
+                        {{ number_format($flightPrice, 2, '.', ' ') }} MAD
+                    @endif
+                </td>
+            </tr>
+            @endif
+            
+            <tr>
+                <td class="right muted" style="padding-top: 8px;">Total HT</td>
+                <td class="right" style="padding-top: 8px;">{{ number_format($ht, 2, '.', ' ') }} MAD</td>
             </tr>
             <tr>
                 <td class="right muted">TVA (20%)</td>
-                <td class="right">{{ number_format($tva, 2, '.', '') }} MAD</td>
+                <td class="right">{{ number_format($tva, 2, '.', ' ') }} MAD</td>
             </tr>
             <tr>
                 <th class="right" style="font-size: 15px; padding-top: 10px; padding-bottom: 10px;">Total TTC</th>
-                <th class="right" style="font-size: 15px; padding-top: 10px; padding-bottom: 10px;">{{ number_format($ttc, 2, '.', '') }} MAD</th>
+                <th class="right" style="font-size: 15px; padding-top: 10px; padding-bottom: 10px;">{{ number_format($ttc, 2, '.', ' ') }} MAD</th>
             </tr>
             <tr>
                 <td colspan="2" class="muted" style="border-bottom: 0; padding-top: 10px;">

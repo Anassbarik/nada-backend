@@ -59,6 +59,8 @@ class EventController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'website_url' => 'nullable|url|max:500',
             'organizer_logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'organizer_name' => 'required|string|max:255',
+            'organizer_email' => 'required|email|max:255|unique:users,email',
             'description' => 'nullable|string',
             'description_en' => 'nullable|string',
             'description_fr' => 'nullable|string',

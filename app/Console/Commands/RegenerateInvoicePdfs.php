@@ -27,7 +27,7 @@ class RegenerateInvoicePdfs extends Command
     {
         $invoiceId = $this->option('invoice_id');
 
-        $query = Invoice::query()->with(['booking.event', 'booking.hotel', 'booking.package']);
+        $query = Invoice::query()->with(['booking.event', 'booking.hotel', 'booking.package', 'booking.flight']);
 
         if (!empty($invoiceId)) {
             $query->whereKey($invoiceId);

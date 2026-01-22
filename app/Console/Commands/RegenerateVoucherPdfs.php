@@ -27,7 +27,7 @@ class RegenerateVoucherPdfs extends Command
     {
         $voucherId = $this->option('voucher_id');
 
-        $query = Voucher::query()->with(['booking.event', 'booking.hotel', 'booking.package', 'user']);
+        $query = Voucher::query()->with(['booking.event', 'booking.hotel', 'booking.package', 'booking.flight', 'user']);
 
         if (!empty($voucherId)) {
             $query->whereKey($voucherId);

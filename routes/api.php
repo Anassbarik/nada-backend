@@ -27,6 +27,10 @@ Route::get('/events/{slug}/hotels/{hotel:slug}', [HotelController::class, 'show'
 // Airports by event slug
 Route::get('/events/{slug}/airports', [\App\Http\Controllers\Api\AirportController::class, 'index']); // List airports for an event
 
+// Flights by event slug (must come before /events/{slug} to avoid route conflicts)
+Route::get('/events/{slug}/flights', [\App\Http\Controllers\Api\FlightController::class, 'index']); // List flights for an event
+Route::get('/events/{slug}/flights/{flight}', [\App\Http\Controllers\Api\FlightController::class, 'show']); // Flight details within event context
+
 // Event by slug (generic route - must come after specific routes)
 Route::get('/events/{slug}', [EventController::class, 'show']);
 
@@ -65,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/events/{slug}/hotels/{hotel:slug}/bookings', [BookingController::class, 'store']); // Legacy route
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+    Route::get('/bookings/reference/{reference}', [BookingController::class, 'findByReference']); // Find booking by reference
     Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
     Route::post('/bookings/{booking}/payment-document', [BookingController::class, 'uploadPaymentDocument']);
     Route::post('/bookings/{booking}/flight-ticket', [BookingController::class, 'uploadFlightTicket']);

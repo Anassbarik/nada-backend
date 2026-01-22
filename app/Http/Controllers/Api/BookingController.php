@@ -102,6 +102,50 @@ class BookingController extends Controller
     }
 
     /**
+     * Find booking by reference.
+     * Route: GET /api/bookings/reference/{reference}
+     * Public endpoint to verify booking reference before linking hotel package
+     */
+    public function findByReference($reference)
+    {
+        $booking = Booking::where('booking_reference', $reference)
+            ->with(['accommodation:id,name,slug', 'flight:id,full_name,departure_date,departure_flight_number'])
+            ->first();
+
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking reference not found.',
+            ], 404);
+        }
+
+        // Check if booking can be linked (must be flight-only, not already linked)
+        $canLink = $booking->flight_id && !$booking->hotel_id && !$booking->package_id;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'booking_reference' => $booking->booking_reference,
+                'accommodation' => $booking->accommodation ? [
+                    'id' => $booking->accommodation->id,
+                    'name' => $booking->accommodation->name,
+                    'slug' => $booking->accommodation->slug,
+                ] : null,
+                'flight' => $booking->flight ? [
+                    'id' => $booking->flight->id,
+                    'full_name' => $booking->flight->full_name,
+                    'departure_date' => $booking->flight->departure_date?->format('Y-m-d'),
+                    'departure_flight_number' => $booking->flight->departure_flight_number,
+                ] : null,
+                'guest_name' => $booking->guest_name ?? $booking->full_name,
+                'guest_email' => $booking->guest_email ?? $booking->email,
+                'can_link' => $canLink,
+                'already_linked' => !$canLink && ($booking->hotel_id || $booking->package_id),
+            ],
+        ]);
+    }
+
+    /**
      * Find event or accommodation by slug.
      * Checks both Event and Accommodation models.
      */
@@ -149,6 +193,7 @@ class BookingController extends Controller
         // Validation rules - adjust based on route
         // Support both new field names and legacy field names
         $validationRules = [
+            'booking_reference' => 'nullable|string|max:50', // For linking to existing flight booking
             'package_id' => 'required|exists:hotel_packages,id',
             // Flight fields - support both flight_number and flight_num
             'flight_number' => 'nullable|string|max:20',
@@ -392,6 +437,48 @@ class BookingController extends Controller
                 break;
         }
 
+        // Check if linking to existing flight booking via booking_reference
+        $existingBooking = null;
+        if ($request->filled('booking_reference')) {
+            $existingBooking = Booking::where('booking_reference', $request->booking_reference)
+                ->whereNotNull('flight_id')
+                ->whereNull('hotel_id')
+                ->whereNull('package_id')
+                ->first();
+            
+            if (!$existingBooking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking reference not found or invalid. Please check your reference number.',
+                    'errors' => [
+                        'booking_reference' => ['Invalid booking reference. It must be a flight-only booking that hasn\'t been linked to a hotel yet.'],
+                    ],
+                ], 422);
+            }
+            
+            // Verify the booking belongs to the same accommodation
+            if ($existingBooking->accommodation_id != $event->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking reference does not match this event.',
+                    'errors' => [
+                        'booking_reference' => ['The booking reference belongs to a different event.'],
+                    ],
+                ], 422);
+            }
+            
+            // Verify booking is not already linked to a hotel
+            if ($existingBooking->hotel_id || $existingBooking->package_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This booking reference has already been linked to a hotel package.',
+                    'errors' => [
+                        'booking_reference' => ['This booking is already complete.'],
+                    ],
+                ], 422);
+            }
+        }
+
         // TRANSACTION SAFETY: Create booking and deduct wallet in a transaction
         try {
             DB::beginTransaction();
@@ -424,43 +511,88 @@ class BookingController extends Controller
                 $createdBy = $user->id;
             }
 
-            $bookingData = [
-                'user_id' => $user->id,
-                'created_by' => $createdBy,
-                'accommodation_id' => $event->id,
-                'hotel_id' => $hotel->id,
-                'package_id' => $package->id,
-                'flight_number' => $flightNumber,
-                'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : null,
-                'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : null,
-                'airport' => $request->airport ?? null,
-                'full_name' => $fullName,
-                'company' => $request->company ?? null,
-                'phone' => $phone,
-                'email' => $email,
-                'special_instructions' => $specialInstructions,
-                'booker_is_resident' => (bool) ($request->booker_is_resident ?? true),
-                'resident_name_1' => trim($request->resident_name_1 ?? '') ?: null,
-                'resident_name_2' => trim($request->resident_name_2 ?? '') ?: null,
-                'resident_name_3' => trim($request->resident_name_3 ?? '') ?: null,
-                'checkin_date' => $checkinDate,
-                'checkout_date' => $checkoutDate,
-                'guests_count' => $package->occupants, // Total occupants (always equals package.occupants)
-                'price' => $total,
-                'payment_type' => $paymentType,
-                'wallet_amount' => $walletAmount,
-                'bank_amount' => $bankAmount,
-                'status' => $bookingStatus,
-                // Legacy fields for backward compatibility
-                'guest_name' => $fullName,
-                'guest_email' => $email,
-                'guest_phone' => $phone,
-                'special_requests' => $specialInstructions,
-            ];
-            
-            Log::info('Booking data prepared:', $bookingData);
+            if ($existingBooking) {
+                // Update existing flight booking with hotel/package details
+                $existingBooking->update([
+                    'user_id' => $user->id, // Link user account
+                    'hotel_id' => $hotel->id,
+                    'package_id' => $package->id,
+                    'flight_number' => $flightNumber ?? $existingBooking->flight_number,
+                    'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : $existingBooking->flight_date,
+                    'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : $existingBooking->flight_time,
+                    'airport' => $request->airport ?? $existingBooking->airport,
+                    'full_name' => $fullName ?? $existingBooking->full_name,
+                    'company' => $request->company ?? $existingBooking->company,
+                    'phone' => $phone ?? $existingBooking->phone,
+                    'email' => $email ?? $existingBooking->email,
+                    'special_instructions' => $specialInstructions ?? $existingBooking->special_instructions,
+                    'booker_is_resident' => (bool) ($request->booker_is_resident ?? $existingBooking->booker_is_resident ?? true),
+                    'resident_name_1' => trim($request->resident_name_1 ?? '') ?: $existingBooking->resident_name_1,
+                    'resident_name_2' => trim($request->resident_name_2 ?? '') ?: $existingBooking->resident_name_2,
+                    'resident_name_3' => trim($request->resident_name_3 ?? '') ?: $existingBooking->resident_name_3,
+                    'checkin_date' => $checkinDate,
+                    'checkout_date' => $checkoutDate,
+                    'guests_count' => $package->occupants,
+                    'price' => ($existingBooking->price ?? 0) + $total, // Add hotel price to existing flight price (flight price already includes departure + return if round trip)
+                    'payment_type' => $paymentType,
+                    'wallet_amount' => ($existingBooking->wallet_amount ?? 0) + $walletAmount,
+                    'bank_amount' => ($existingBooking->bank_amount ?? 0) + $bankAmount,
+                    'status' => $bookingStatus,
+                    // Legacy fields
+                    'guest_name' => $fullName ?? $existingBooking->guest_name,
+                    'guest_email' => $email ?? $existingBooking->guest_email,
+                    'guest_phone' => $phone ?? $existingBooking->guest_phone,
+                    'special_requests' => $specialInstructions ?? $existingBooking->special_requests,
+                ]);
+                
+                $booking = $existingBooking->fresh();
+                Log::info('Existing flight booking updated with hotel/package:', [
+                    'booking_id' => $booking->id,
+                    'booking_reference' => $booking->booking_reference,
+                    'flight_id' => $booking->flight_id,
+                    'hotel_id' => $booking->hotel_id,
+                    'package_id' => $booking->package_id,
+                ]);
+            } else {
+                // Create new booking
+                $bookingData = [
+                    'user_id' => $user->id,
+                    'created_by' => $createdBy,
+                    'accommodation_id' => $event->id,
+                    'hotel_id' => $hotel->id,
+                    'package_id' => $package->id,
+                    'flight_number' => $flightNumber,
+                    'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : null,
+                    'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : null,
+                    'airport' => $request->airport ?? null,
+                    'full_name' => $fullName,
+                    'company' => $request->company ?? null,
+                    'phone' => $phone,
+                    'email' => $email,
+                    'special_instructions' => $specialInstructions,
+                    'booker_is_resident' => (bool) ($request->booker_is_resident ?? true),
+                    'resident_name_1' => trim($request->resident_name_1 ?? '') ?: null,
+                    'resident_name_2' => trim($request->resident_name_2 ?? '') ?: null,
+                    'resident_name_3' => trim($request->resident_name_3 ?? '') ?: null,
+                    'checkin_date' => $checkinDate,
+                    'checkout_date' => $checkoutDate,
+                    'guests_count' => $package->occupants, // Total occupants (always equals package.occupants)
+                    'price' => $total,
+                    'payment_type' => $paymentType,
+                    'wallet_amount' => $walletAmount,
+                    'bank_amount' => $bankAmount,
+                    'status' => $bookingStatus,
+                    // Legacy fields for backward compatibility
+                    'guest_name' => $fullName,
+                    'guest_email' => $email,
+                    'guest_phone' => $phone,
+                    'special_requests' => $specialInstructions,
+                ];
+                
+                Log::info('Booking data prepared:', $bookingData);
 
-            $booking = Booking::create($bookingData);
+                $booking = Booking::create($bookingData);
+            }
 
             // Decrease available rooms
             $package->chambres_restantes = max(0, $package->chambres_restantes - 1);
@@ -485,7 +617,7 @@ class BookingController extends Controller
 
         // Auto-create invoice and generate PDF (best-effort; do not block booking)
         try {
-            $booking->loadMissing(['event', 'hotel', 'package']);
+            $booking->loadMissing(['event', 'hotel', 'package', 'flight']);
 
             // Set created_by if booking was created by an admin
             $createdBy = null;
@@ -514,7 +646,7 @@ class BookingController extends Controller
 
         // Auto-create voucher and generate PDF (best-effort; do not block booking)
         try {
-            $booking->loadMissing(['event', 'hotel', 'package', 'user']);
+            $booking->loadMissing(['event', 'hotel', 'package', 'user', 'flight']);
 
             // Generate unique voucher number
             $voucherNumber = 'VOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));

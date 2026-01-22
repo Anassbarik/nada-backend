@@ -119,6 +119,10 @@ class EventController extends Controller
                                 $q->where('status', 'active')->orderBy('sort_order');
                             }
                         ]);
+                },
+                'flights' => function ($query) {
+                    $query->where('beneficiary_type', 'organizer') // Only show organizer flights publicly
+                        ->latest();
                 }
             ]);
         } else {
@@ -147,6 +151,51 @@ class EventController extends Controller
                         'is_primary' => $image->sort_order === 0,
                     ];
                 });
+            });
+        }
+
+        // Format flights for frontend (only for Accommodations)
+        if ($event instanceof Accommodation && $event->relationLoaded('flights')) {
+            $event->flights = $event->flights->map(function ($flight) {
+                return [
+                    'id' => $flight->id,
+                    'accommodation_id' => $flight->accommodation_id,
+                    'full_name' => $flight->full_name,
+                    'flight_class' => $flight->flight_class,
+                    'flight_class_label' => $flight->flight_class_label,
+                    'flight_category' => $flight->flight_category ?? 'one_way',
+                    'flight_category_label' => $flight->flight_category_label,
+                    'departure' => [
+                        'date' => $flight->departure_date?->format('Y-m-d'),
+                        'time' => $flight->departure_time ? \Carbon\Carbon::parse($flight->departure_time)->format('H:i') : null,
+                        'flight_number' => $flight->departure_flight_number,
+                        'airport' => $flight->departure_airport,
+                        'price_ttc' => (float) ($flight->departure_price_ttc ?? 0),
+                    ],
+                    'arrival' => [
+                        'date' => $flight->arrival_date?->format('Y-m-d'),
+                        'time' => $flight->arrival_time ? \Carbon\Carbon::parse($flight->arrival_time)->format('H:i') : null,
+                        'airport' => $flight->arrival_airport,
+                    ],
+                    'return' => $flight->return_date ? [
+                        'date' => $flight->return_date->format('Y-m-d'),
+                        'departure_time' => $flight->return_departure_time ? \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') : null,
+                        'departure_airport' => $flight->return_departure_airport,
+                        'arrival_date' => $flight->return_arrival_date?->format('Y-m-d'),
+                        'arrival_time' => $flight->return_arrival_time ? \Carbon\Carbon::parse($flight->return_arrival_time)->format('H:i') : null,
+                        'arrival_airport' => $flight->return_arrival_airport,
+                        'flight_number' => $flight->return_flight_number,
+                        'price_ttc' => (float) ($flight->return_price_ttc ?? 0),
+                    ] : null,
+                    'total_price' => $flight->total_price,
+                    'reference' => $flight->reference,
+                    'eticket_url' => $flight->eticket_url,
+                    'beneficiary_type' => $flight->beneficiary_type,
+                    'status' => $flight->status,
+                    'payment_method' => $flight->payment_method,
+                    'created_at' => $flight->created_at?->format('Y-m-d H:i:s'),
+                    'updated_at' => $flight->updated_at?->format('Y-m-d H:i:s'),
+                ];
             });
         }
 

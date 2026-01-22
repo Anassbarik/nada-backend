@@ -19,6 +19,7 @@
                         <x-shadcn.table-head>Email</x-shadcn.table-head>
                         <x-shadcn.table-head>Hotel</x-shadcn.table-head>
                         <x-shadcn.table-head>Package</x-shadcn.table-head>
+                        <x-shadcn.table-head>Flight</x-shadcn.table-head>
                         <x-shadcn.table-head>Amount</x-shadcn.table-head>
                         <x-shadcn.table-head>Status</x-shadcn.table-head>
                         <x-shadcn.table-head>Date</x-shadcn.table-head>
@@ -33,6 +34,16 @@
                         <x-shadcn.table-cell>{{ $booking->email ?? $booking->guest_email ?? 'N/A' }}</x-shadcn.table-cell>
                         <x-shadcn.table-cell>{{ $booking->hotel->name ?? 'N/A' }}</x-shadcn.table-cell>
                         <x-shadcn.table-cell>{{ $booking->package->nom_package ?? 'N/A' }}</x-shadcn.table-cell>
+                        <x-shadcn.table-cell>
+                            @if($booking->flight)
+                                <div class="text-sm">
+                                    <div class="font-medium">{{ $booking->flight->departure_flight_number }}</div>
+                                    <div class="text-xs text-muted-foreground">{{ $booking->flight->reference }}</div>
+                                </div>
+                            @else
+                                <span class="text-gray-400 text-sm">—</span>
+                            @endif
+                        </x-shadcn.table-cell>
                         <x-shadcn.table-cell>{{ number_format($booking->price ?? 0, 2) }} MAD</x-shadcn.table-cell>
                         <x-shadcn.table-cell>
                             <x-shadcn.badge variant="{{ $booking->status == 'confirmed' ? 'default' : ($booking->status == 'pending' ? 'secondary' : 'destructive') }}">
@@ -54,7 +65,7 @@
                     </x-shadcn.table-row>
                     @empty
                     <x-shadcn.table-row>
-                        <x-shadcn.table-cell colspan="9" class="text-center text-gray-500">
+                        <x-shadcn.table-cell colspan="10" class="text-center text-gray-500">
                             No bookings found
                         </x-shadcn.table-cell>
                     </x-shadcn.table-row>

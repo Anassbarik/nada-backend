@@ -54,12 +54,15 @@ class OrganizerController extends Controller
 
         // Get recent bookings
         $recentBookings = Booking::where('accommodation_id', $event->id)
-            ->with(['hotel', 'package', 'voucher'])
+            ->with(['hotel', 'package', 'voucher', 'flight'])
             ->latest()
             ->take(10)
             ->get();
 
-        return view('organizer.dashboard', compact('event', 'stats', 'recentBookings'));
+        // Get flights count
+        $flightsCount = \App\Models\Flight::where('accommodation_id', $event->id)->count();
+
+        return view('organizer.dashboard', compact('event', 'stats', 'recentBookings', 'flightsCount'));
     }
 
     /**
@@ -75,11 +78,31 @@ class OrganizerController extends Controller
         }
 
         $bookings = Booking::where('accommodation_id', $event->id)
-            ->with(['hotel', 'package', 'voucher'])
+            ->with(['hotel', 'package', 'voucher', 'flight'])
             ->latest()
             ->paginate(15);
 
         return view('organizer.bookings', compact('event', 'bookings'));
+    }
+
+    /**
+     * Display flights for the organizer's event.
+     */
+    public function flights()
+    {
+        $organizer = Auth::user();
+        $event = $organizer->organizedAccommodations()->first();
+
+        if (!$event) {
+            return view('organizer.no-event');
+        }
+
+        $flights = \App\Models\Flight::where('accommodation_id', $event->id)
+            ->with(['user', 'booking'])
+            ->latest()
+            ->paginate(15);
+
+        return view('organizer.flights', compact('event', 'flights'));
     }
 
     /**
@@ -108,7 +131,7 @@ class OrganizerController extends Controller
 
         // Generate PDF if it doesn't exist
         try {
-            $booking->loadMissing(['accommodation', 'hotel', 'package', 'user']);
+            $booking->loadMissing(['accommodation', 'hotel', 'package', 'user', 'flight']);
             
             $pdf = Pdf::loadView('vouchers.template', compact('booking', 'voucher'));
             

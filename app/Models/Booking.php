@@ -15,6 +15,7 @@ class Booking extends Model
         'accommodation_id',
         'hotel_id',
         'package_id',
+        'flight_id',
         'flight_number',
         'flight_date',
         'flight_time',
@@ -197,6 +198,11 @@ class Booking extends Model
     public function voucher(): HasOne
     {
         return $this->hasOne(Voucher::class);
+    }
+
+    public function flight(): BelongsTo
+    {
+        return $this->belongsTo(Flight::class);
     }
 
     /**

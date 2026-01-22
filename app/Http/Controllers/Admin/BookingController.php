@@ -21,7 +21,7 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Booking::with(['accommodation', 'hotel', 'package', 'invoice'])->latest();
+        $query = Booking::with(['accommodation', 'hotel', 'package', 'invoice', 'flight'])->latest();
 
         if ($request->has('status') && $request->status !== '') {
             $query->where('status', $request->status);
