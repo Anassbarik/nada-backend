@@ -9,16 +9,28 @@
     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
         <h1 style="color: #00adf1; margin: 0;">Flight Booking Credentials</h1>
         <p style="margin: 10px 0 0 0; color: #666;">Flight Reference: {{ $flight->reference }}</p>
+        @if(isset($booking) && $booking->booking_reference)
+            <p style="margin: 5px 0 0 0; color: #666;"><strong>Booking Reference:</strong> {{ $booking->booking_reference }}</p>
+        @endif
     </div>
+
+    @if(isset($booking) && $booking->booking_reference)
+    <div style="background-color: #e7f3ff; padding: 20px; border: 1px solid #b3d9ff; border-radius: 5px; margin-bottom: 20px;">
+        <h2 style="color: #333; margin-top: 0;">Booking Information</h2>
+        <p><strong>Booking Reference:</strong> <span style="font-family: monospace; background-color: #fff; padding: 5px 10px; border-radius: 3px;">{{ $booking->booking_reference }}</span></p>
+        <p><strong>Booking Status:</strong> {{ ucfirst($booking->status) }}</p>
+        <p style="color: #666; font-size: 14px; margin-top: 10px;">⚠️ <strong>Important:</strong> Keep your booking reference handy. You will need it if you want to book a hotel package and link it to this flight booking.</p>
+    </div>
+    @endif
 
     <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px;">
         <h2 style="color: #333; margin-top: 0;">Flight Information</h2>
         <p><strong>Client Name:</strong> {{ $flight->full_name }}</p>
         <p><strong>Flight Class:</strong> {{ $flight->flight_class_label }}</p>
-        <p><strong>Departure:</strong> {{ $flight->departure_date->format('F d, Y') }} at {{ \Carbon\Carbon::parse($flight->departure_time)->format('H:i') }} - Flight {{ $flight->departure_flight_number }}</p>
-        <p><strong>Arrival:</strong> {{ $flight->arrival_date->format('F d, Y') }} at {{ \Carbon\Carbon::parse($flight->arrival_time)->format('H:i') }}</p>
+        <p><strong>Departure:</strong> {{ $flight->departure_date ? \Carbon\Carbon::parse($flight->departure_date)->format('F d, Y') : 'N/A' }} at {{ $flight->departure_time ? \Carbon\Carbon::parse($flight->departure_time)->format('H:i') : 'N/A' }} - Flight {{ $flight->departure_flight_number }}</p>
+        <p><strong>Arrival:</strong> {{ $flight->arrival_date ? \Carbon\Carbon::parse($flight->arrival_date)->format('F d, Y') : 'N/A' }} at {{ $flight->arrival_time ? \Carbon\Carbon::parse($flight->arrival_time)->format('H:i') : 'N/A' }}</p>
         @if($flight->return_date)
-        <p><strong>Return:</strong> {{ $flight->return_date->format('F d, Y') }} at {{ \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') }} - Flight {{ $flight->return_flight_number }}</p>
+        <p><strong>Return:</strong> {{ \Carbon\Carbon::parse($flight->return_date)->format('F d, Y') }} at {{ $flight->return_departure_time ? \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') : 'N/A' }} - Flight {{ $flight->return_flight_number }}</p>
         @endif
     </div>
 

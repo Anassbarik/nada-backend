@@ -57,12 +57,12 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <x-input-label for="departure_date" :value="__('Date départ')" />
-              <x-text-input id="departure_date" class="block mt-1 w-full" type="date" name="departure_date" :value="old('departure_date', $flight->departure_date?->format('Y-m-d'))" required />
+              <x-text-input id="departure_date" class="block mt-1 w-full" type="date" name="departure_date" :value="old('departure_date', $flight->departure_date ? \Carbon\Carbon::parse($flight->departure_date)->format('Y-m-d') : '')" required />
               <x-input-error :messages="$errors->get('departure_date')" class="mt-2" />
             </div>
             <div>
               <x-input-label for="departure_time" :value="__('Heure départ')" />
-              <x-text-input id="departure_time" class="block mt-1 w-full" type="time" name="departure_time" :value="old('departure_time', $flight->departure_time?->format('H:i'))" required />
+              <x-text-input id="departure_time" class="block mt-1 w-full" type="time" name="departure_time" :value="old('departure_time', $flight->departure_time ? \Carbon\Carbon::parse($flight->departure_time)->format('H:i') : '')" required />
               <x-input-error :messages="$errors->get('departure_time')" class="mt-2" />
             </div>
           </div>
@@ -70,12 +70,12 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <x-input-label for="arrival_date" :value="__('Date arrivée')" />
-              <x-text-input id="arrival_date" class="block mt-1 w-full" type="date" name="arrival_date" :value="old('arrival_date', $flight->arrival_date?->format('Y-m-d'))" required />
+              <x-text-input id="arrival_date" class="block mt-1 w-full" type="date" name="arrival_date" :value="old('arrival_date', $flight->arrival_date ? \Carbon\Carbon::parse($flight->arrival_date)->format('Y-m-d') : '')" required />
               <x-input-error :messages="$errors->get('arrival_date')" class="mt-2" />
             </div>
             <div>
               <x-input-label for="arrival_time" :value="__('Heure arrivée')" />
-              <x-text-input id="arrival_time" class="block mt-1 w-full" type="time" name="arrival_time" :value="old('arrival_time', $flight->arrival_time?->format('H:i'))" required />
+              <x-text-input id="arrival_time" class="block mt-1 w-full" type="time" name="arrival_time" :value="old('arrival_time', $flight->arrival_time ? \Carbon\Carbon::parse($flight->arrival_time)->format('H:i') : '')" required />
               <x-input-error :messages="$errors->get('arrival_time')" class="mt-2" />
             </div>
           </div>
@@ -113,12 +113,12 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <x-input-label for="return_date" :value="__('Date retour')" />
-              <x-text-input id="return_date" class="block mt-1 w-full" type="date" name="return_date" :value="old('return_date', $flight->return_date?->format('Y-m-d'))" />
+              <x-text-input id="return_date" class="block mt-1 w-full" type="date" name="return_date" :value="old('return_date', $flight->return_date ? \Carbon\Carbon::parse($flight->return_date)->format('Y-m-d') : '')" />
               <x-input-error :messages="$errors->get('return_date')" class="mt-2" />
             </div>
             <div>
               <x-input-label for="return_departure_time" :value="__('Heure départ retour')" />
-              <x-text-input id="return_departure_time" class="block mt-1 w-full" type="time" name="return_departure_time" :value="old('return_departure_time', $flight->return_departure_time?->format('H:i'))" />
+              <x-text-input id="return_departure_time" class="block mt-1 w-full" type="time" name="return_departure_time" :value="old('return_departure_time', $flight->return_departure_time ? \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') : '')" />
               <x-input-error :messages="$errors->get('return_departure_time')" class="mt-2" />
             </div>
           </div>
@@ -126,12 +126,12 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <x-input-label for="return_arrival_date" :value="__('Date arrivée retour')" />
-              <x-text-input id="return_arrival_date" class="block mt-1 w-full" type="date" name="return_arrival_date" :value="old('return_arrival_date', $flight->return_arrival_date?->format('Y-m-d'))" />
+              <x-text-input id="return_arrival_date" class="block mt-1 w-full" type="date" name="return_arrival_date" :value="old('return_arrival_date', $flight->return_arrival_date ? \Carbon\Carbon::parse($flight->return_arrival_date)->format('Y-m-d') : '')" />
               <x-input-error :messages="$errors->get('return_arrival_date')" class="mt-2" />
             </div>
             <div>
               <x-input-label for="return_arrival_time" :value="__('Heure arrivée retour')" />
-              <x-text-input id="return_arrival_time" class="block mt-1 w-full" type="time" name="return_arrival_time" :value="old('return_arrival_time', $flight->return_arrival_time?->format('H:i'))" />
+              <x-text-input id="return_arrival_time" class="block mt-1 w-full" type="time" name="return_arrival_time" :value="old('return_arrival_time', $flight->return_arrival_time ? \Carbon\Carbon::parse($flight->return_arrival_time)->format('H:i') : '')" />
               <x-input-error :messages="$errors->get('return_arrival_time')" class="mt-2" />
             </div>
           </div>
@@ -231,6 +231,37 @@
             <x-text-input id="eticket" class="block mt-1 w-full" type="file" name="eticket" accept=".pdf,.jpg,.jpeg,.png,.webp" />
             <p class="mt-1 text-sm text-gray-500">PDF or images (JPG, PNG, WebP) - max 10MB. Leave empty to keep current file.</p>
             <x-input-error :messages="$errors->get('eticket')" class="mt-2" />
+          </div>
+
+          <div class="mb-4">
+            <x-input-label for="eticket_number" :value="__('eTicket Number')" />
+            <x-text-input id="eticket_number" class="block mt-1 w-full" type="text" name="eticket_number" :value="old('eticket_number', $flight->eticket)" placeholder="Enter eTicket number/flight number" />
+            <p class="mt-1 text-sm text-gray-500">Enter the eTicket number provided by the airline</p>
+            <x-input-error :messages="$errors->get('eticket_number')" class="mt-2" />
+          </div>
+
+          <div class="mb-4">
+            <x-input-label for="ticket_reference" :value="__('Ticket Reference (Airline Reference)')" />
+            <x-text-input id="ticket_reference" class="block mt-1 w-full" type="text" name="ticket_reference" :value="old('ticket_reference', $flight->ticket_reference)" placeholder="Enter ticket reference from airline company" />
+            <p class="mt-1 text-sm text-gray-500">Reference number provided by the airline company (different from flight reference)</p>
+            <x-input-error :messages="$errors->get('ticket_reference')" class="mt-2" />
+          </div>
+        </div>
+
+        {{-- Flight Price Visibility --}}
+        <div class="mb-6">
+          <div class="p-4 border border-gray-300 rounded-md bg-gray-50">
+            <label class="flex items-center">
+              <input 
+                type="checkbox" 
+                name="show_flight_prices" 
+                value="1"
+                {{ old('show_flight_prices', $accommodation->show_flight_prices ?? true) ? 'checked' : '' }}
+                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+              <span class="ml-2 text-sm font-medium text-gray-700">Show flight prices to clients</span>
+            </label>
+            <p class="mt-2 text-sm text-gray-500">When checked, flight prices will be visible to clients on the events landing page. When unchecked, only flight details (dates, times, airports) will be shown.</p>
+            <x-input-error :messages="$errors->get('show_flight_prices')" class="mt-2" />
           </div>
         </div>
 

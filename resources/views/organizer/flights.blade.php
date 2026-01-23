@@ -42,7 +42,7 @@
                             <div class="text-sm">
                                 <div class="font-medium">{{ $flight->departure_flight_number }}</div>
                                 <div class="text-xs text-muted-foreground">
-                                    {{ $flight->departure_date->format('d/m/Y') }} 
+                                    {{ $flight->departure_date ? \Carbon\Carbon::parse($flight->departure_date)->format('d/m/Y') : '—' }} 
                                     @if($flight->departure_time)
                                         {{ \Carbon\Carbon::parse($flight->departure_time)->format('H:i') }}
                                     @endif
@@ -57,7 +57,7 @@
                                 <div class="text-sm">
                                     <div class="font-medium">{{ $flight->return_flight_number }}</div>
                                     <div class="text-xs text-muted-foreground">
-                                        {{ $flight->return_date?->format('d/m/Y') ?? '—' }}
+                                        {{ $flight->return_date ? \Carbon\Carbon::parse($flight->return_date)->format('d/m/Y') : '—' }}
                                         @if($flight->return_departure_time)
                                             {{ \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') }}
                                         @endif

@@ -33,6 +33,8 @@ class Flight extends Model
         'return_price_ttc',
         'reference',
         'eticket_path',
+        'eticket',
+        'ticket_reference',
         'beneficiary_type',
         'status',
         'payment_method',

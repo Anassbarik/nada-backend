@@ -47,6 +47,35 @@
                             </div>
                         @endif
 
+                        @if(auth()->user()->isSuperAdmin() && $admins->count() > 0)
+                            <div class="mt-6 mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
+                                <x-input-label value="Flights Sub-Permissions (Grant Access to Flights Management)" />
+                                <p class="mt-1 mb-3 text-sm text-gray-600">
+                                    Select admins who should be able to manage flights for this accommodation.
+                                </p>
+                                
+                                <div class="space-y-2 max-h-60 overflow-y-auto">
+                                    @foreach($admins as $admin)
+                                        <label class="flex items-center">
+                                            <input 
+                                                type="checkbox" 
+                                                name="flights_sub_permissions[]" 
+                                                value="{{ $admin->id }}"
+                                                {{ in_array($admin->id, old('flights_sub_permissions', $flightsSubPermissions ?? [])) ? 'checked' : '' }}
+                                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                            <span class="ml-2 text-sm text-gray-700">{{ $admin->name }} ({{ $admin->email }})</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                
+                                @if($admins->isEmpty())
+                                    <p class="mt-2 text-sm text-gray-500">No regular admins available.</p>
+                                @endif
+                                
+                                <x-input-error :messages="$errors->get('flights_sub_permissions')" class="mt-2" />
+                            </div>
+                        @endif
+
                         <div class="mb-4">
                             <x-input-label for="name" :value="__('name')" />
                             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus />
@@ -158,6 +187,20 @@
                                 <option value="archived" {{ old('status') === 'archived' ? 'selected' : '' }}>{{ __('archived') }}</option>
                             </select>
                             <x-input-error :messages="$errors->get('status')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    name="show_flight_prices" 
+                                    value="1"
+                                    {{ old('show_flight_prices', true) ? 'checked' : '' }}
+                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                <span class="ml-2 text-sm text-gray-700">Show flight prices to clients</span>
+                            </label>
+                            <p class="mt-1 text-sm text-gray-500">When unchecked, flight prices will be hidden from clients on the events landing page</p>
+                            <x-input-error :messages="$errors->get('show_flight_prices')" class="mt-2" />
                         </div>
 
                         <div class="flex items-center justify-end mt-4">

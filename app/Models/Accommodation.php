@@ -29,6 +29,7 @@ class Accommodation extends Model
         'description_fr',
         'menu_links',
         'status',
+        'show_flight_prices',
         'created_by',
         'organizer_id',
     ];
@@ -37,6 +38,7 @@ class Accommodation extends Model
         'menu_links' => 'array',
         'start_date' => 'date',
         'end_date' => 'date',
+        'show_flight_prices' => 'boolean',
     ];
 
     protected static function boot()
@@ -205,6 +207,42 @@ class Accommodation extends Model
     public function canBeDeletedBy(User $user): bool
     {
         return $this->canBeEditedBy($user);
+    }
+
+    /**
+     * Check if a user can manage flights for this accommodation.
+     * 
+     * Rules:
+     * - Super-admins can manage all flights
+     * - Regular admins need flights permissions AND (created the accommodation OR have sub-permission)
+     */
+    public function canManageFlightsBy(User $user): bool
+    {
+        // Super-admin can manage everything
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        // Non-admins cannot manage flights
+        if (!$user->isAdmin()) {
+            return false;
+        }
+
+        // Check if user has flights permissions
+        if (!$user->hasPermission('flights', 'view')) {
+            return false;
+        }
+
+        // If accommodation was created by a super admin, check sub-permissions
+        if ($this->created_by) {
+            $creator = $this->creator;
+            if ($creator && $creator->isSuperAdmin()) {
+                return $user->hasResourcePermission('flight', $this->id);
+            }
+        }
+
+        // Regular admins can manage flights for accommodations they created
+        return $this->created_by === $user->id;
     }
 
     /**

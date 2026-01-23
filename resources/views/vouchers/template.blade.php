@@ -135,7 +135,7 @@
                 <td>
                     {{ $booking->flight->departure_flight_number ?? '—' }}
                     @if($booking->flight->departure_date)
-                        - {{ $booking->flight->departure_date->format('d/m/Y') }} à {{ $booking->flight->departure_time ? \Carbon\Carbon::parse($booking->flight->departure_time)->format('H:i') : '' }}
+                        - {{ $booking->flight->departure_date ? \Carbon\Carbon::parse($booking->flight->departure_date)->format('d/m/Y') : '—' }} à {{ $booking->flight->departure_time ? \Carbon\Carbon::parse($booking->flight->departure_time)->format('H:i') : '' }}
                     @endif
                     @if($booking->flight->departure_airport || $booking->flight->arrival_airport)
                         <br><span class="text-gray-500 text-xs">{{ $booking->flight->departure_airport ?? '—' }} → {{ $booking->flight->arrival_airport ?? '—' }}</span>
@@ -148,7 +148,7 @@
                 <td>
                     {{ $booking->flight->return_flight_number }}
                     @if($booking->flight->return_date)
-                        - {{ $booking->flight->return_date->format('d/m/Y') }} à {{ $booking->flight->return_departure_time ? \Carbon\Carbon::parse($booking->flight->return_departure_time)->format('H:i') : '' }}
+                        - {{ $booking->flight->return_date ? \Carbon\Carbon::parse($booking->flight->return_date)->format('d/m/Y') : '—' }} à {{ $booking->flight->return_departure_time ? \Carbon\Carbon::parse($booking->flight->return_departure_time)->format('H:i') : '' }}
                     @endif
                     @if($booking->flight->return_departure_airport || $booking->flight->return_arrival_airport)
                         <br><span class="text-gray-500 text-xs">{{ $booking->flight->return_departure_airport ?? '—' }} → {{ $booking->flight->return_arrival_airport ?? '—' }}</span>

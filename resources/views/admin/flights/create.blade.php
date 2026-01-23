@@ -197,6 +197,20 @@
             <p class="mt-1 text-sm text-gray-500">PDF or images (JPG, PNG, WebP) - max 10MB</p>
             <x-input-error :messages="$errors->get('eticket')" class="mt-2" />
           </div>
+
+          <div class="mb-4">
+            <x-input-label for="eticket_number" :value="__('eTicket Number')" />
+            <x-text-input id="eticket_number" class="block mt-1 w-full" type="text" name="eticket_number" :value="old('eticket_number')" placeholder="Enter eTicket number/flight number" />
+            <p class="mt-1 text-sm text-gray-500">Enter the eTicket number provided by the airline</p>
+            <x-input-error :messages="$errors->get('eticket_number')" class="mt-2" />
+          </div>
+
+          <div class="mb-4">
+            <x-input-label for="ticket_reference" :value="__('Ticket Reference (Airline Reference)')" />
+            <x-text-input id="ticket_reference" class="block mt-1 w-full" type="text" name="ticket_reference" :value="old('ticket_reference')" placeholder="Enter ticket reference from airline company" />
+            <p class="mt-1 text-sm text-gray-500">Reference number provided by the airline company (different from flight reference)</p>
+            <x-input-error :messages="$errors->get('ticket_reference')" class="mt-2" />
+          </div>
         </div>
 
         {{-- Status and Payment --}}
@@ -243,6 +257,23 @@
             <x-text-input id="client_email" class="block mt-1 w-full" type="email" name="client_email" :value="old('client_email')" />
             <p class="mt-1 text-sm text-gray-500">A user account will be created with this email and credentials will be sent.</p>
             <x-input-error :messages="$errors->get('client_email')" class="mt-2" />
+          </div>
+        </div>
+
+        {{-- Flight Price Visibility --}}
+        <div class="mb-6">
+          <div class="p-4 border border-gray-300 rounded-md bg-gray-50">
+            <label class="flex items-center">
+              <input 
+                type="checkbox" 
+                name="show_flight_prices" 
+                value="1"
+                {{ old('show_flight_prices', $accommodation->show_flight_prices ?? true) ? 'checked' : '' }}
+                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+              <span class="ml-2 text-sm font-medium text-gray-700">Show flight prices to clients</span>
+            </label>
+            <p class="mt-2 text-sm text-gray-500">When checked, flight prices will be visible to clients on the events landing page. When unchecked, only flight details (dates, times, airports) will be shown.</p>
+            <x-input-error :messages="$errors->get('show_flight_prices')" class="mt-2" />
           </div>
         </div>
 

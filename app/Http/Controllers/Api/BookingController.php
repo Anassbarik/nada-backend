@@ -41,12 +41,65 @@ class BookingController extends Controller
                             });
                       });
             })
-            ->with(['accommodation', 'hotel', 'package', 'user'])
+            ->with(['accommodation', 'hotel', 'package', 'user', 'flight'])
             ->latest()
             ->get();
 
         // Format bookings to include event information
         $formattedBookings = $bookings->map(function ($booking) {
+            // Check if flight prices should be shown (based on accommodation setting)
+            $showFlightPrices = $booking->accommodation ? ($booking->accommodation->show_flight_prices ?? true) : true;
+            
+            // Format flight data conditionally
+            $flightData = null;
+            if ($booking->flight) {
+                $flightData = [
+                    'id' => $booking->flight->id,
+                    'full_name' => $booking->flight->full_name,
+                    'flight_class' => $booking->flight->flight_class,
+                    'flight_class_label' => $booking->flight->flight_class_label,
+                    'flight_category' => $booking->flight->flight_category ?? 'one_way',
+                    'flight_category_label' => $booking->flight->flight_category_label,
+                    'departure' => [
+                        'date' => $booking->flight->departure_date ? \Carbon\Carbon::parse($booking->flight->departure_date)->format('Y-m-d') : null,
+                        'time' => $booking->flight->departure_time ? \Carbon\Carbon::parse($booking->flight->departure_time)->format('H:i') : null,
+                        'flight_number' => $booking->flight->departure_flight_number,
+                        'airport' => $booking->flight->departure_airport,
+                    ],
+                    'arrival' => [
+                        'date' => $booking->flight->arrival_date ? \Carbon\Carbon::parse($booking->flight->arrival_date)->format('Y-m-d') : null,
+                        'time' => $booking->flight->arrival_time ? \Carbon\Carbon::parse($booking->flight->arrival_time)->format('H:i') : null,
+                        'airport' => $booking->flight->arrival_airport,
+                    ],
+                    'reference' => $booking->flight->reference,
+                ];
+                
+                // Conditionally include prices
+                if ($showFlightPrices) {
+                    $flightData['departure']['price_ttc'] = (float) ($booking->flight->departure_price_ttc ?? 0);
+                }
+                
+                // Add return flight if exists
+                if ($booking->flight->return_date) {
+                    $flightData['return'] = [
+                        'date' => $booking->flight->return_date ? \Carbon\Carbon::parse($booking->flight->return_date)->format('Y-m-d') : null,
+                        'departure_time' => $booking->flight->return_departure_time ? \Carbon\Carbon::parse($booking->flight->return_departure_time)->format('H:i') : null,
+                        'departure_airport' => $booking->flight->return_departure_airport,
+                        'arrival_date' => $booking->flight->return_arrival_date ? \Carbon\Carbon::parse($booking->flight->return_arrival_date)->format('Y-m-d') : null,
+                        'arrival_time' => $booking->flight->return_arrival_time ? \Carbon\Carbon::parse($booking->flight->return_arrival_time)->format('H:i') : null,
+                        'arrival_airport' => $booking->flight->return_arrival_airport,
+                        'flight_number' => $booking->flight->return_flight_number,
+                    ];
+                    
+                    if ($showFlightPrices) {
+                        $flightData['return']['price_ttc'] = (float) ($booking->flight->return_price_ttc ?? 0);
+                        $flightData['total_price'] = $booking->flight->total_price;
+                    }
+                } elseif ($showFlightPrices) {
+                    $flightData['total_price'] = (float) ($booking->flight->departure_price_ttc ?? 0);
+                }
+            }
+            
             return [
                 'id' => $booking->id,
                 'booking_reference' => $booking->booking_reference,
@@ -69,6 +122,7 @@ class BookingController extends Controller
                 'payment_document_url' => $booking->payment_document_url,
                 'flight_ticket_path' => $booking->flight_ticket_path,
                 'flight_ticket_url' => $booking->flight_ticket_url,
+                'flight' => $flightData,
                 'event' => $booking->accommodation ? [
                     'id' => $booking->accommodation->id,
                     'name' => $booking->accommodation->name,
@@ -78,6 +132,7 @@ class BookingController extends Controller
                     'google_maps_url' => $booking->accommodation->google_maps_url,
                     'start_date' => $booking->accommodation->start_date?->format('Y-m-d'),
                     'end_date' => $booking->accommodation->end_date?->format('Y-m-d'),
+                    'show_flight_prices' => $booking->accommodation->show_flight_prices ?? true,
                 ] : null,
                 'hotel' => $booking->hotel ? [
                     'id' => $booking->hotel->id,
@@ -196,6 +251,7 @@ class BookingController extends Controller
             'booking_reference' => 'nullable|string|max:50', // For linking to existing flight booking
             'package_id' => 'required|exists:hotel_packages,id',
             // Flight fields - support both flight_number and flight_num
+            // These will be conditionally required based on booking_reference
             'flight_number' => 'nullable|string|max:20',
             'flight_num' => 'nullable|string|max:20', // Frontend may send this
             'flight_date' => 'nullable|date',
@@ -257,6 +313,42 @@ class BookingController extends Controller
             $validationRules['accommodation_id'] = 'required|exists:accommodations,id';
             $validationRules['hotel_id'] = 'required|exists:hotels,id';
         }
+
+        // Conditional validation: If booking_reference is provided, check if it's valid
+        // If valid, flight fields are optional. If not provided or invalid, flight fields are required.
+        $hasValidBookingReference = false;
+        if ($request->filled('booking_reference')) {
+            // Check if booking reference exists and is a valid flight-only booking
+            $existingBookingCheck = Booking::where('booking_reference', $request->booking_reference)
+                ->whereNotNull('flight_id')
+                ->whereNull('hotel_id')
+                ->whereNull('package_id')
+                ->first();
+            
+            if ($existingBookingCheck) {
+                // If event is resolved, verify the booking belongs to the same accommodation
+                if ($event) {
+                    if ($existingBookingCheck->accommodation_id == $event->id) {
+                        $hasValidBookingReference = true;
+                    }
+                } else {
+                    // If event is not resolved yet, we'll check it later, but mark as potentially valid
+                    // This allows validation to pass, but we'll verify later
+                    $hasValidBookingReference = true;
+                }
+            }
+        }
+
+        // If no valid booking_reference, flight fields are required
+        if (!$hasValidBookingReference) {
+            // At least one of flight_number or flight_num must be provided
+            $validationRules['flight_number'] = 'required_without:flight_num|nullable|string|max:20';
+            $validationRules['flight_num'] = 'required_without:flight_number|nullable|string|max:20';
+            $validationRules['flight_date'] = 'required|date';
+            $validationRules['flight_time'] = 'required';
+            $validationRules['airport'] = 'required|string|max:10';
+        }
+        // If has valid booking_reference, flight fields remain nullable (already set above)
 
         $validator = Validator::make($request->all(), $validationRules);
 
@@ -457,7 +549,7 @@ class BookingController extends Controller
             }
             
             // Verify the booking belongs to the same accommodation
-            if ($existingBooking->accommodation_id != $event->id) {
+            if ($event && $existingBooking->accommodation_id != $event->id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Booking reference does not match this event.',
@@ -804,11 +896,73 @@ class BookingController extends Controller
             ], 403);
         }
 
-        $booking->load(['event', 'hotel', 'package']);
+        $booking->load(['accommodation', 'hotel', 'package', 'flight']);
+        
+        // Check if flight prices should be shown (based on accommodation setting)
+        $showFlightPrices = $booking->accommodation ? ($booking->accommodation->show_flight_prices ?? true) : true;
+        
+        // Format booking data
+        $bookingData = $booking->toArray();
+        
+        // Format flight data conditionally
+        if ($booking->flight) {
+            $flightData = [
+                'id' => $booking->flight->id,
+                'full_name' => $booking->flight->full_name,
+                'flight_class' => $booking->flight->flight_class,
+                'flight_class_label' => $booking->flight->flight_class_label,
+                'flight_category' => $booking->flight->flight_category ?? 'one_way',
+                'flight_category_label' => $booking->flight->flight_category_label,
+                'departure' => [
+                    'date' => $booking->flight->departure_date ? \Carbon\Carbon::parse($booking->flight->departure_date)->format('Y-m-d') : null,
+                    'time' => $booking->flight->departure_time ? \Carbon\Carbon::parse($booking->flight->departure_time)->format('H:i') : null,
+                    'flight_number' => $booking->flight->departure_flight_number,
+                    'airport' => $booking->flight->departure_airport,
+                ],
+                'arrival' => [
+                    'date' => $booking->flight->arrival_date ? \Carbon\Carbon::parse($booking->flight->arrival_date)->format('Y-m-d') : null,
+                    'time' => $booking->flight->arrival_time ? \Carbon\Carbon::parse($booking->flight->arrival_time)->format('H:i') : null,
+                    'airport' => $booking->flight->arrival_airport,
+                ],
+                'reference' => $booking->flight->reference,
+            ];
+            
+            // Conditionally include prices
+            if ($showFlightPrices) {
+                $flightData['departure']['price_ttc'] = (float) ($booking->flight->departure_price_ttc ?? 0);
+            }
+            
+            // Add return flight if exists
+            if ($booking->flight->return_date) {
+                $flightData['return'] = [
+                    'date' => $booking->flight->return_date ? \Carbon\Carbon::parse($booking->flight->return_date)->format('Y-m-d') : null,
+                    'departure_time' => $booking->flight->return_departure_time ? \Carbon\Carbon::parse($booking->flight->return_departure_time)->format('H:i') : null,
+                    'departure_airport' => $booking->flight->return_departure_airport,
+                    'arrival_date' => $booking->flight->return_arrival_date ? \Carbon\Carbon::parse($booking->flight->return_arrival_date)->format('Y-m-d') : null,
+                    'arrival_time' => $booking->flight->return_arrival_time ? \Carbon\Carbon::parse($booking->flight->return_arrival_time)->format('H:i') : null,
+                    'arrival_airport' => $booking->flight->return_arrival_airport,
+                    'flight_number' => $booking->flight->return_flight_number,
+                ];
+                
+                if ($showFlightPrices) {
+                    $flightData['return']['price_ttc'] = (float) ($booking->flight->return_price_ttc ?? 0);
+                    $flightData['total_price'] = $booking->flight->total_price;
+                }
+            } elseif ($showFlightPrices) {
+                $flightData['total_price'] = (float) ($booking->flight->departure_price_ttc ?? 0);
+            }
+            
+            $bookingData['flight'] = $flightData;
+        }
+        
+        // Add show_flight_prices to accommodation data
+        if ($booking->accommodation) {
+            $bookingData['accommodation']['show_flight_prices'] = $booking->accommodation->show_flight_prices ?? true;
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $booking,
+            'data' => $bookingData,
         ]);
     }
 

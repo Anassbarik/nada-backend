@@ -130,6 +130,7 @@ Route::middleware('auth')->group(function () {
         Route::get('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'show'])->name('flights.show');
         Route::get('events/{accommodation}/flights/{flight}/edit', [\App\Http\Controllers\Admin\FlightController::class, 'edit'])->name('flights.edit');
         Route::patch('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'update'])->name('flights.update');
+        Route::post('events/{accommodation}/flights/{flight}/duplicate', [\App\Http\Controllers\Admin\FlightController::class, 'duplicate'])->name('flights.duplicate');
         Route::delete('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'destroy'])->name('flights.destroy');
         Route::get('events/{accommodation}/flights/{flight}/credentials', [\App\Http\Controllers\Admin\FlightController::class, 'downloadCredentials'])->name('flights.downloadCredentials');
 

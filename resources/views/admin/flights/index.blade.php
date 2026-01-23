@@ -57,7 +57,7 @@
             <x-shadcn.table-cell>
               <div class="text-sm">
                 <div class="font-medium">{{ $flight->departure_flight_number }}</div>
-                <div class="text-gray-500">{{ $flight->departure_date->format('Y-m-d') }}</div>
+                <div class="text-gray-500">{{ $flight->departure_date ? \Carbon\Carbon::parse($flight->departure_date)->format('Y-m-d') : '—' }}</div>
                 <div class="text-xs text-gray-400">{{ $flight->departure_airport ?? '—' }} → {{ $flight->arrival_airport ?? '—' }}</div>
               </div>
             </x-shadcn.table-cell>
@@ -65,7 +65,7 @@
               @if($flight->return_date)
                 <div class="text-sm">
                   <div class="font-medium">{{ $flight->return_flight_number }}</div>
-                  <div class="text-gray-500">{{ $flight->return_date->format('Y-m-d') }}</div>
+                  <div class="text-gray-500">{{ \Carbon\Carbon::parse($flight->return_date)->format('Y-m-d') }}</div>
                   <div class="text-xs text-gray-400">{{ $flight->return_departure_airport ?? '—' }} → {{ $flight->return_arrival_airport ?? '—' }}</div>
                 </div>
               @else
@@ -124,6 +124,16 @@
                    title="Edit">
                   <i data-lucide="pencil" class="w-4 h-4"></i>
                 </a>
+                <form method="POST" action="{{ route('admin.flights.duplicate', [$accommodation, $flight]) }}" 
+                      class="inline" 
+                      onsubmit="return confirm('Are you sure you want to duplicate this flight?');">
+                  @csrf
+                  <button type="submit" 
+                          class="p-1.5 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors"
+                          title="Duplicate">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                  </button>
+                </form>
                 <form method="POST" action="{{ route('admin.flights.destroy', [$accommodation, $flight]) }}" 
                       class="inline" 
                       onsubmit="return confirm('Are you sure you want to delete this flight?');">

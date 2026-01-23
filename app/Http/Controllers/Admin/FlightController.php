@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Mail\BookingConfirmation;
+use App\Models\ResourcePermission;
 
 class FlightController extends Controller
 {
@@ -24,6 +25,11 @@ class FlightController extends Controller
      */
     public function index(Accommodation $accommodation)
     {
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to view flights for this accommodation.');
+        }
+
         $flights = Flight::where('accommodation_id', $accommodation->id)
             ->with(['user', 'organizer', 'creator'])
             ->latest()
@@ -37,6 +43,16 @@ class FlightController extends Controller
      */
     public function create(Accommodation $accommodation)
     {
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to create flights for this accommodation.');
+        }
+
+        // Check if user has create permission
+        if (!auth()->user()->hasPermission('flights', 'create')) {
+            abort(403, 'You do not have permission to create flights.');
+        }
+
         return view('admin.flights.create', compact('accommodation'));
     }
 
@@ -45,6 +61,16 @@ class FlightController extends Controller
      */
     public function store(Request $request, Accommodation $accommodation)
     {
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to create flights for this accommodation.');
+        }
+
+        // Check if user has create permission
+        if (!auth()->user()->hasPermission('flights', 'create')) {
+            abort(403, 'You do not have permission to create flights.');
+        }
+
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'flight_class' => 'required|in:economy,business,first',
@@ -66,10 +92,13 @@ class FlightController extends Controller
             'return_arrival_airport' => 'nullable|required_if:flight_category,round_trip|string|max:100',
             'return_price_ttc' => 'nullable|required_if:flight_category,round_trip|numeric|min:0',
             'eticket' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+            'eticket_number' => 'nullable|string|max:255',
+            'ticket_reference' => 'nullable|string|max:255',
             'beneficiary_type' => 'required|in:organizer,client',
             'client_email' => 'nullable|required_if:beneficiary_type,client|email|max:255|unique:users,email',
             'status' => 'required|in:pending,paid',
             'payment_method' => 'nullable|in:wallet,bank,both',
+            'show_flight_prices' => 'nullable|boolean',
         ]);
 
         try {
@@ -97,6 +126,8 @@ class FlightController extends Controller
             $flight->return_departure_airport = $validated['return_departure_airport'] ?? null;
             $flight->return_arrival_airport = $validated['return_arrival_airport'] ?? null;
             $flight->return_price_ttc = $validated['return_price_ttc'] ?? null;
+            $flight->eticket = $validated['eticket_number'] ?? null;
+            $flight->ticket_reference = $validated['ticket_reference'] ?? null;
             $flight->beneficiary_type = $validated['beneficiary_type'];
             $flight->status = $validated['status'];
             $flight->payment_method = $validated['payment_method'] ?? null;
@@ -233,22 +264,32 @@ class FlightController extends Controller
             // Send email to client if created (after commit to avoid blocking)
             if ($validated['beneficiary_type'] === 'client' && $user && $password) {
                 try {
-                    // Reload flight to get latest data including credentials_pdf_path
+                    // Reload flight and booking to get latest data including credentials_pdf_path
                     $flight->refresh();
-                    Mail::to($user->email)->send(new \App\Mail\FlightCredentialsMail($flight, $user, $password));
+                    $booking->refresh();
+                    Mail::to($user->email)->send(new \App\Mail\FlightCredentialsMail($flight, $user, $password, $booking));
                     Log::info('Flight credentials email sent successfully', [
                         'flight_id' => $flight->id,
+                        'booking_id' => $booking->id,
+                        'booking_reference' => $booking->booking_reference,
                         'user_email' => $user->email,
                     ]);
                 } catch (\Throwable $e) {
                     Log::error('Failed to send flight credentials email', [
                         'flight_id' => $flight->id,
+                        'booking_id' => $booking->id ?? null,
                         'user_email' => $user->email,
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
                     ]);
                     // Don't fail the request if email fails
                 }
+            }
+
+            // Update accommodation's show_flight_prices setting
+            if ($request->has('show_flight_prices')) {
+                $accommodation->show_flight_prices = (bool) $request->input('show_flight_prices');
+                $accommodation->save();
             }
 
             return redirect()->route('admin.flights.index', $accommodation)
@@ -274,6 +315,11 @@ class FlightController extends Controller
      */
     public function show(Accommodation $accommodation, Flight $flight)
     {
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to view flights for this accommodation.');
+        }
+
         $flight->load(['user', 'organizer', 'creator', 'bookings']);
         return view('admin.flights.show', compact('accommodation', 'flight'));
     }
@@ -283,6 +329,16 @@ class FlightController extends Controller
      */
     public function edit(Accommodation $accommodation, Flight $flight)
     {
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit flights for this accommodation.');
+        }
+
+        // Check if user has edit permission
+        if (!auth()->user()->hasPermission('flights', 'edit')) {
+            abort(403, 'You do not have permission to edit flights.');
+        }
+
         return view('admin.flights.edit', compact('accommodation', 'flight'));
     }
 
@@ -291,6 +347,16 @@ class FlightController extends Controller
      */
     public function update(Request $request, Accommodation $accommodation, Flight $flight)
     {
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to update flights for this accommodation.');
+        }
+
+        // Check if user has edit permission
+        if (!auth()->user()->hasPermission('flights', 'edit')) {
+            abort(403, 'You do not have permission to edit flights.');
+        }
+
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'flight_class' => 'required|in:economy,business,first',
@@ -312,8 +378,11 @@ class FlightController extends Controller
             'return_arrival_airport' => 'nullable|required_if:flight_category,round_trip|string|max:100',
             'return_price_ttc' => 'nullable|required_if:flight_category,round_trip|numeric|min:0',
             'eticket' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+            'eticket_number' => 'nullable|string|max:255',
+            'ticket_reference' => 'nullable|string|max:255',
             'status' => 'required|in:pending,paid',
             'payment_method' => 'nullable|in:wallet,bank,both',
+            'show_flight_prices' => 'nullable|boolean',
         ]);
 
         try {
@@ -336,6 +405,8 @@ class FlightController extends Controller
             $flight->return_departure_airport = $validated['return_departure_airport'] ?? null;
             $flight->return_arrival_airport = $validated['return_arrival_airport'] ?? null;
             $flight->return_price_ttc = $validated['return_price_ttc'] ?? null;
+            $flight->eticket = $validated['eticket_number'] ?? null;
+            $flight->ticket_reference = $validated['ticket_reference'] ?? null;
             $flight->status = $validated['status'];
             $flight->payment_method = $validated['payment_method'] ?? null;
             
@@ -374,6 +445,12 @@ class FlightController extends Controller
 
             $flight->save();
 
+            // Update accommodation's show_flight_prices setting
+            if ($request->has('show_flight_prices')) {
+                $accommodation->show_flight_prices = (bool) $request->input('show_flight_prices');
+                $accommodation->save();
+            }
+
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight updated successfully.');
 
@@ -390,10 +467,76 @@ class FlightController extends Controller
     }
 
     /**
+     * Duplicate a flight.
+     */
+    public function duplicate(Accommodation $accommodation, Flight $flight)
+    {
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to duplicate flights for this accommodation.');
+        }
+
+        // Check if user has create permission
+        if (!auth()->user()->hasPermission('flights', 'create')) {
+            abort(403, 'You do not have permission to create flights.');
+        }
+
+        try {
+            $duplicate = $flight->replicate();
+            $duplicate->full_name = $flight->full_name . ' (Copy)';
+            // reference will be auto-generated in the model's boot method
+            $duplicate->reference = null; // Let the model generate a new one
+            $duplicate->accommodation_id = $accommodation->id;
+            $duplicate->created_by = auth()->id();
+            
+            // Reset client/organizer-specific fields (will be set when creating new client/organizer if needed)
+            $duplicate->user_id = null;
+            $duplicate->organizer_id = null;
+            $duplicate->client_email = null;
+            $duplicate->credentials_pdf_path = null;
+            $duplicate->credentials_emailed = false;
+            $duplicate->client_password_generated = false;
+            // Reset status to pending for new flight
+            $duplicate->status = 'pending';
+            
+            // Copy eTicket file if it exists
+            if ($flight->eticket_path) {
+                $duplicate->eticket_path = DualStorageService::copy($flight->eticket_path, 'flights/etickets', 'public');
+            }
+            
+            $duplicate->save();
+
+            return redirect()->route('admin.flights.index', $accommodation)
+                ->with('success', 'Flight duplicated successfully. You can now modify it.');
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to duplicate flight', [
+                'flight_id' => $flight->id,
+                'accommodation_id' => $accommodation->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()
+                ->withErrors(['error' => 'Failed to duplicate flight: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * Remove the specified flight.
      */
     public function destroy(Accommodation $accommodation, Flight $flight)
     {
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to delete flights for this accommodation.');
+        }
+
+        // Check if user has delete permission
+        if (!auth()->user()->hasPermission('flights', 'delete')) {
+            abort(403, 'You do not have permission to delete flights.');
+        }
+
         try {
             // Delete associated files
             if ($flight->eticket_path) {

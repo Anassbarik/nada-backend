@@ -41,8 +41,9 @@ class EventController extends Controller
 
         // Get current sub-permissions (empty for create)
         $subPermissions = collect();
+        $flightsSubPermissions = collect();
 
-        return view('admin.events.create', compact('admins', 'subPermissions'));
+        return view('admin.events.create', compact('admins', 'subPermissions', 'flightsSubPermissions'));
     }
 
     /**
@@ -70,8 +71,11 @@ class EventController extends Controller
             'menu_links.*.label' => 'required_with:menu_links|string',
             'menu_links.*.url' => 'required_with:menu_links|url',
             'status' => 'required|in:draft,published,archived',
+            'show_flight_prices' => 'nullable|boolean',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
+            'flights_sub_permissions' => 'nullable|array',
+            'flights_sub_permissions.*' => 'exists:users,id',
         ]);
 
         $event = new Accommodation();
@@ -87,6 +91,7 @@ class EventController extends Controller
         $event->description_fr = $validated['description_fr'] ?? null;
         $event->menu_links = $validated['menu_links'] ?? null;
         $event->status = $validated['status'];
+        $event->show_flight_prices = $request->has('show_flight_prices') ? (bool) $request->input('show_flight_prices') : false;
         $event->created_by = auth()->id();
 
         // Generate password for organizer
@@ -123,6 +128,17 @@ class EventController extends Controller
             foreach ($validated['sub_permissions'] as $adminId) {
                 ResourcePermission::firstOrCreate([
                     'resource_type' => 'event',
+                    'resource_id' => $event->id,
+                    'user_id' => $adminId,
+                ]);
+            }
+        }
+
+        // Handle flights sub-permissions (only for super-admin)
+        if (auth()->user()->isSuperAdmin() && isset($validated['flights_sub_permissions'])) {
+            foreach ($validated['flights_sub_permissions'] as $adminId) {
+                ResourcePermission::firstOrCreate([
+                    'resource_type' => 'flight',
                     'resource_id' => $event->id,
                     'user_id' => $adminId,
                 ]);
@@ -222,8 +238,11 @@ class EventController extends Controller
             'menu_links.*.label' => 'required_with:menu_links|string',
             'menu_links.*.url' => 'required_with:menu_links|url',
             'status' => 'required|in:draft,published,archived',
+            'show_flight_prices' => 'nullable|boolean',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
+            'flights_sub_permissions' => 'nullable|array',
+            'flights_sub_permissions.*' => 'exists:users,id',
         ]);
 
         $event->name = $validated['name'];
@@ -238,6 +257,7 @@ class EventController extends Controller
         $event->description_fr = $validated['description_fr'] ?? null;
         $event->menu_links = $validated['menu_links'] ?? null;
         $event->status = $validated['status'];
+        $event->show_flight_prices = $request->has('show_flight_prices') ? (bool) $request->input('show_flight_prices') : false;
 
         if ($request->hasFile('organizer_logo')) {
             if ($event->organizer_logo) {

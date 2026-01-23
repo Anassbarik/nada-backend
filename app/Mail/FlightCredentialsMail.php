@@ -18,15 +18,17 @@ class FlightCredentialsMail extends Mailable
     public Flight $flight;
     public User $user;
     public string $password;
+    public $booking;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Flight $flight, User $user, string $password)
+    public function __construct(Flight $flight, User $user, string $password, $booking = null)
     {
         $this->flight = $flight;
         $this->user = $user;
         $this->password = $password;
+        $this->booking = $booking;
     }
 
     /**
@@ -50,6 +52,7 @@ class FlightCredentialsMail extends Mailable
                 'flight' => $this->flight,
                 'user' => $this->user,
                 'password' => $this->password,
+                'booking' => $this->booking,
             ],
         );
     }

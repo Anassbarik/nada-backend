@@ -139,20 +139,20 @@
             </div>
             <div class="info-row">
                 <span class="info-label">Departure:</span>
-                <span class="info-value">{{ $flight->departure_date->format('F d, Y') }} at {{ \Carbon\Carbon::parse($flight->departure_time)->format('H:i') }} - Flight {{ $flight->departure_flight_number }}</span>
+                <span class="info-value">{{ $flight->departure_date ? \Carbon\Carbon::parse($flight->departure_date)->format('F d, Y') : 'N/A' }} at {{ $flight->departure_time ? \Carbon\Carbon::parse($flight->departure_time)->format('H:i') : 'N/A' }} - Flight {{ $flight->departure_flight_number }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Arrival:</span>
-                <span class="info-value">{{ $flight->arrival_date->format('F d, Y') }} at {{ \Carbon\Carbon::parse($flight->arrival_time)->format('H:i') }}</span>
+                <span class="info-value">{{ $flight->arrival_date ? \Carbon\Carbon::parse($flight->arrival_date)->format('F d, Y') : 'N/A' }} at {{ $flight->arrival_time ? \Carbon\Carbon::parse($flight->arrival_time)->format('H:i') : 'N/A' }}</span>
             </div>
             @if($flight->return_date)
             <div class="info-row">
                 <span class="info-label">Return Departure:</span>
-                <span class="info-value">{{ $flight->return_date->format('F d, Y') }} at {{ \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') }} - Flight {{ $flight->return_flight_number }}</span>
+                <span class="info-value">{{ \Carbon\Carbon::parse($flight->return_date)->format('F d, Y') }} at {{ $flight->return_departure_time ? \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') : 'N/A' }} - Flight {{ $flight->return_flight_number }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Return Arrival:</span>
-                <span class="info-value">{{ $flight->return_arrival_date->format('F d, Y') }} at {{ \Carbon\Carbon::parse($flight->return_arrival_time)->format('H:i') }}</span>
+                <span class="info-value">{{ $flight->return_arrival_date ? \Carbon\Carbon::parse($flight->return_arrival_date)->format('F d, Y') : 'N/A' }} at {{ $flight->return_arrival_time ? \Carbon\Carbon::parse($flight->return_arrival_time)->format('H:i') : 'N/A' }}</span>
             </div>
             @endif
         </div>

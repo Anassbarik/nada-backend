@@ -23,20 +23,26 @@
         <div>
           <h3 class="text-lg font-semibold mb-4">Flight Information</h3>
           <div class="space-y-2">
-            <div><span class="font-medium">Reference:</span> {{ $flight->reference }}</div>
+            <div><span class="font-medium">Flight Reference:</span> {{ $flight->reference }}</div>
+            @if($flight->ticket_reference)
+              <div><span class="font-medium">Ticket Reference (Airline):</span> {{ $flight->ticket_reference }}</div>
+            @endif
             <div><span class="font-medium">Client Name:</span> {{ $flight->full_name }}</div>
             <div><span class="font-medium">Flight Class:</span> {{ $flight->flight_class_label }}</div>
+            @if($flight->eticket)
+              <div><span class="font-medium">eTicket Number:</span> {{ $flight->eticket }}</div>
+            @endif
           </div>
         </div>
 
         <div>
           <h3 class="text-lg font-semibold mb-4">Departure</h3>
           <div class="space-y-2">
-            <div><span class="font-medium">Date:</span> {{ $flight->departure_date->format('Y-m-d') }}</div>
-            <div><span class="font-medium">Time:</span> {{ \Carbon\Carbon::parse($flight->departure_time)->format('H:i') }}</div>
+            <div><span class="font-medium">Date:</span> {{ $flight->departure_date ? \Carbon\Carbon::parse($flight->departure_date)->format('Y-m-d') : '—' }}</div>
+            <div><span class="font-medium">Time:</span> {{ $flight->departure_time ? \Carbon\Carbon::parse($flight->departure_time)->format('H:i') : '—' }}</div>
             <div><span class="font-medium">Flight Number:</span> {{ $flight->departure_flight_number }}</div>
             <div><span class="font-medium">Departure Airport:</span> {{ $flight->departure_airport ?? '—' }}</div>
-            <div><span class="font-medium">Arrival:</span> {{ $flight->arrival_date->format('Y-m-d') }} at {{ \Carbon\Carbon::parse($flight->arrival_time)->format('H:i') }}</div>
+            <div><span class="font-medium">Arrival:</span> {{ $flight->arrival_date ? \Carbon\Carbon::parse($flight->arrival_date)->format('Y-m-d') : '—' }} at {{ $flight->arrival_time ? \Carbon\Carbon::parse($flight->arrival_time)->format('H:i') : '—' }}</div>
             <div><span class="font-medium">Arrival Airport:</span> {{ $flight->arrival_airport ?? '—' }}</div>
           </div>
         </div>
@@ -45,11 +51,11 @@
         <div>
           <h3 class="text-lg font-semibold mb-4">Return</h3>
           <div class="space-y-2">
-            <div><span class="font-medium">Date:</span> {{ $flight->return_date->format('Y-m-d') }}</div>
-            <div><span class="font-medium">Time:</span> {{ \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') }}</div>
+            <div><span class="font-medium">Date:</span> {{ \Carbon\Carbon::parse($flight->return_date)->format('Y-m-d') }}</div>
+            <div><span class="font-medium">Time:</span> {{ $flight->return_departure_time ? \Carbon\Carbon::parse($flight->return_departure_time)->format('H:i') : '—' }}</div>
             <div><span class="font-medium">Flight Number:</span> {{ $flight->return_flight_number }}</div>
             <div><span class="font-medium">Departure Airport:</span> {{ $flight->return_departure_airport ?? '—' }}</div>
-            <div><span class="font-medium">Arrival:</span> {{ $flight->return_arrival_date->format('Y-m-d') }} at {{ \Carbon\Carbon::parse($flight->return_arrival_time)->format('H:i') }}</div>
+            <div><span class="font-medium">Arrival:</span> {{ $flight->return_arrival_date ? \Carbon\Carbon::parse($flight->return_arrival_date)->format('Y-m-d') : '—' }} at {{ $flight->return_arrival_time ? \Carbon\Carbon::parse($flight->return_arrival_time)->format('H:i') : '—' }}</div>
             <div><span class="font-medium">Arrival Airport:</span> {{ $flight->return_arrival_airport ?? '—' }}</div>
           </div>
         </div>
@@ -100,12 +106,27 @@
           </div>
         </div>
 
-        @if($flight->eticket_path)
+        @if($flight->eticket_path || $flight->eticket || $flight->ticket_reference)
         <div>
-          <h3 class="text-lg font-semibold mb-4">eTicket</h3>
-          <a href="{{ $flight->eticket_url }}" target="_blank" class="text-blue-600 hover:underline">
-            View eTicket
-          </a>
+          <h3 class="text-lg font-semibold mb-4">eTicket Information</h3>
+          @if($flight->eticket_path)
+            <div class="mb-2">
+              <span class="font-medium">eTicket File:</span>
+              <a href="{{ $flight->eticket_url }}" target="_blank" class="text-blue-600 hover:underline ml-2">
+                View eTicket File
+              </a>
+            </div>
+          @endif
+          @if($flight->eticket)
+            <div class="mb-2">
+              <span class="font-medium">eTicket Number:</span> {{ $flight->eticket }}
+            </div>
+          @endif
+          @if($flight->ticket_reference)
+            <div class="mb-2">
+              <span class="font-medium">Ticket Reference (Airline):</span> {{ $flight->ticket_reference }}
+            </div>
+          @endif
         </div>
         @endif
       </div>

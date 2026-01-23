@@ -239,19 +239,19 @@
                       {{-- Flight booking (from flights table) --}}
                       <div><span class="font-medium">Flight Reference:</span> {{ $booking->flight->reference }}</div>
                       <div><span class="font-medium">Flight Class:</span> {{ $booking->flight->flight_class_label }}</div>
-                      <div><span class="font-medium">Departure:</span> {{ $booking->flight->departure_date->format('Y-m-d') }} at {{ \Carbon\Carbon::parse($booking->flight->departure_time)->format('H:i') }} - {{ $booking->flight->departure_flight_number }}</div>
+                      <div><span class="font-medium">Departure:</span> {{ $booking->flight->departure_date ? \Carbon\Carbon::parse($booking->flight->departure_date)->format('Y-m-d') : '—' }} at {{ $booking->flight->departure_time ? \Carbon\Carbon::parse($booking->flight->departure_time)->format('H:i') : '—' }} - {{ $booking->flight->departure_flight_number }}</div>
                       <div><span class="font-medium">Airports:</span> {{ $booking->flight->departure_airport ?? '—' }} → {{ $booking->flight->arrival_airport ?? '—' }}</div>
-                      <div><span class="font-medium">Arrival:</span> {{ $booking->flight->arrival_date->format('Y-m-d') }} at {{ \Carbon\Carbon::parse($booking->flight->arrival_time)->format('H:i') }}</div>
+                      <div><span class="font-medium">Arrival:</span> {{ $booking->flight->arrival_date ? \Carbon\Carbon::parse($booking->flight->arrival_date)->format('Y-m-d') : '—' }} at {{ $booking->flight->arrival_time ? \Carbon\Carbon::parse($booking->flight->arrival_time)->format('H:i') : '—' }}</div>
                       @if($booking->flight->return_date)
-                        <div><span class="font-medium">Return:</span> {{ $booking->flight->return_date->format('Y-m-d') }} at {{ \Carbon\Carbon::parse($booking->flight->return_departure_time)->format('H:i') }} - {{ $booking->flight->return_flight_number }}</div>
+                        <div><span class="font-medium">Return:</span> {{ \Carbon\Carbon::parse($booking->flight->return_date)->format('Y-m-d') }} at {{ $booking->flight->return_departure_time ? \Carbon\Carbon::parse($booking->flight->return_departure_time)->format('H:i') : '—' }} - {{ $booking->flight->return_flight_number }}</div>
                         <div><span class="font-medium">Return Airports:</span> {{ $booking->flight->return_departure_airport ?? '—' }} → {{ $booking->flight->return_arrival_airport ?? '—' }}</div>
                       @endif
                     @else
                       {{-- Regular booking flight info --}}
-                      <div><span class="font-medium">Flight Number:</span> {{ $booking->flight_number ?? 'N/A' }}</div>
-                      <div><span class="font-medium">Flight Date:</span> {{ $booking->flight_date ? $booking->flight_date->format('Y-m-d') : 'N/A' }}</div>
-                      <div><span class="font-medium">Flight Time:</span> {{ $booking->flight_time ? $booking->flight_time->format('H:i') : 'N/A' }}</div>
-                      <div><span class="font-medium">Airport:</span> {{ $booking->airport ?? 'N/A' }}</div>
+                    <div><span class="font-medium">Flight Number:</span> {{ $booking->flight_number ?? 'N/A' }}</div>
+                    <div><span class="font-medium">Flight Date:</span> {{ $booking->flight_date ? $booking->flight_date->format('Y-m-d') : 'N/A' }}</div>
+                    <div><span class="font-medium">Flight Time:</span> {{ $booking->flight_time ? $booking->flight_time->format('H:i') : 'N/A' }}</div>
+                    <div><span class="font-medium">Airport:</span> {{ $booking->airport ?? 'N/A' }}</div>
                     @endif
                   </div>
 
