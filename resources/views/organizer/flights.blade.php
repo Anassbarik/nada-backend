@@ -71,14 +71,18 @@
                             @endif
                         </x-shadcn.table-cell>
                         <x-shadcn.table-cell>
-                            <div class="text-sm">
-                                @if($flight->flight_category === 'round_trip')
-                                    <div>{{ number_format($flight->departure_price_ttc ?? 0, 2) }} + {{ number_format($flight->return_price_ttc ?? 0, 2) }}</div>
-                                    <div class="font-medium">{{ number_format($flight->total_price, 2) }} MAD</div>
-                                @else
-                                    <div class="font-medium">{{ number_format($flight->departure_price_ttc ?? 0, 2) }} MAD</div>
-                                @endif
-                            </div>
+                            @if($event->show_flight_prices_organizer_dashboard ?? true)
+                                <div class="text-sm">
+                                    @if($flight->flight_category === 'round_trip')
+                                        <div>{{ number_format($flight->departure_price_ttc ?? 0, 2) }} + {{ number_format($flight->return_price_ttc ?? 0, 2) }}</div>
+                                        <div class="font-medium">{{ number_format($flight->total_price, 2) }} MAD</div>
+                                    @else
+                                        <div class="font-medium">{{ number_format($flight->departure_price_ttc ?? 0, 2) }} MAD</div>
+                                    @endif
+                                </div>
+                            @else
+                                <span class="text-gray-400 text-sm">Price hidden</span>
+                            @endif
                         </x-shadcn.table-cell>
                         <x-shadcn.table-cell>
                             <x-shadcn.badge variant="{{ $flight->status === 'paid' ? 'default' : 'secondary' }}">

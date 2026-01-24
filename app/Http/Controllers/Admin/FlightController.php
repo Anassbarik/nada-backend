@@ -98,7 +98,9 @@ class FlightController extends Controller
             'client_email' => 'nullable|required_if:beneficiary_type,client|email|max:255|unique:users,email',
             'status' => 'required|in:pending,paid',
             'payment_method' => 'nullable|in:wallet,bank,both',
-            'show_flight_prices' => 'nullable|boolean',
+            'show_flight_prices_public' => 'nullable|boolean',
+            'show_flight_prices_client_dashboard' => 'nullable|boolean',
+            'show_flight_prices_organizer_dashboard' => 'nullable|boolean',
         ]);
 
         try {
@@ -286,11 +288,17 @@ class FlightController extends Controller
                 }
             }
 
-            // Update accommodation's show_flight_prices setting
-            if ($request->has('show_flight_prices')) {
-                $accommodation->show_flight_prices = (bool) $request->input('show_flight_prices');
-                $accommodation->save();
+            // Update accommodation's flight price visibility settings
+            if ($request->has('show_flight_prices_public')) {
+                $accommodation->show_flight_prices_public = (bool) $request->input('show_flight_prices_public');
             }
+            if ($request->has('show_flight_prices_client_dashboard')) {
+                $accommodation->show_flight_prices_client_dashboard = (bool) $request->input('show_flight_prices_client_dashboard');
+            }
+            if ($request->has('show_flight_prices_organizer_dashboard')) {
+                $accommodation->show_flight_prices_organizer_dashboard = (bool) $request->input('show_flight_prices_organizer_dashboard');
+            }
+            $accommodation->save();
 
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight created successfully.')
@@ -382,7 +390,9 @@ class FlightController extends Controller
             'ticket_reference' => 'nullable|string|max:255',
             'status' => 'required|in:pending,paid',
             'payment_method' => 'nullable|in:wallet,bank,both',
-            'show_flight_prices' => 'nullable|boolean',
+            'show_flight_prices_public' => 'nullable|boolean',
+            'show_flight_prices_client_dashboard' => 'nullable|boolean',
+            'show_flight_prices_organizer_dashboard' => 'nullable|boolean',
         ]);
 
         try {
@@ -445,11 +455,17 @@ class FlightController extends Controller
 
             $flight->save();
 
-            // Update accommodation's show_flight_prices setting
-            if ($request->has('show_flight_prices')) {
-                $accommodation->show_flight_prices = (bool) $request->input('show_flight_prices');
-                $accommodation->save();
+            // Update accommodation's flight price visibility settings
+            if ($request->has('show_flight_prices_public')) {
+                $accommodation->show_flight_prices_public = (bool) $request->input('show_flight_prices_public');
             }
+            if ($request->has('show_flight_prices_client_dashboard')) {
+                $accommodation->show_flight_prices_client_dashboard = (bool) $request->input('show_flight_prices_client_dashboard');
+            }
+            if ($request->has('show_flight_prices_organizer_dashboard')) {
+                $accommodation->show_flight_prices_organizer_dashboard = (bool) $request->input('show_flight_prices_organizer_dashboard');
+            }
+            $accommodation->save();
 
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight updated successfully.');

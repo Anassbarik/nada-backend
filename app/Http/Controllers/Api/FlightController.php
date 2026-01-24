@@ -90,8 +90,8 @@ class FlightController extends Controller
             ->latest()
             ->get();
 
-        // Check if prices should be shown
-        $showPrices = $event->show_flight_prices ?? true;
+        // Check if prices should be shown (public setting)
+        $showPrices = $event->show_flight_prices_public ?? true;
 
         // Format flights for frontend
         $formattedFlights = $flights->map(function ($flight) use ($showPrices) {
@@ -183,8 +183,8 @@ class FlightController extends Controller
             ], 404);
         }
 
-        // Check if prices should be shown
-        $showPrices = $event->show_flight_prices ?? true;
+        // Check if prices should be shown (public setting)
+        $showPrices = $event->show_flight_prices_public ?? true;
 
         // Format flight for frontend
         $departure = [

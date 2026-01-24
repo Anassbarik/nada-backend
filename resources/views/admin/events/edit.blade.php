@@ -226,18 +226,52 @@
                             <x-input-error :messages="$errors->get('status')" class="mt-2" />
                         </div>
 
-                        <div class="mb-4">
-                            <label class="flex items-center">
-                                <input 
-                                    type="checkbox" 
-                                    name="show_flight_prices" 
-                                    value="1"
-                                    {{ old('show_flight_prices', $event->show_flight_prices ?? true) ? 'checked' : '' }}
-                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2 text-sm text-gray-700">Show flight prices to clients</span>
-                            </label>
-                            <p class="mt-1 text-sm text-gray-500">When unchecked, flight prices will be hidden from clients on the events landing page</p>
-                            <x-input-error :messages="$errors->get('show_flight_prices')" class="mt-2" />
+                        <div class="mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
+                            <h3 class="text-lg font-semibold mb-4">Flight Price Visibility Settings</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="flex items-center">
+                                        <input 
+                                            type="checkbox" 
+                                            name="show_flight_prices_public" 
+                                            value="1"
+                                            {{ old('show_flight_prices_public', $event->show_flight_prices_public ?? true) ? 'checked' : '' }}
+                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices on events landing page and flight details page</span>
+                                    </label>
+                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether flight prices are visible to clients browsing the public events landing page and individual flight details pages</p>
+                                    <x-input-error :messages="$errors->get('show_flight_prices_public')" class="mt-2" />
+                                </div>
+                                
+                                <div>
+                                    <label class="flex items-center">
+                                        <input 
+                                            type="checkbox" 
+                                            name="show_flight_prices_client_dashboard" 
+                                            value="1"
+                                            {{ old('show_flight_prices_client_dashboard', $event->show_flight_prices_client_dashboard ?? true) ? 'checked' : '' }}
+                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices in client dashboard</span>
+                                    </label>
+                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether clients can see flight prices for their own bookings when logged into their dashboard</p>
+                                    <x-input-error :messages="$errors->get('show_flight_prices_client_dashboard')" class="mt-2" />
+                                </div>
+                                
+                                <div>
+                                    <label class="flex items-center">
+                                        <input 
+                                            type="checkbox" 
+                                            name="show_flight_prices_organizer_dashboard" 
+                                            value="1"
+                                            {{ old('show_flight_prices_organizer_dashboard', $event->show_flight_prices_organizer_dashboard ?? true) ? 'checked' : '' }}
+                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices in organizer dashboard</span>
+                                    </label>
+                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether organizers can see flight prices for flights in their events when viewing their dashboard</p>
+                                    <x-input-error :messages="$errors->get('show_flight_prices_organizer_dashboard')" class="mt-2" />
+                                </div>
+                            </div>
                         </div>
 
                         <div class="flex items-center justify-end mt-4">

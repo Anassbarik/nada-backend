@@ -91,7 +91,9 @@ class EventController extends Controller
         $event->description_fr = $validated['description_fr'] ?? null;
         $event->menu_links = $validated['menu_links'] ?? null;
         $event->status = $validated['status'];
-        $event->show_flight_prices = $request->has('show_flight_prices') ? (bool) $request->input('show_flight_prices') : false;
+        $event->show_flight_prices_public = $request->has('show_flight_prices_public') ? (bool) $request->input('show_flight_prices_public') : true;
+        $event->show_flight_prices_client_dashboard = $request->has('show_flight_prices_client_dashboard') ? (bool) $request->input('show_flight_prices_client_dashboard') : true;
+        $event->show_flight_prices_organizer_dashboard = $request->has('show_flight_prices_organizer_dashboard') ? (bool) $request->input('show_flight_prices_organizer_dashboard') : true;
         $event->created_by = auth()->id();
 
         // Generate password for organizer
@@ -238,7 +240,9 @@ class EventController extends Controller
             'menu_links.*.label' => 'required_with:menu_links|string',
             'menu_links.*.url' => 'required_with:menu_links|url',
             'status' => 'required|in:draft,published,archived',
-            'show_flight_prices' => 'nullable|boolean',
+            'show_flight_prices_public' => 'nullable|boolean',
+            'show_flight_prices_client_dashboard' => 'nullable|boolean',
+            'show_flight_prices_organizer_dashboard' => 'nullable|boolean',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
             'flights_sub_permissions' => 'nullable|array',
@@ -257,7 +261,9 @@ class EventController extends Controller
         $event->description_fr = $validated['description_fr'] ?? null;
         $event->menu_links = $validated['menu_links'] ?? null;
         $event->status = $validated['status'];
-        $event->show_flight_prices = $request->has('show_flight_prices') ? (bool) $request->input('show_flight_prices') : false;
+        $event->show_flight_prices_public = $request->has('show_flight_prices_public') ? (bool) $request->input('show_flight_prices_public') : true;
+        $event->show_flight_prices_client_dashboard = $request->has('show_flight_prices_client_dashboard') ? (bool) $request->input('show_flight_prices_client_dashboard') : true;
+        $event->show_flight_prices_organizer_dashboard = $request->has('show_flight_prices_organizer_dashboard') ? (bool) $request->input('show_flight_prices_organizer_dashboard') : true;
 
         if ($request->hasFile('organizer_logo')) {
             if ($event->organizer_logo) {

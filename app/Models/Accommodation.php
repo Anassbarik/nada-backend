@@ -29,7 +29,9 @@ class Accommodation extends Model
         'description_fr',
         'menu_links',
         'status',
-        'show_flight_prices',
+        'show_flight_prices_public',
+        'show_flight_prices_client_dashboard',
+        'show_flight_prices_organizer_dashboard',
         'created_by',
         'organizer_id',
     ];
@@ -38,7 +40,9 @@ class Accommodation extends Model
         'menu_links' => 'array',
         'start_date' => 'date',
         'end_date' => 'date',
-        'show_flight_prices' => 'boolean',
+        'show_flight_prices_public' => 'boolean',
+        'show_flight_prices_client_dashboard' => 'boolean',
+        'show_flight_prices_organizer_dashboard' => 'boolean',
     ];
 
     protected static function boot()

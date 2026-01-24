@@ -156,7 +156,7 @@ class EventController extends Controller
 
         // Format flights for frontend (only for Accommodations)
         if ($event instanceof Accommodation && $event->relationLoaded('flights')) {
-            $showPrices = $event->show_flight_prices ?? true;
+            $showPrices = $event->show_flight_prices_public ?? true;
             
             $event->flights = $event->flights->map(function ($flight) use ($showPrices) {
                 $departure = [

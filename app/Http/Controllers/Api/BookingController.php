@@ -47,8 +47,8 @@ class BookingController extends Controller
 
         // Format bookings to include event information
         $formattedBookings = $bookings->map(function ($booking) {
-            // Check if flight prices should be shown (based on accommodation setting)
-            $showFlightPrices = $booking->accommodation ? ($booking->accommodation->show_flight_prices ?? true) : true;
+            // Check if flight prices should be shown (client dashboard setting)
+            $showFlightPrices = $booking->accommodation ? ($booking->accommodation->show_flight_prices_client_dashboard ?? true) : true;
             
             // Format flight data conditionally
             $flightData = null;
@@ -132,7 +132,9 @@ class BookingController extends Controller
                     'google_maps_url' => $booking->accommodation->google_maps_url,
                     'start_date' => $booking->accommodation->start_date?->format('Y-m-d'),
                     'end_date' => $booking->accommodation->end_date?->format('Y-m-d'),
-                    'show_flight_prices' => $booking->accommodation->show_flight_prices ?? true,
+                    'show_flight_prices_public' => $booking->accommodation->show_flight_prices_public ?? true,
+                    'show_flight_prices_client_dashboard' => $booking->accommodation->show_flight_prices_client_dashboard ?? true,
+                    'show_flight_prices_organizer_dashboard' => $booking->accommodation->show_flight_prices_organizer_dashboard ?? true,
                 ] : null,
                 'hotel' => $booking->hotel ? [
                     'id' => $booking->hotel->id,
@@ -647,43 +649,43 @@ class BookingController extends Controller
                 ]);
             } else {
                 // Create new booking
-                $bookingData = [
-                    'user_id' => $user->id,
-                    'created_by' => $createdBy,
-                    'accommodation_id' => $event->id,
-                    'hotel_id' => $hotel->id,
-                    'package_id' => $package->id,
-                    'flight_number' => $flightNumber,
-                    'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : null,
-                    'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : null,
-                    'airport' => $request->airport ?? null,
-                    'full_name' => $fullName,
-                    'company' => $request->company ?? null,
-                    'phone' => $phone,
-                    'email' => $email,
-                    'special_instructions' => $specialInstructions,
-                    'booker_is_resident' => (bool) ($request->booker_is_resident ?? true),
-                    'resident_name_1' => trim($request->resident_name_1 ?? '') ?: null,
-                    'resident_name_2' => trim($request->resident_name_2 ?? '') ?: null,
-                    'resident_name_3' => trim($request->resident_name_3 ?? '') ?: null,
-                    'checkin_date' => $checkinDate,
-                    'checkout_date' => $checkoutDate,
-                    'guests_count' => $package->occupants, // Total occupants (always equals package.occupants)
-                    'price' => $total,
-                    'payment_type' => $paymentType,
-                    'wallet_amount' => $walletAmount,
-                    'bank_amount' => $bankAmount,
-                    'status' => $bookingStatus,
-                    // Legacy fields for backward compatibility
-                    'guest_name' => $fullName,
-                    'guest_email' => $email,
-                    'guest_phone' => $phone,
-                    'special_requests' => $specialInstructions,
-                ];
-                
-                Log::info('Booking data prepared:', $bookingData);
+            $bookingData = [
+                'user_id' => $user->id,
+                'created_by' => $createdBy,
+                'accommodation_id' => $event->id,
+                'hotel_id' => $hotel->id,
+                'package_id' => $package->id,
+                'flight_number' => $flightNumber,
+                'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : null,
+                'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : null,
+                'airport' => $request->airport ?? null,
+                'full_name' => $fullName,
+                'company' => $request->company ?? null,
+                'phone' => $phone,
+                'email' => $email,
+                'special_instructions' => $specialInstructions,
+                'booker_is_resident' => (bool) ($request->booker_is_resident ?? true),
+                'resident_name_1' => trim($request->resident_name_1 ?? '') ?: null,
+                'resident_name_2' => trim($request->resident_name_2 ?? '') ?: null,
+                'resident_name_3' => trim($request->resident_name_3 ?? '') ?: null,
+                'checkin_date' => $checkinDate,
+                'checkout_date' => $checkoutDate,
+                'guests_count' => $package->occupants, // Total occupants (always equals package.occupants)
+                'price' => $total,
+                'payment_type' => $paymentType,
+                'wallet_amount' => $walletAmount,
+                'bank_amount' => $bankAmount,
+                'status' => $bookingStatus,
+                // Legacy fields for backward compatibility
+                'guest_name' => $fullName,
+                'guest_email' => $email,
+                'guest_phone' => $phone,
+                'special_requests' => $specialInstructions,
+            ];
+            
+            Log::info('Booking data prepared:', $bookingData);
 
-                $booking = Booking::create($bookingData);
+            $booking = Booking::create($bookingData);
             }
 
             // Decrease available rooms
@@ -898,8 +900,8 @@ class BookingController extends Controller
 
         $booking->load(['accommodation', 'hotel', 'package', 'flight']);
         
-        // Check if flight prices should be shown (based on accommodation setting)
-        $showFlightPrices = $booking->accommodation ? ($booking->accommodation->show_flight_prices ?? true) : true;
+        // Check if flight prices should be shown (client dashboard setting)
+        $showFlightPrices = $booking->accommodation ? ($booking->accommodation->show_flight_prices_client_dashboard ?? true) : true;
         
         // Format booking data
         $bookingData = $booking->toArray();
@@ -955,9 +957,11 @@ class BookingController extends Controller
             $bookingData['flight'] = $flightData;
         }
         
-        // Add show_flight_prices to accommodation data
+        // Add flight price visibility settings to accommodation data
         if ($booking->accommodation) {
-            $bookingData['accommodation']['show_flight_prices'] = $booking->accommodation->show_flight_prices ?? true;
+            $bookingData['accommodation']['show_flight_prices_public'] = $booking->accommodation->show_flight_prices_public ?? true;
+            $bookingData['accommodation']['show_flight_prices_client_dashboard'] = $booking->accommodation->show_flight_prices_client_dashboard ?? true;
+            $bookingData['accommodation']['show_flight_prices_organizer_dashboard'] = $booking->accommodation->show_flight_prices_organizer_dashboard ?? true;
         }
 
         return response()->json([
