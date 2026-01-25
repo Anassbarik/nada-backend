@@ -40,7 +40,8 @@ class NewsletterController extends Controller
 
         // Search by email or name
         if ($request->filled('q')) {
-            $search = $request->input('q');
+            // Sanitize search input to prevent SQL injection
+            $search = \App\Services\InputSanitizer::sanitizeSearch($request->input('q'));
             $query->where(function ($q) use ($search) {
                 $q->where('email', 'like', "%{$search}%")
                   ->orWhere('name', 'like', "%{$search}%");

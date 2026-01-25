@@ -32,7 +32,8 @@ class BookingController extends Controller
         }
 
         if ($request->has('search') && $request->search !== '') {
-            $search = $request->search;
+            // Sanitize search input to prevent SQL injection
+            $search = \App\Services\InputSanitizer::sanitizeSearch($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('booking_reference', 'like', "%{$search}%")
                   ->orWhere('full_name', 'like', "%{$search}%")

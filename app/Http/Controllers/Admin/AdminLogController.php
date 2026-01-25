@@ -58,13 +58,15 @@ class AdminLogController extends Controller
 
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
-                $sub->where('target_label', 'like', "%{$q}%")
-                    ->orWhere('details', 'like', "%{$q}%")
-                    ->orWhere('entity_key', 'like', "%{$q}%")
-                    ->orWhere('action_key', 'like', "%{$q}%")
-                    ->orWhereHas('user', function ($u) use ($q) {
-                        $u->where('name', 'like', "%{$q}%")
-                            ->orWhere('email', 'like', "%{$q}%");
+                // Sanitize search input to prevent SQL injection
+                $sanitizedQ = \App\Services\InputSanitizer::sanitizeSearch($q);
+                $sub->where('target_label', 'like', "%{$sanitizedQ}%")
+                    ->orWhere('details', 'like', "%{$sanitizedQ}%")
+                    ->orWhere('entity_key', 'like', "%{$sanitizedQ}%")
+                    ->orWhere('action_key', 'like', "%{$sanitizedQ}%")
+                    ->orWhereHas('user', function ($u) use ($sanitizedQ) {
+                        $u->where('name', 'like', "%{$sanitizedQ}%")
+                            ->orWhere('email', 'like', "%{$sanitizedQ}%");
                     });
             });
         }

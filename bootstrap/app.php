@@ -15,6 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add CSP middleware for XSS protection (only active when CSP_ENABLED=true)
         $middleware->web(append: [
             \App\Http\Middleware\ContentSecurityPolicy::class,
+            \App\Http\Middleware\SanitizeInput::class,
+        ]);
+
+        // Add input sanitization to API routes
+        $middleware->api(append: [
+            \App\Http\Middleware\SanitizeInput::class,
         ]);
 
         // Register role and permission middleware aliases
