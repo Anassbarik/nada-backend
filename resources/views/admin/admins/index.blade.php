@@ -48,6 +48,14 @@
                                         Edit
                                     </a>
                                     @endcan
+                                    @can('impersonate', $admin)
+                                    <form method="POST" action="{{ route('admin.admins.impersonate', $admin) }}" class="inline" 
+                                          target="_blank"
+                                          onsubmit="return confirm('Are you sure you want to impersonate {{ $admin->name }}? You will be logged in as this user in a new tab.');">
+                                        @csrf
+                                        <button type="submit" class="text-purple-600 hover:text-purple-900 whitespace-nowrap">Impersonate</button>
+                                    </form>
+                                    @endcan
                                     @can('delete', $admin)
                                     <form method="POST" action="{{ route('admin.admins.destroy', $admin) }}" class="inline" 
                                           onsubmit="return confirm('Are you sure you want to delete this admin?');">

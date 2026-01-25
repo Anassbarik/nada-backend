@@ -186,6 +186,12 @@ class LogAdminActions
         if (Str::contains($routeName, 'send')) {
             return 'sent';
         }
+        if (Str::contains($routeName, 'impersonate')) {
+            return 'impersonated';
+        }
+        if (Str::contains($routeName, 'stop') && Str::contains($routeName, 'impersonate')) {
+            return 'stopped_impersonating';
+        }
 
         return 'updated';
     }

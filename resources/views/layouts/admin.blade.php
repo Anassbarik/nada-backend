@@ -310,6 +310,34 @@
                 @endcan
 
                 @if(auth()->user()?->isSuperAdmin())
+                <a href="{{ route('admin.users.index') }}" 
+                   @click="sidebarOpen = false"
+                   class="group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                          @if(request()->routeIs('admin.users.*'))
+                            font-semibold shadow-lg
+                          @else
+                            hover:bg-gray-50 text-gray-700 hover:text-gray-900
+                          @endif"
+                          @if(request()->routeIs('admin.users.*'))
+                          style="background: linear-gradient(135deg, rgba(55, 172, 156, 0.15) 0%, rgba(55, 172, 156, 0.05) 100%); color: #37ac9c; border: 2px solid rgba(55, 172, 156, 0.3); box-shadow: 0 4px 12px rgba(55, 172, 156, 0.15);"
+                          @endif>
+                    <div class="relative">
+                        <i data-lucide="user-circle" class="w-5 h-5 transition-colors relative z-10" style="@if(request()->routeIs('admin.users.*')) color: #37ac9c; @else color: #6b7280; @endif"></i>
+                        @if(request()->routeIs('admin.users.*'))
+                            <div class="absolute inset-0 bg-teal-100 rounded-full blur-sm opacity-50"></div>
+                        @endif
+                    </div>
+                    <span>Users</span>
+                    @if(request()->routeIs('admin.users.*'))
+                        <div class="ml-auto flex items-center gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full" style="background-color: #37ac9c;"></div>
+                            <div class="w-1 h-1 rounded-full opacity-60" style="background-color: #37ac9c;"></div>
+                        </div>
+                    @endif
+                </a>
+                @endif
+
+                @if(auth()->user()?->isSuperAdmin())
                 <a href="{{ route('admin.logs.index') }}" 
                    @click="sidebarOpen = false"
                    class="group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
@@ -423,6 +451,28 @@
                     </div>
                 </div>
             </header>
+            
+            {{-- Impersonation Banner --}}
+            @if(session()->has('impersonator_id'))
+                <div class="bg-yellow-50 border-b border-yellow-200 px-4 sm:px-6 py-3">
+                    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 flex-shrink-0"></i>
+                            <div class="text-sm">
+                                <span class="font-semibold text-yellow-900">You are impersonating:</span>
+                                <span class="text-yellow-800">{{ auth()->user()->name }} ({{ auth()->user()->email }})</span>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ route('admin.impersonate.stop') }}" class="inline">
+                            @csrf
+                            <button type="submit" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                                Stop Impersonating
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endif
             
             <main class="flex-1 overflow-auto">
                 <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">

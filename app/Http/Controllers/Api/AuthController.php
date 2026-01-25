@@ -185,7 +185,18 @@ class AuthController extends Controller
 
         $user->load('wallet');
 
-        return response()->json([
+        // Check if this is an impersonation session (for frontend)
+        // Frontend impersonation uses tokens, so we check if there's an impersonation token in session
+        $isImpersonated = session()->has('impersonator_id') || session()->has('impersonation_token');
+        $impersonator = null;
+        
+        if ($isImpersonated && session()->has('impersonator_id')) {
+            $impersonatorId = session()->get('impersonator_id');
+            $impersonator = \App\Models\User::find($impersonatorId);
+        }
+
+        $response = [
+            'success' => true,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -200,6 +211,115 @@ class AuthController extends Controller
                     'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
                 ],
             ],
+        ];
+
+        if ($isImpersonated && $impersonator) {
+            $response['is_impersonated'] = true;
+            $response['impersonator'] = [
+                'id' => $impersonator->id,
+                'name' => $impersonator->name,
+                'email' => $impersonator->email,
+            ];
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * Stop impersonation (for frontend API).
+     *
+     * Route: POST /api/impersonate/stop (auth:sanctum)
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function stopImpersonation(Request $request)
+    {
+        // Check both session and token-based impersonation
+        $hasSessionImpersonation = session()->has('impersonator_id');
+        $hasTokenImpersonation = session()->has('impersonation_token');
+        
+        if (!$hasSessionImpersonation && !$hasTokenImpersonation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not currently impersonating anyone.',
+            ], 400);
+        }
+
+        $impersonatedUser = $request->user();
+        $impersonatorId = null;
+        $impersonator = null;
+        
+        if ($hasSessionImpersonation) {
+            $impersonatorId = session()->get('impersonator_id');
+            $impersonator = \App\Models\User::findOrFail($impersonatorId);
+        }
+
+        // Revoke the impersonation token
+        $request->user()->currentAccessToken()?->delete();
+
+        // Log the stop impersonation action
+        if ($impersonatorId) {
+            try {
+                \Illuminate\Support\Facades\DB::table('admin_action_logs')->insert([
+                    'user_id' => $impersonatorId,
+                    'route_name' => 'api.impersonate.stop',
+                    'method' => 'POST',
+                    'action_key' => 'stopped_impersonating',
+                    'entity_key' => $impersonatedUser->role === 'organizer' ? 'organizer' : 'user',
+                    'url' => $request->fullUrl(),
+                    'subject_type' => \App\Models\User::class,
+                    'subject_id' => $impersonatedUser->id,
+                    'target_label' => $impersonatedUser->name . ' (' . $impersonatedUser->email . ')',
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'status_code' => 200,
+                    'outcome' => 'success',
+                    'details' => "Stopped impersonating user: {$impersonatedUser->name} ({$impersonatedUser->email})",
+                    'payload' => json_encode([
+                        'impersonated_user_id' => $impersonatedUser->id,
+                        'impersonated_user_name' => $impersonatedUser->name,
+                        'impersonated_user_email' => $impersonatedUser->email,
+                    ]),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Throwable $e) {
+                // Don't fail if logging fails
+            }
+        }
+
+        // Clear impersonation session data
+        session()->forget(['impersonator_id', 'impersonator_name', 'impersonated_user_role', 'impersonation_token']);
+
+        // Get backend admin URL from APP_URL config
+        // APP_URL should be set to the backend base URL (e.g., https://seminairexpo.com/admin/public)
+        $backendUrl = config('app.url');
+        
+        // If APP_URL is not configured, fall back to constructing from request
+        if (!$backendUrl || $backendUrl === 'http://localhost') {
+            $scheme = $request->getScheme();
+            $host = $request->getHost();
+            $port = $request->getPort();
+            
+            $backendUrl = $scheme . '://' . $host;
+            if ($port && !in_array($port, [80, 443])) {
+                $backendUrl .= ':' . $port;
+            }
+        }
+        
+        // Remove trailing slash
+        $backendUrl = rtrim($backendUrl, '/');
+        
+        // Construct admin panel URL
+        // APP_URL should already include the full backend path (e.g., /admin/public)
+        // So we just append the admin route
+        $redirectUrl = $backendUrl . '/admin/users';
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Impersonation stopped successfully.',
+            'redirect_url' => $redirectUrl,
         ]);
     }
 

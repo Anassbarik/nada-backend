@@ -12,16 +12,7 @@ use Illuminate\Support\Facades\Auth;
 
 class OrganizerController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            if (!Auth::user()->isOrganizer()) {
-                abort(403, 'Access denied. Organizer access only.');
-            }
-            return $next($request);
-        });
-    }
+    // Middleware is already applied in routes/web.php via 'role:organizer' middleware
 
     /**
      * Display the organizer dashboard.

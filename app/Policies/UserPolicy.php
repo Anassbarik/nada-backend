@@ -60,4 +60,28 @@ class UserPolicy
 
         return $user->hasPermission('admins', 'delete');
     }
+
+    /**
+     * Determine whether the user can impersonate the model.
+     */
+    public function impersonate(User $user, User $model): bool
+    {
+        // Cannot impersonate yourself
+        if ($user->id === $model->id) {
+            return false;
+        }
+
+        // Only super-admins can impersonate
+        if (!$user->isSuperAdmin()) {
+            return false;
+        }
+
+        // Cannot impersonate other super-admins
+        if ($model->isSuperAdmin()) {
+            return false;
+        }
+
+        // Can impersonate admins, organizers, and regular users
+        return in_array($model->role, ['admin', 'organizer', 'user']);
+    }
 }

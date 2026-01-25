@@ -67,6 +67,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/flights', [\App\Http\Controllers\OrganizerController::class, 'flights'])->name('flights');
     });
 
+    // Stop impersonation route (accessible to any authenticated user when impersonating)
+    Route::middleware('auth')->post('admin/impersonate/stop', [\App\Http\Controllers\Admin\AdminController::class, 'stopImpersonating'])->name('admin.impersonate.stop');
+    
     // Admin Routes (require admin role)
     Route::middleware([\App\Http\Middleware\SetLocale::class, 'role:admin', \App\Http\Middleware\LogAdminActions::class])->name('admin.')->group(function () {
         // Accommodation Events (renamed from Events)
@@ -147,9 +150,17 @@ Route::middleware('auth')->group(function () {
         Route::patch('partners/sort-order', [\App\Http\Controllers\Admin\PartnerController::class, 'updateSortOrder'])->name('partners.sort-order');
         Route::post('partners/{partner}/duplicate', [\App\Http\Controllers\Admin\PartnerController::class, 'duplicate'])->name('partners.duplicate');
         
+        // Users (organizers and regular users) - only super-admin can manage
+        Route::middleware('role:super-admin')->group(function () {
+            Route::get('users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+            Route::get('users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('users.show');
+            Route::post('users/{user}/impersonate', [\App\Http\Controllers\Admin\AdminController::class, 'impersonate'])->name('users.impersonate');
+        });
+        
         // Admins (only super-admin can manage)
         Route::middleware('role:super-admin')->group(function () {
             Route::resource('admins', \App\Http\Controllers\Admin\AdminController::class);
+            Route::post('admins/{admin}/impersonate', [\App\Http\Controllers\Admin\AdminController::class, 'impersonate'])->name('admins.impersonate');
             Route::get('organizers/{organizer}/credentials', [EventController::class, 'downloadOrganizerCredentials'])->name('organizers.download-credentials');
             Route::get('logs', [AdminLogController::class, 'index'])->name('logs.index');
             Route::get('logs/{log}', [AdminLogController::class, 'show'])->name('logs.show');

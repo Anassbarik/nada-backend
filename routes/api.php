@@ -56,6 +56,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::put('/user', [AuthController::class, 'update']);
     Route::put('/user/password', [AuthController::class, 'updatePassword'])->middleware('throttle:5,1');
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Impersonation routes
+    Route::post('/impersonate/stop', [AuthController::class, 'stopImpersonation'])->name('api.impersonate.stop');
 
     // Wallet routes
     Route::get('/wallet', [WalletController::class, 'index']);
