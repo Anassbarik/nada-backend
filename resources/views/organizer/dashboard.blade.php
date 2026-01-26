@@ -4,7 +4,10 @@
 <div class="space-y-8">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">Organizer Dashboard</h1>
-        <div class="flex gap-4">
+        <div class="flex gap-4 flex-wrap">
+            <a href="{{ route('organizer.commissions') }}" class="text-logo-link hover:underline inline-flex items-center">
+                View Commissions →
+            </a>
             <a href="{{ route('organizer.flights') }}" class="text-logo-link hover:underline inline-flex items-center">
                 View Flights →
             </a>
@@ -35,7 +38,7 @@
     </x-shadcn.card>
 
     {{-- Stats Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
         <x-shadcn.card class="border-0 shadow-lg hover:shadow-xl transition-all" style="border-top: 4px solid #00adf1;">
             <x-shadcn.card-content class="p-8 text-center">
                 <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 break-words" style="color: #00adf1;">{{ $stats['total_bookings'] }}</div>
@@ -68,6 +71,16 @@
             <x-shadcn.card-content class="p-4 sm:p-6 lg:p-8 text-center">
                 <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 break-words" style="color: #ea5d25;">{{ number_format($stats['total_revenue'], 2) }} MAD</div>
                 <div class="text-xs sm:text-sm text-muted-foreground font-medium">Total Revenue</div>
+            </x-shadcn.card-content>
+        </x-shadcn.card>
+
+        <x-shadcn.card class="border-0 shadow-lg hover:shadow-xl transition-all" style="border-top: 4px solid #10b981;">
+            <x-shadcn.card-content class="p-4 sm:p-6 lg:p-8 text-center">
+                <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 break-words" style="color: #10b981;">{{ number_format($stats['total_commission'] ?? 0, 2) }} MAD</div>
+                <div class="text-xs sm:text-sm text-muted-foreground font-medium">Total Commission</div>
+                @if($stats['commission_percentage'] > 0)
+                    <p class="text-xs text-gray-500 mt-1">{{ number_format($stats['commission_percentage'], 2) }}% rate</p>
+                @endif
             </x-shadcn.card-content>
         </x-shadcn.card>
     </div>

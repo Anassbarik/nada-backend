@@ -34,6 +34,7 @@ class Accommodation extends Model
         'show_flight_prices_organizer_dashboard',
         'created_by',
         'organizer_id',
+        'commission_percentage',
     ];
 
     protected $casts = [
@@ -43,6 +44,7 @@ class Accommodation extends Model
         'show_flight_prices_public' => 'boolean',
         'show_flight_prices_client_dashboard' => 'boolean',
         'show_flight_prices_organizer_dashboard' => 'boolean',
+        'commission_percentage' => 'decimal:2',
     ];
 
     protected static function boot()

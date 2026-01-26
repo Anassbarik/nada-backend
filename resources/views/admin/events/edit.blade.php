@@ -217,6 +217,13 @@
                         @endif
 
                         <div class="mb-4">
+                            <x-input-label for="commission_percentage" :value="__('Commission Percentage')" />
+                            <x-text-input id="commission_percentage" class="block mt-1 w-full" type="number" name="commission_percentage" :value="old('commission_percentage', $event->commission_percentage)" step="0.01" min="0" max="100" placeholder="e.g., 10.5" />
+                            <p class="mt-1 text-sm text-gray-500">Commission percentage for the organizer (e.g., 10.5 for 10.5%). This will be calculated on every booking made for this event.</p>
+                            <x-input-error :messages="$errors->get('commission_percentage')" class="mt-2" />
+                        </div>
+
+                        <div class="mb-4">
                             <x-input-label for="status" :value="__('Status')" />
                             <select id="status" name="status" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
                                 <option value="draft" {{ old('status', $event->status) === 'draft' ? 'selected' : '' }}>Draft</option>

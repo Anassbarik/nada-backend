@@ -177,6 +177,13 @@
                                 <p class="mt-1 text-sm text-gray-500">Email address for the organizer login. A password will be automatically generated and a PDF with credentials will be available for download.</p>
                                 <x-input-error :messages="$errors->get('organizer_email')" class="mt-2" />
                             </div>
+
+                            <div class="mb-4">
+                                <x-input-label for="commission_percentage" :value="__('Commission Percentage')" />
+                                <x-text-input id="commission_percentage" class="block mt-1 w-full" type="number" name="commission_percentage" :value="old('commission_percentage')" step="0.01" min="0" max="100" placeholder="e.g., 10.5" />
+                                <p class="mt-1 text-sm text-gray-500">Commission percentage for the organizer (e.g., 10.5 for 10.5%). This will be calculated on every booking made for this event.</p>
+                                <x-input-error :messages="$errors->get('commission_percentage')" class="mt-2" />
+                            </div>
                         </div>
 
                         <div class="mb-4">

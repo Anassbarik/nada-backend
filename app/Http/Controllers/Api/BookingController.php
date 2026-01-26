@@ -605,6 +605,13 @@ class BookingController extends Controller
                 $createdBy = $user->id;
             }
 
+            // Calculate commission amount
+            $commissionAmount = null;
+            if ($event->commission_percentage && $event->commission_percentage > 0) {
+                $bookingPrice = $existingBooking ? (($existingBooking->price ?? 0) + $total) : $total;
+                $commissionAmount = round(($bookingPrice * $event->commission_percentage) / 100, 2);
+            }
+
             if ($existingBooking) {
                 // Update existing flight booking with hotel/package details
                 $existingBooking->update([
@@ -628,6 +635,7 @@ class BookingController extends Controller
                     'checkout_date' => $checkoutDate,
                     'guests_count' => $package->occupants,
                     'price' => ($existingBooking->price ?? 0) + $total, // Add hotel price to existing flight price (flight price already includes departure + return if round trip)
+                    'commission_amount' => $commissionAmount,
                     'payment_type' => $paymentType,
                     'wallet_amount' => ($existingBooking->wallet_amount ?? 0) + $walletAmount,
                     'bank_amount' => ($existingBooking->bank_amount ?? 0) + $bankAmount,
@@ -672,6 +680,7 @@ class BookingController extends Controller
                 'checkout_date' => $checkoutDate,
                 'guests_count' => $package->occupants, // Total occupants (always equals package.occupants)
                 'price' => $total,
+                'commission_amount' => $commissionAmount,
                 'payment_type' => $paymentType,
                 'wallet_amount' => $walletAmount,
                 'bank_amount' => $bankAmount,

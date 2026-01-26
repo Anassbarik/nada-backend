@@ -72,6 +72,7 @@ class EventController extends Controller
             'menu_links.*.url' => 'required_with:menu_links|url',
             'status' => 'required|in:draft,published,archived',
             'show_flight_prices' => 'nullable|boolean',
+            'commission_percentage' => 'nullable|numeric|min:0|max:100',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
             'flights_sub_permissions' => 'nullable|array',
@@ -94,6 +95,7 @@ class EventController extends Controller
         $event->show_flight_prices_public = $request->has('show_flight_prices_public') ? (bool) $request->input('show_flight_prices_public') : true;
         $event->show_flight_prices_client_dashboard = $request->has('show_flight_prices_client_dashboard') ? (bool) $request->input('show_flight_prices_client_dashboard') : true;
         $event->show_flight_prices_organizer_dashboard = $request->has('show_flight_prices_organizer_dashboard') ? (bool) $request->input('show_flight_prices_organizer_dashboard') : true;
+        $event->commission_percentage = isset($validated['commission_percentage']) ? (float) $validated['commission_percentage'] : null;
         $event->created_by = auth()->id();
 
         // Generate password for organizer
@@ -243,6 +245,7 @@ class EventController extends Controller
             'show_flight_prices_public' => 'nullable|boolean',
             'show_flight_prices_client_dashboard' => 'nullable|boolean',
             'show_flight_prices_organizer_dashboard' => 'nullable|boolean',
+            'commission_percentage' => 'nullable|numeric|min:0|max:100',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
             'flights_sub_permissions' => 'nullable|array',
@@ -264,6 +267,7 @@ class EventController extends Controller
         $event->show_flight_prices_public = $request->has('show_flight_prices_public') ? (bool) $request->input('show_flight_prices_public') : true;
         $event->show_flight_prices_client_dashboard = $request->has('show_flight_prices_client_dashboard') ? (bool) $request->input('show_flight_prices_client_dashboard') : true;
         $event->show_flight_prices_organizer_dashboard = $request->has('show_flight_prices_organizer_dashboard') ? (bool) $request->input('show_flight_prices_organizer_dashboard') : true;
+        $event->commission_percentage = isset($validated['commission_percentage']) ? (float) $validated['commission_percentage'] : null;
 
         if ($request->hasFile('organizer_logo')) {
             if ($event->organizer_logo) {

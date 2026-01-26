@@ -41,6 +41,15 @@ class OrganizerController extends Controller
             'total_revenue' => Booking::where('accommodation_id', $event->id)
                 ->where('status', 'confirmed')
                 ->sum('price'),
+            'total_commission' => Booking::where('accommodation_id', $event->id)
+                ->where('status', 'confirmed')
+                ->whereNotNull('commission_amount')
+                ->sum('commission_amount'),
+            'pending_commission' => Booking::where('accommodation_id', $event->id)
+                ->where('status', 'pending')
+                ->whereNotNull('commission_amount')
+                ->sum('commission_amount'),
+            'commission_percentage' => $event->commission_percentage ?? 0,
         ];
 
         // Get recent bookings
@@ -94,6 +103,46 @@ class OrganizerController extends Controller
             ->paginate(15);
 
         return view('organizer.flights', compact('event', 'flights'));
+    }
+
+    /**
+     * Display commissions for the organizer's event.
+     */
+    public function commissions()
+    {
+        $organizer = Auth::user();
+        $event = $organizer->organizedAccommodations()->first();
+
+        if (!$event) {
+            return view('organizer.no-event');
+        }
+
+        // Get all bookings with commission amounts
+        $bookings = Booking::where('accommodation_id', $event->id)
+            ->whereNotNull('commission_amount')
+            ->where('commission_amount', '>', 0)
+            ->with(['hotel', 'package', 'user'])
+            ->latest()
+            ->paginate(15);
+
+        // Calculate total commission earned
+        $totalCommission = Booking::where('accommodation_id', $event->id)
+            ->whereNotNull('commission_amount')
+            ->where('commission_amount', '>', 0)
+            ->where('status', 'confirmed')
+            ->sum('commission_amount');
+
+        // Calculate commission from pending bookings
+        $pendingCommission = Booking::where('accommodation_id', $event->id)
+            ->whereNotNull('commission_amount')
+            ->where('commission_amount', '>', 0)
+            ->where('status', 'pending')
+            ->sum('commission_amount');
+
+        // Get commission percentage from event
+        $commissionPercentage = $event->commission_percentage ?? 0;
+
+        return view('organizer.commissions', compact('event', 'bookings', 'totalCommission', 'pendingCommission', 'commissionPercentage'));
     }
 
     /**

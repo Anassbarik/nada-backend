@@ -65,6 +65,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/bookings', [\App\Http\Controllers\OrganizerController::class, 'bookings'])->name('bookings');
         Route::get('/bookings/{booking}/voucher', [\App\Http\Controllers\OrganizerController::class, 'downloadVoucher'])->name('bookings.voucher');
         Route::get('/flights', [\App\Http\Controllers\OrganizerController::class, 'flights'])->name('flights');
+        Route::get('/commissions', [\App\Http\Controllers\OrganizerController::class, 'commissions'])->name('commissions');
     });
 
     // Stop impersonation route (accessible to any authenticated user when impersonating)

@@ -209,6 +209,13 @@ class FlightController extends Controller
                 'price' => $flightPrice, // Total flight price (departure + return if round trip)
             ];
 
+            // Calculate commission amount
+            $commissionAmount = null;
+            if ($accommodation->commission_percentage && $accommodation->commission_percentage > 0) {
+                $commissionAmount = round(($flightPrice * $accommodation->commission_percentage) / 100, 2);
+            }
+            $bookingData['commission_amount'] = $commissionAmount;
+
             // Fill guest fields if no user_id (for manual email sending)
             if (!$user) {
                 $bookingData['guest_name'] = $validated['full_name'];
