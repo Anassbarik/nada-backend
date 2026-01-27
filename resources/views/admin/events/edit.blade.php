@@ -48,34 +48,6 @@
                             </div>
                         @endif
 
-                        @if(auth()->user()->isSuperAdmin() && $admins->count() > 0)
-                            <div class="mt-6 mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
-                                <x-input-label value="Flights Sub-Permissions (Grant Access to Flights Management)" />
-                                <p class="mt-1 mb-3 text-sm text-gray-600">
-                                    Select admins who should be able to manage flights for this accommodation.
-                                </p>
-                                
-                                <div class="space-y-2 max-h-60 overflow-y-auto">
-                                    @foreach($admins as $admin)
-                                        <label class="flex items-center">
-                                            <input 
-                                                type="checkbox" 
-                                                name="flights_sub_permissions[]" 
-                                                value="{{ $admin->id }}"
-                                                {{ in_array($admin->id, old('flights_sub_permissions', $flightsSubPermissions ?? [])) ? 'checked' : '' }}
-                                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                            <span class="ml-2 text-sm text-gray-700">{{ $admin->name }} ({{ $admin->email }})</span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                                
-                                @if($admins->isEmpty())
-                                    <p class="mt-2 text-sm text-gray-500">No regular admins available.</p>
-                                @endif
-                                
-                                <x-input-error :messages="$errors->get('flights_sub_permissions')" class="mt-2" />
-                            </div>
-                        @endif
 
                         <div class="mb-4">
                             <x-input-label for="name" :value="__('name')" />
@@ -193,18 +165,22 @@
                             <p class="mt-1 text-sm text-gray-500">Manage Conditions, Informations, and FAQ pages separately.</p>
                         </div>
 
-                        @if($event->organizer)
-                            <div class="mb-6 p-4 border border-gray-300 rounded-md bg-blue-50">
-                                <h3 class="text-lg font-semibold mb-4">Organizer Information</h3>
-                                <div class="space-y-2">
-                                    <div>
-                                        <span class="font-semibold">Name:</span> {{ $event->organizer->name }}
-                                    </div>
-                                    <div>
-                                        <span class="font-semibold">Email:</span> {{ $event->organizer->email }}
+                        <div class="mb-6 p-4 border border-gray-300 rounded-md bg-blue-50">
+                            <h3 class="text-lg font-semibold mb-4">Organizer Information</h3>
+                            
+                            @if($event->organizer)
+                                <div class="mb-4 p-3 bg-white rounded border border-gray-200">
+                                    <p class="text-sm text-gray-600 mb-2">Current Organizer:</p>
+                                    <div class="space-y-1">
+                                        <div>
+                                            <span class="font-semibold">Name:</span> {{ $event->organizer->name }}
+                                        </div>
+                                        <div>
+                                            <span class="font-semibold">Email:</span> {{ $event->organizer->email }}
+                                        </div>
                                     </div>
                                     @if(auth()->user()->isSuperAdmin())
-                                        <div class="mt-4">
+                                        <div class="mt-3">
                                             <a href="{{ route('admin.organizers.download-credentials', $event->organizer) }}" 
                                                class="text-logo-link hover:underline inline-flex items-center text-sm">
                                                 <i data-lucide="download" class="w-4 h-4 mr-2"></i>
@@ -213,8 +189,39 @@
                                         </div>
                                     @endif
                                 </div>
+                                <p class="text-sm text-gray-600 mb-4">Update organizer information below. A new password will be generated if the email is changed.</p>
+                            @else
+                                <p class="text-sm text-gray-600 mb-4">Create an organizer account for this event. A password will be automatically generated and a PDF with credentials will be available for download.</p>
+                            @endif
+                            
+                            <div class="mb-4">
+                                <x-input-label for="organizer_name" :value="__('Organizer Name')" />
+                                @if(!$event->organizer)
+                                    <x-text-input id="organizer_name" class="block mt-1 w-full" type="text" name="organizer_name" :value="old('organizer_name')" required />
+                                @else
+                                    <x-text-input id="organizer_name" class="block mt-1 w-full" type="text" name="organizer_name" :value="old('organizer_name', $event->organizer->name)" />
+                                @endif
+                                <p class="mt-1 text-sm text-gray-500">Full name of the event organizer</p>
+                                <x-input-error :messages="$errors->get('organizer_name')" class="mt-2" />
                             </div>
-                        @endif
+
+                            <div class="mb-4">
+                                <x-input-label for="organizer_email" :value="__('Organizer Email')" />
+                                @if(!$event->organizer)
+                                    <x-text-input id="organizer_email" class="block mt-1 w-full" type="email" name="organizer_email" :value="old('organizer_email')" required />
+                                @else
+                                    <x-text-input id="organizer_email" class="block mt-1 w-full" type="email" name="organizer_email" :value="old('organizer_email', $event->organizer->email)" />
+                                @endif
+                                <p class="mt-1 text-sm text-gray-500">
+                                    @if($event->organizer)
+                                        Email address for the organizer login. If changed, a new password will be generated and a new credentials PDF will be created.
+                                    @else
+                                        Email address for the organizer login. A password will be automatically generated and a PDF with credentials will be available for download.
+                                    @endif
+                                </p>
+                                <x-input-error :messages="$errors->get('organizer_email')" class="mt-2" />
+                            </div>
+                        </div>
 
                         <div class="mb-4">
                             <x-input-label for="commission_percentage" :value="__('Commission Percentage')" />
@@ -233,53 +240,6 @@
                             <x-input-error :messages="$errors->get('status')" class="mt-2" />
                         </div>
 
-                        <div class="mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
-                            <h3 class="text-lg font-semibold mb-4">Flight Price Visibility Settings</h3>
-                            
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="flex items-center">
-                                        <input 
-                                            type="checkbox" 
-                                            name="show_flight_prices_public" 
-                                            value="1"
-                                            {{ old('show_flight_prices_public', $event->show_flight_prices_public ?? true) ? 'checked' : '' }}
-                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices on events landing page and flight details page</span>
-                                    </label>
-                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether flight prices are visible to clients browsing the public events landing page and individual flight details pages</p>
-                                    <x-input-error :messages="$errors->get('show_flight_prices_public')" class="mt-2" />
-                                </div>
-                                
-                                <div>
-                                    <label class="flex items-center">
-                                        <input 
-                                            type="checkbox" 
-                                            name="show_flight_prices_client_dashboard" 
-                                            value="1"
-                                            {{ old('show_flight_prices_client_dashboard', $event->show_flight_prices_client_dashboard ?? true) ? 'checked' : '' }}
-                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices in client dashboard</span>
-                                    </label>
-                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether clients can see flight prices for their own bookings when logged into their dashboard</p>
-                                    <x-input-error :messages="$errors->get('show_flight_prices_client_dashboard')" class="mt-2" />
-                                </div>
-                                
-                                <div>
-                                    <label class="flex items-center">
-                                        <input 
-                                            type="checkbox" 
-                                            name="show_flight_prices_organizer_dashboard" 
-                                            value="1"
-                                            {{ old('show_flight_prices_organizer_dashboard', $event->show_flight_prices_organizer_dashboard ?? true) ? 'checked' : '' }}
-                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices in organizer dashboard</span>
-                                    </label>
-                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether organizers can see flight prices for flights in their events when viewing their dashboard</p>
-                                    <x-input-error :messages="$errors->get('show_flight_prices_organizer_dashboard')" class="mt-2" />
-                                </div>
-                            </div>
-                        </div>
 
                         <div class="flex items-center justify-end mt-4">
                             <a href="{{ route('admin.events.index') }}" 

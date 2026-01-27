@@ -75,8 +75,6 @@ class EventController extends Controller
             'commission_percentage' => 'nullable|numeric|min:0|max:100',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
-            'flights_sub_permissions' => 'nullable|array',
-            'flights_sub_permissions.*' => 'exists:users,id',
         ]);
 
         $event = new Accommodation();
@@ -132,17 +130,6 @@ class EventController extends Controller
             foreach ($validated['sub_permissions'] as $adminId) {
                 ResourcePermission::firstOrCreate([
                     'resource_type' => 'event',
-                    'resource_id' => $event->id,
-                    'user_id' => $adminId,
-                ]);
-            }
-        }
-
-        // Handle flights sub-permissions (only for super-admin)
-        if (auth()->user()->isSuperAdmin() && isset($validated['flights_sub_permissions'])) {
-            foreach ($validated['flights_sub_permissions'] as $adminId) {
-                ResourcePermission::firstOrCreate([
-                    'resource_type' => 'flight',
                     'resource_id' => $event->id,
                     'user_id' => $adminId,
                 ]);
@@ -233,6 +220,13 @@ class EventController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'website_url' => 'nullable|url|max:500',
             'organizer_logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'organizer_name' => 'nullable|string|max:255',
+            'organizer_email' => [
+                'nullable',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($event->organizer_id ?? null),
+            ],
             'description' => 'nullable|string',
             'description_en' => 'nullable|string',
             'description_fr' => 'nullable|string',
@@ -248,8 +242,6 @@ class EventController extends Controller
             'commission_percentage' => 'nullable|numeric|min:0|max:100',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
-            'flights_sub_permissions' => 'nullable|array',
-            'flights_sub_permissions.*' => 'exists:users,id',
         ]);
 
         $event->name = $validated['name'];
@@ -292,6 +284,82 @@ class EventController extends Controller
 
         $event->save();
 
+        // Handle organizer creation/update
+        $organizerPassword = null;
+        $organizerCreated = false;
+        
+        if (!empty($validated['organizer_name']) && !empty($validated['organizer_email'])) {
+            if ($event->organizer) {
+                // Update existing organizer
+                $organizer = $event->organizer;
+                $emailChanged = $organizer->email !== $validated['organizer_email'];
+                
+                $organizer->name = $validated['organizer_name'];
+                $organizer->email = $validated['organizer_email'];
+                
+                // Generate new password if email changed
+                if ($emailChanged) {
+                    $organizerPassword = Str::random(12);
+                    $organizer->password = Hash::make($organizerPassword);
+                }
+                
+                $organizer->save();
+                
+                // Generate new credentials PDF if email changed
+                if ($emailChanged && $organizerPassword) {
+                    try {
+                        $pdf = Pdf::loadView('admin.organizers.credentials', [
+                            'event' => $event,
+                            'organizer' => $organizer,
+                            'password' => $organizerPassword,
+                        ]);
+                        
+                        DualStorageService::makeDirectory('organizers');
+                        $relativePath = "organizers/{$organizer->id}-credentials.pdf";
+                        DualStorageService::put($relativePath, $pdf->output(), 'public');
+                    } catch (\Throwable $e) {
+                        \Log::error('Failed to generate organizer credentials PDF', [
+                            'organizer_id' => $organizer->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            } else {
+                // Create new organizer
+                $organizerPassword = Str::random(12);
+                
+                $organizer = User::create([
+                    'name' => $validated['organizer_name'],
+                    'email' => $validated['organizer_email'],
+                    'password' => Hash::make($organizerPassword),
+                    'role' => 'organizer',
+                    'email_verified_at' => now(),
+                ]);
+                
+                $event->organizer_id = $organizer->id;
+                $event->save();
+                $organizerCreated = true;
+                
+                // Generate organizer credentials PDF
+                try {
+                    $pdf = Pdf::loadView('admin.organizers.credentials', [
+                        'event' => $event,
+                        'organizer' => $organizer,
+                        'password' => $organizerPassword,
+                    ]);
+                    
+                    DualStorageService::makeDirectory('organizers');
+                    $relativePath = "organizers/{$organizer->id}-credentials.pdf";
+                    DualStorageService::put($relativePath, $pdf->output(), 'public');
+                } catch (\Throwable $e) {
+                    \Log::error('Failed to generate organizer credentials PDF', [
+                        'organizer_id' => $organizer->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
         // Handle sub-permissions (only for super-admin)
         if (auth()->user()->isSuperAdmin()) {
             // Remove all existing sub-permissions for this event
@@ -311,7 +379,18 @@ class EventController extends Controller
             }
         }
 
-        return redirect()->route('admin.events.index')->with('success', 'Event updated successfully.');
+        $message = 'Event updated successfully.';
+        if ($organizerCreated && isset($organizer)) {
+            return redirect()->route('admin.events.index')
+                ->with('success', $message)
+                ->with('organizer_pdf_url', route('admin.organizers.download-credentials', $organizer));
+        } elseif ($organizerPassword && isset($organizer)) {
+            return redirect()->route('admin.events.index')
+                ->with('success', $message . ' Organizer password has been regenerated.')
+                ->with('organizer_pdf_url', route('admin.organizers.download-credentials', $organizer));
+        }
+
+        return redirect()->route('admin.events.index')->with('success', $message);
     }
 
     /**

@@ -32,14 +32,18 @@ class CheckRole
                     'message' => 'Unauthorized. Required role: ' . $role
                 ], 403);
             }
-            
-            // For web requests, logout and redirect with error message
-            auth()->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect()->route('login')->withErrors([
-                'email' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page. Seuls les administrateurs peuvent y accéder.'),
+
+            // Do NOT log the user out here – this breaks impersonation flows.
+            // Instead, keep the current session and redirect to a safe dashboard.
+            // Organizers should go back to their dashboard, others to the main dashboard.
+            if (method_exists($user, 'isOrganizer') && $user->isOrganizer()) {
+                return redirect()->route('organizer.dashboard')->withErrors([
+                    'error' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page. Seuls les administrateurs peuvent y accéder.'),
+                ]);
+            }
+
+            return redirect()->route('dashboard')->withErrors([
+                'error' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page. Seuls les administrateurs peuvent y accéder.'),
             ]);
         }
         
@@ -63,13 +67,17 @@ class CheckRole
                     'message' => 'Unauthorized. Required role: ' . $role
                 ], 403);
             }
-            
-            auth()->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
+
+            // Same here: keep the session (important for admins / impersonators)
+            // and just send them back to an appropriate dashboard.
+            if (in_array($user->role, ['admin', 'super-admin'])) {
+                return redirect()->route('dashboard')->withErrors([
+                    'error' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page.'),
+                ]);
+            }
+
             return redirect()->route('login')->withErrors([
-                'email' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page.'),
+                'error' => __('Vous n\'avez pas les permissions nécessaires pour accéder à cette page.'),
             ]);
         }
 

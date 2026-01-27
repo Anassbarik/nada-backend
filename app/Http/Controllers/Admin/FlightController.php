@@ -53,7 +53,18 @@ class FlightController extends Controller
             abort(403, 'You do not have permission to create flights.');
         }
 
-        return view('admin.flights.create', compact('accommodation'));
+        // Get regular admins for flights sub-permissions assignment (only for super-admin)
+        $admins = auth()->user()->isSuperAdmin() 
+            ? User::where('role', 'admin')->orderBy('name')->get()
+            : collect();
+
+        // Get current flights sub-permissions for this accommodation
+        $flightsSubPermissions = ResourcePermission::where('resource_type', 'flight')
+            ->where('resource_id', $accommodation->id)
+            ->pluck('user_id')
+            ->toArray();
+
+        return view('admin.flights.create', compact('accommodation', 'admins', 'flightsSubPermissions'));
     }
 
     /**
@@ -101,6 +112,8 @@ class FlightController extends Controller
             'show_flight_prices_public' => 'nullable|boolean',
             'show_flight_prices_client_dashboard' => 'nullable|boolean',
             'show_flight_prices_organizer_dashboard' => 'nullable|boolean',
+            'flights_sub_permissions' => 'nullable|array',
+            'flights_sub_permissions.*' => 'exists:users,id',
         ]);
 
         try {
@@ -307,6 +320,28 @@ class FlightController extends Controller
             }
             $accommodation->save();
 
+            // Handle flights sub-permissions (only for super-admin)
+            if (auth()->user()->isSuperAdmin() && isset($validated['flights_sub_permissions'])) {
+                // Remove all existing flights sub-permissions for this accommodation
+                ResourcePermission::where('resource_type', 'flight')
+                    ->where('resource_id', $accommodation->id)
+                    ->delete();
+
+                // Add new flights sub-permissions
+                foreach ($validated['flights_sub_permissions'] as $adminId) {
+                    ResourcePermission::create([
+                        'resource_type' => 'flight',
+                        'resource_id' => $accommodation->id,
+                        'user_id' => $adminId,
+                    ]);
+                }
+            } elseif (auth()->user()->isSuperAdmin() && !$request->has('flights_sub_permissions')) {
+                // If no flights_sub_permissions submitted, remove all existing ones
+                ResourcePermission::where('resource_type', 'flight')
+                    ->where('resource_id', $accommodation->id)
+                    ->delete();
+            }
+
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight created successfully.')
                 ->with('credentials_pdf_url', $flight->credentials_pdf_url ?? null);
@@ -354,7 +389,18 @@ class FlightController extends Controller
             abort(403, 'You do not have permission to edit flights.');
         }
 
-        return view('admin.flights.edit', compact('accommodation', 'flight'));
+        // Get regular admins for flights sub-permissions assignment (only for super-admin)
+        $admins = auth()->user()->isSuperAdmin() 
+            ? User::where('role', 'admin')->orderBy('name')->get()
+            : collect();
+
+        // Get current flights sub-permissions for this accommodation
+        $flightsSubPermissions = ResourcePermission::where('resource_type', 'flight')
+            ->where('resource_id', $accommodation->id)
+            ->pluck('user_id')
+            ->toArray();
+
+        return view('admin.flights.edit', compact('accommodation', 'flight', 'admins', 'flightsSubPermissions'));
     }
 
     /**
@@ -400,6 +446,8 @@ class FlightController extends Controller
             'show_flight_prices_public' => 'nullable|boolean',
             'show_flight_prices_client_dashboard' => 'nullable|boolean',
             'show_flight_prices_organizer_dashboard' => 'nullable|boolean',
+            'flights_sub_permissions' => 'nullable|array',
+            'flights_sub_permissions.*' => 'exists:users,id',
         ]);
 
         try {
@@ -473,6 +521,25 @@ class FlightController extends Controller
                 $accommodation->show_flight_prices_organizer_dashboard = (bool) $request->input('show_flight_prices_organizer_dashboard');
             }
             $accommodation->save();
+
+            // Handle flights sub-permissions (only for super-admin)
+            if (auth()->user()->isSuperAdmin()) {
+                // Remove all existing flights sub-permissions for this accommodation
+                ResourcePermission::where('resource_type', 'flight')
+                    ->where('resource_id', $accommodation->id)
+                    ->delete();
+
+                // Add new flights sub-permissions
+                if (isset($validated['flights_sub_permissions'])) {
+                    foreach ($validated['flights_sub_permissions'] as $adminId) {
+                        ResourcePermission::create([
+                            'resource_type' => 'flight',
+                            'resource_id' => $accommodation->id,
+                            'user_id' => $adminId,
+                        ]);
+                    }
+                }
+            }
 
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight updated successfully.');

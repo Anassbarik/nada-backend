@@ -47,34 +47,6 @@
                             </div>
                         @endif
 
-                        @if(auth()->user()->isSuperAdmin() && $admins->count() > 0)
-                            <div class="mt-6 mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
-                                <x-input-label value="Flights Sub-Permissions (Grant Access to Flights Management)" />
-                                <p class="mt-1 mb-3 text-sm text-gray-600">
-                                    Select admins who should be able to manage flights for this accommodation.
-                                </p>
-                                
-                                <div class="space-y-2 max-h-60 overflow-y-auto">
-                                    @foreach($admins as $admin)
-                                        <label class="flex items-center">
-                                            <input 
-                                                type="checkbox" 
-                                                name="flights_sub_permissions[]" 
-                                                value="{{ $admin->id }}"
-                                                {{ in_array($admin->id, old('flights_sub_permissions', $flightsSubPermissions ?? [])) ? 'checked' : '' }}
-                                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                            <span class="ml-2 text-sm text-gray-700">{{ $admin->name }} ({{ $admin->email }})</span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                                
-                                @if($admins->isEmpty())
-                                    <p class="mt-2 text-sm text-gray-500">No regular admins available.</p>
-                                @endif
-                                
-                                <x-input-error :messages="$errors->get('flights_sub_permissions')" class="mt-2" />
-                            </div>
-                        @endif
 
                         <div class="mb-4">
                             <x-input-label for="name" :value="__('name')" />
@@ -196,53 +168,6 @@
                             <x-input-error :messages="$errors->get('status')" class="mt-2" />
                         </div>
 
-                        <div class="mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
-                            <h3 class="text-lg font-semibold mb-4">Flight Price Visibility Settings</h3>
-                            
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="flex items-center">
-                                        <input 
-                                            type="checkbox" 
-                                            name="show_flight_prices_public" 
-                                            value="1"
-                                            {{ old('show_flight_prices_public', true) ? 'checked' : '' }}
-                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices on events landing page and flight details page</span>
-                                    </label>
-                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether flight prices are visible to clients browsing the public events landing page and individual flight details pages</p>
-                                    <x-input-error :messages="$errors->get('show_flight_prices_public')" class="mt-2" />
-                                </div>
-                                
-                                <div>
-                                    <label class="flex items-center">
-                                        <input 
-                                            type="checkbox" 
-                                            name="show_flight_prices_client_dashboard" 
-                                            value="1"
-                                            {{ old('show_flight_prices_client_dashboard', true) ? 'checked' : '' }}
-                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices in client dashboard</span>
-                                    </label>
-                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether clients can see flight prices for their own bookings when logged into their dashboard</p>
-                                    <x-input-error :messages="$errors->get('show_flight_prices_client_dashboard')" class="mt-2" />
-                                </div>
-                                
-                                <div>
-                                    <label class="flex items-center">
-                                        <input 
-                                            type="checkbox" 
-                                            name="show_flight_prices_organizer_dashboard" 
-                                            value="1"
-                                            {{ old('show_flight_prices_organizer_dashboard', true) ? 'checked' : '' }}
-                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                        <span class="ml-2 text-sm font-medium text-gray-700">Show prices in organizer dashboard</span>
-                                    </label>
-                                    <p class="mt-1 ml-6 text-sm text-gray-500">Controls whether organizers can see flight prices for flights in their events when viewing their dashboard</p>
-                                    <x-input-error :messages="$errors->get('show_flight_prices_organizer_dashboard')" class="mt-2" />
-                                </div>
-                            </div>
-                        </div>
 
                         <div class="flex items-center justify-end mt-4">
                             <a href="{{ route('admin.events.index') }}" 
