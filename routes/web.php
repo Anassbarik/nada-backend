@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\HotelController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\AdminLogController;
+use App\Http\Controllers\Admin\FlightController as AdminFlightController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Accommodation;
 use Illuminate\Support\Facades\Auth;
@@ -127,16 +128,22 @@ Route::middleware('auth')->group(function () {
         Route::get('bookings/{booking}/payment-document', [AdminBookingController::class, 'downloadPaymentDocument'])->name('bookings.downloadPaymentDocument');
         Route::get('bookings/{booking}/flight-ticket', [AdminBookingController::class, 'downloadFlightTicket'])->name('bookings.downloadFlightTicket');
 
-        // Flights
-        Route::get('events/{accommodation}/flights', [\App\Http\Controllers\Admin\FlightController::class, 'index'])->name('flights.index');
-        Route::get('events/{accommodation}/flights/create', [\App\Http\Controllers\Admin\FlightController::class, 'create'])->name('flights.create');
-        Route::post('events/{accommodation}/flights', [\App\Http\Controllers\Admin\FlightController::class, 'store'])->name('flights.store');
-        Route::get('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'show'])->name('flights.show');
-        Route::get('events/{accommodation}/flights/{flight}/edit', [\App\Http\Controllers\Admin\FlightController::class, 'edit'])->name('flights.edit');
-        Route::patch('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'update'])->name('flights.update');
-        Route::post('events/{accommodation}/flights/{flight}/duplicate', [\App\Http\Controllers\Admin\FlightController::class, 'duplicate'])->name('flights.duplicate');
-        Route::delete('events/{accommodation}/flights/{flight}', [\App\Http\Controllers\Admin\FlightController::class, 'destroy'])->name('flights.destroy');
-        Route::get('events/{accommodation}/flights/{flight}/credentials', [\App\Http\Controllers\Admin\FlightController::class, 'downloadCredentials'])->name('flights.downloadCredentials');
+        // Flights (per event)
+        Route::get('events/{accommodation}/flights', [AdminFlightController::class, 'index'])->name('flights.index');
+        Route::get('events/{accommodation}/flights/create', [AdminFlightController::class, 'create'])->name('flights.create');
+        Route::post('events/{accommodation}/flights', [AdminFlightController::class, 'store'])->name('flights.store');
+        Route::get('events/{accommodation}/flights/{flight}', [AdminFlightController::class, 'show'])->name('flights.show');
+        Route::get('events/{accommodation}/flights/{flight}/edit', [AdminFlightController::class, 'edit'])->name('flights.edit');
+        Route::patch('events/{accommodation}/flights/{flight}', [AdminFlightController::class, 'update'])->name('flights.update');
+        Route::post('events/{accommodation}/flights/{flight}/duplicate', [AdminFlightController::class, 'duplicate'])->name('flights.duplicate');
+        Route::delete('events/{accommodation}/flights/{flight}', [AdminFlightController::class, 'destroy'])->name('flights.destroy');
+        Route::get('events/{accommodation}/flights/{flight}/credentials', [AdminFlightController::class, 'downloadCredentials'])->name('flights.downloadCredentials');
+        Route::get('events/{accommodation}/flights/export', [AdminFlightController::class, 'exportForAccommodation'])->name('flights.exportAccommodation');
+        Route::get('events/{accommodation}/flights/{flight}/export', [AdminFlightController::class, 'exportSingle'])->name('flights.exportSingle');
+
+        // Global Flights listing (for sidebar link and bulk export)
+        Route::get('flights', [AdminFlightController::class, 'globalIndex'])->name('flights.all');
+        Route::get('flights/export/all', [AdminFlightController::class, 'exportAll'])->name('flights.exportAll');
 
         // Invoices
         Route::prefix('admin')->group(function () {

@@ -74,7 +74,14 @@
               </x-shadcn.table-cell>
               <x-shadcn.table-cell class="break-words">{{ $booking->accommodation->name ?? 'N/A' }}</x-shadcn.table-cell>
               <x-shadcn.table-cell class="break-words">{{ $booking->hotel->name ?? 'N/A' }}</x-shadcn.table-cell>
-              <x-shadcn.table-cell class="break-words">{{ $booking->package->nom_package ?? 'N/A' }}</x-shadcn.table-cell>
+              <x-shadcn.table-cell class="break-words">
+                {{ $booking->package->nom_package ?? 'N/A' }}
+                @if($booking->flight && $booking->flight->reference)
+                  <div class="text-xs text-gray-500 mt-1">
+                    Flight: {{ $booking->flight->reference }}
+                  </div>
+                @endif
+              </x-shadcn.table-cell>
               <x-shadcn.table-cell>
                 @php
                   $bookingPrice = $booking->price ?? ($booking->package->prix_ttc ?? null);

@@ -201,6 +201,32 @@
                     @endif
                 </a>
                 
+                <a href="{{ route('admin.flights.all') }}" 
+                   @click="sidebarOpen = false"
+                   class="group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                          @if(request()->routeIs('admin.flights.*'))
+                            font-semibold shadow-lg
+                          @else
+                            hover:bg-gray-50 text-gray-700 hover:text-gray-900
+                          @endif"
+                          @if(request()->routeIs('admin.flights.*'))
+                          style="background: linear-gradient(135deg, rgba(0, 173, 241, 0.15) 0%, rgba(0, 173, 241, 0.05) 100%); color: #00adf1; border: 2px solid rgba(0, 173, 241, 0.3); box-shadow: 0 4px 12px rgba(0, 173, 241, 0.15);"
+                          @endif>
+                    <div class="relative">
+                        <i data-lucide="plane" class="w-5 h-5 transition-colors relative z-10" style="@if(request()->routeIs('admin.flights.*')) color: #00adf1; @else color: #6b7280; @endif"></i>
+                        @if(request()->routeIs('admin.flights.*'))
+                            <div class="absolute inset-0 bg-blue-100 rounded-full blur-sm opacity-50"></div>
+                        @endif
+                    </div>
+                    <span>Flights</span>
+                    @if(request()->routeIs('admin.flights.*'))
+                        <div class="ml-auto flex items-center gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full" style="background-color: #00adf1;"></div>
+                            <div class="w-1 h-1 rounded-full opacity-60" style="background-color: #00adf1;"></div>
+                        </div>
+                    @endif
+                </a>
+                
                 <a href="{{ route('admin.bookings.index') }}" 
                    @click="sidebarOpen = false"
                    class="group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200

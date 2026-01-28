@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\FlightsExport;
 use App\Models\Flight;
 use App\Models\Accommodation;
 use App\Models\Booking;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Mail\BookingConfirmation;
 use App\Models\ResourcePermission;
+use Maatwebsite\Excel\Facades\Excel;
 
 class FlightController extends Controller
 {
@@ -36,6 +38,75 @@ class FlightController extends Controller
             ->paginate(20);
 
         return view('admin.flights.index', compact('accommodation', 'flights'));
+    }
+
+    /**
+     * Display a global listing of flights across all accommodations.
+     * Used for the main Flights link in the admin sidebar.
+     */
+    public function globalIndex()
+    {
+        $user = auth()->user();
+
+        // Basic permission check consistent with accommodation flights management
+        if (!$user->isSuperAdmin() && (!$user->isAdmin() || !$user->hasPermission('flights', 'view'))) {
+            abort(403, 'You do not have permission to view flights.');
+        }
+
+        $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
+            ->latest()
+            ->paginate(20);
+
+        return view('admin.flights.global-index', compact('flights'));
+    }
+
+    /**
+     * Export all flights across all accommodations to Excel.
+     */
+    public function exportAll()
+    {
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin() && (!$user->isAdmin() || !$user->hasPermission('flights', 'view'))) {
+            abort(403, 'You do not have permission to export flights.');
+        }
+
+        $filename = 'flights-all-' . now()->format('Y-m-d') . '.xlsx';
+
+        return Excel::download(new FlightsExport(), $filename);
+    }
+
+    /**
+     * Export all flights for a specific accommodation (event) to Excel.
+     */
+    public function exportForAccommodation(Accommodation $accommodation)
+    {
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to export flights for this accommodation.');
+        }
+
+        $filename = 'flights-' . ($accommodation->slug ?? $accommodation->id) . '-' . now()->format('Y-m-d') . '.xlsx';
+
+        return Excel::download(new FlightsExport($accommodation->id), $filename);
+    }
+
+    /**
+     * Export a single flight to Excel.
+     */
+    public function exportSingle(Accommodation $accommodation, Flight $flight)
+    {
+        if (!$accommodation->canManageFlightsBy(auth()->user())) {
+            abort(403, 'You do not have permission to export flights for this accommodation.');
+        }
+
+        // Ensure the flight belongs to this accommodation
+        if ((int) $flight->accommodation_id !== (int) $accommodation->id) {
+            abort(404);
+        }
+
+        $filename = 'flight-' . $flight->reference . '.xlsx';
+
+        return Excel::download(new FlightsExport(null, $flight->id), $filename);
     }
 
     /**
@@ -220,6 +291,13 @@ class FlightController extends Controller
                 'flight_time' => $flightDateTime,
                 'status' => 'confirmed',
                 'price' => $flightPrice, // Total flight price (departure + return if round trip)
+                // Ensure compatibility with non-nullable legacy columns
+                'checkin_date' => $validated['departure_date'] ?? now()->toDateString(),
+                'checkout_date' => $validated['return_arrival_date']
+                    ?? $validated['arrival_date']
+                    ?? $validated['departure_date']
+                    ?? now()->toDateString(),
+                'guests_count' => 1,
             ];
 
             // Calculate commission amount
@@ -229,14 +307,26 @@ class FlightController extends Controller
             }
             $bookingData['commission_amount'] = $commissionAmount;
 
-            // Fill guest fields if no user_id (for manual email sending)
-            if (!$user) {
-                $bookingData['guest_name'] = $validated['full_name'];
-                $bookingData['guest_email'] = $validated['beneficiary_type'] === 'client' ? ($validated['client_email'] ?? null) : null;
-                $bookingData['email'] = $bookingData['guest_email'];
-            } else {
-                $bookingData['email'] = $user->email;
+            // Fill guest fields - guest_email is required in DB, so provide fallback if missing
+            $guestEmail = null;
+            if ($user) {
+                $guestEmail = $user->email;
+            } elseif ($validated['beneficiary_type'] === 'client' && !empty($validated['client_email'])) {
+                $guestEmail = $validated['client_email'];
+            } elseif ($validated['beneficiary_type'] === 'organizer' && $accommodation->organizer_id) {
+                $accommodation->load('organizer');
+                $guestEmail = $accommodation->organizer->email ?? null;
             }
+            
+            // Last resort: generate placeholder email (DB requires non-null)
+            // Flight is already saved at this point, so reference should exist
+            if (!$guestEmail) {
+                $guestEmail = 'flight-' . strtolower($flight->reference ?? 'temp-' . time()) . '@noreply.local';
+            }
+
+            $bookingData['guest_name'] = $validated['full_name'];
+            $bookingData['guest_email'] = $guestEmail;
+            $bookingData['email'] = $guestEmail;
 
             try {
                 $booking = Booking::create($bookingData);
