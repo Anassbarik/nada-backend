@@ -20,6 +20,11 @@ Route::bind('event', function ($value) {
     return Accommodation::where('slug', $value)->firstOrFail();
 });
 
+// Route model binding for admin parameter (for impersonation routes)
+Route::bind('admin', function ($value) {
+    return \App\Models\User::findOrFail($value);
+});
+
 Route::get('/', function () {
     if (Auth::check()) {
         $user = Auth::user();
@@ -141,9 +146,17 @@ Route::middleware('auth')->group(function () {
         Route::get('events/{accommodation}/flights/export', [AdminFlightController::class, 'exportForAccommodation'])->name('flights.exportAccommodation');
         Route::get('events/{accommodation}/flights/{flight}/export', [AdminFlightController::class, 'exportSingle'])->name('flights.exportSingle');
 
-        // Global Flights listing (for sidebar link and bulk export)
-        Route::get('flights', [AdminFlightController::class, 'globalIndex'])->name('flights.all');
-        Route::get('flights/export/all', [AdminFlightController::class, 'exportAll'])->name('flights.exportAll');
+        // Standalone Flights management (separate from accommodation flights)
+        Route::get('flights', [AdminFlightController::class, 'globalIndex'])->name('standalone.flights.index');
+        Route::get('flights/create', [AdminFlightController::class, 'createStandalone'])->name('standalone.flights.create');
+        Route::post('flights', [AdminFlightController::class, 'storeStandalone'])->name('standalone.flights.store');
+        Route::get('flights/{flight}', [AdminFlightController::class, 'showStandalone'])->name('standalone.flights.show');
+        Route::get('flights/{flight}/edit', [AdminFlightController::class, 'editStandalone'])->name('standalone.flights.edit');
+        Route::patch('flights/{flight}', [AdminFlightController::class, 'updateStandalone'])->name('standalone.flights.update');
+        Route::post('flights/{flight}/duplicate', [AdminFlightController::class, 'duplicateStandalone'])->name('standalone.flights.duplicate');
+        Route::delete('flights/{flight}', [AdminFlightController::class, 'destroyStandalone'])->name('standalone.flights.destroy');
+        Route::get('flights/{flight}/credentials', [AdminFlightController::class, 'downloadCredentialsStandalone'])->name('standalone.flights.downloadCredentials');
+        Route::get('flights/export/all', [AdminFlightController::class, 'exportAll'])->name('standalone.flights.exportAll');
 
         // Invoices
         Route::prefix('admin')->group(function () {

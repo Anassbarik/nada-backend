@@ -17,7 +17,7 @@ class FlightsExport implements FromCollection, WithHeadings, WithMapping
 
     public function collection(): Collection
     {
-        $query = Flight::with('accommodation');
+        $query = Flight::with(['accommodation', 'bookings']);
 
         if ($this->accommodationId) {
             $query->where('accommodation_id', $this->accommodationId);
@@ -51,12 +51,21 @@ class FlightsExport implements FromCollection, WithHeadings, WithMapping
             'Status',
             'Payment Method',
             'Total Price (MAD)',
+            'Booking Reference',
+            'eTicket Number',
+            'Ticket Reference (Airline Reference)',
             'Created At',
         ];
     }
 
     public function map($flight): array
     {
+        // Get booking references (concatenate if multiple bookings)
+        $bookingReferences = $flight->bookings
+            ->pluck('booking_reference')
+            ->filter()
+            ->implode(', ');
+
         return [
             $flight->reference,
             $flight->accommodation?->name,
@@ -76,6 +85,9 @@ class FlightsExport implements FromCollection, WithHeadings, WithMapping
             $flight->status_label,
             $flight->payment_method_label,
             $flight->total_price,
+            $bookingReferences ?: null,
+            $flight->eticket,
+            $flight->ticket_reference,
             optional($flight->created_at)->format('Y-m-d H:i:s'),
         ];
     }

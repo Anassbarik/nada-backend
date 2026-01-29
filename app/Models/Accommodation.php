@@ -234,21 +234,35 @@ class Accommodation extends Model
             return false;
         }
 
-        // Check if user has flights permissions
-        if (!$user->hasPermission('flights', 'view')) {
-            return false;
-        }
-
-        // If accommodation was created by a super admin, check sub-permissions
+        // If accommodation was created by a super admin, check sub-permissions first
+        // Resource permissions can grant access even without main flights.view permission
         if ($this->created_by) {
             $creator = $this->creator;
             if ($creator && $creator->isSuperAdmin()) {
-                return $user->hasResourcePermission('flight', $this->id);
+                // If user has resource permission for this accommodation, they can manage flights
+                if ($user->hasResourcePermission('flight', $this->id)) {
+                    return true;
+                }
             }
         }
 
-        // Regular admins can manage flights for accommodations they created
-        return $this->created_by === $user->id;
+        // Check if user has flights permissions (main permission check)
+        if ($user->hasPermission('flights', 'view')) {
+            // If accommodation was created by a super admin and user has main permission,
+            // they can manage if they also have resource permission
+            if ($this->created_by) {
+                $creator = $this->creator;
+                if ($creator && $creator->isSuperAdmin()) {
+                    return $user->hasResourcePermission('flight', $this->id);
+                }
+            }
+            
+            // Regular admins can manage flights for accommodations they created
+            return $this->created_by === $user->id;
+        }
+
+        // No permission (neither main nor resource)
+        return false;
     }
 
     /**

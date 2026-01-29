@@ -28,7 +28,7 @@ class GenerateFeaturesPDF extends Command
         $pdf->setPaper('a4', 'portrait');
         
         $langSuffix = $lang === 'fr' ? '-fr' : '';
-        $filename = 'backend-features-implementation' . $langSuffix . '-' . date('Y-m-d') . '.pdf';
+        $filename = 'features-implementation' . $langSuffix . '-' . date('Y-m-d') . '.pdf';
         $path = storage_path('app/public/' . $filename);
         
         // Ensure directory exists
@@ -207,6 +207,34 @@ class GenerateFeaturesPDF extends Command
                 <td>Shadcn UI</td>
                 <td>1.1</td>
             </tr>
+            <tr>
+                <td>React</td>
+                <td>18.2+</td>
+            </tr>
+            <tr>
+                <td>React Router DOM</td>
+                <td>6.20+</td>
+            </tr>
+            <tr>
+                <td>Vite</td>
+                <td>5.0+</td>
+            </tr>
+            <tr>
+                <td>Axios</td>
+                <td>Latest</td>
+            </tr>
+            <tr>
+                <td>DOMPurify</td>
+                <td>Latest</td>
+            </tr>
+            <tr>
+                <td>React Helmet Async</td>
+                <td>Latest</td>
+            </tr>
+            <tr>
+                <td>Embla Carousel</td>
+                <td>Latest</td>
+            </tr>
         </table>
     </div>
 </body>
@@ -221,7 +249,7 @@ class GenerateFeaturesPDF extends Command
     private function getEnglishContent(): array
     {
         return [
-            'title' => 'Backend Features Implementation Report',
+            'title' => 'Backend & Frontend Features Implementation Report',
             'subtitle' => 'Comprehensive List of All Implemented Features',
             'tech_title' => 'Technology Stack',
             'tech_table' => [
@@ -236,7 +264,7 @@ class GenerateFeaturesPDF extends Command
     private function getFrenchContent(): array
     {
         return [
-            'title' => 'Rapport d\'Implémentation des Fonctionnalités Backend',
+            'title' => 'Rapport d\'Implémentation des Fonctionnalités Backend & Frontend',
             'subtitle' => 'Liste Complète de Toutes les Fonctionnalités Implémentées',
             'tech_title' => 'Stack Technologique',
             'tech_table' => [
@@ -684,6 +712,406 @@ class GenerateFeaturesPDF extends Command
                 ' . $this->featureItem('JSON column support') . '
             </div>
         </div>
+    </div>
+
+    <div style="page-break-before: always; margin-top: 40px; border-top: 3px solid #00adf1; padding-top: 20px;">
+        <h2 style="color: #00adf1; text-align: center; font-size: 22pt; margin-bottom: 30px;">FRONTEND FEATURES</h2>
+    </div>
+
+    <div class="section">
+        <div class="section-title">21. Frontend Authentication & User Management</div>
+        <div class="subsection">
+            <div class="subsection-title">Authentication System</div>
+            <div class="feature-list">
+                ' . $this->featureItem('React Router DOM for client-side routing') . '
+                ' . $this->featureItem('Laravel Sanctum token-based authentication for API requests') . '
+                ' . $this->featureItem('User registration with form validation') . '
+                ' . $this->featureItem('User login with token storage (localStorage)') . '
+                ' . $this->featureItem('Password validation (min 8 chars, uppercase, lowercase, number)') . '
+                ' . $this->featureItem('Token management (automatic token injection in API requests)') . '
+                ' . $this->featureItem('User logout functionality with token revocation') . '
+                ' . $this->featureItem('User profile update page') . '
+                ' . $this->featureItem('Password change functionality') . '
+                ' . $this->featureItem('Protected routes (authentication required)') . '
+                ' . $this->featureItem('Automatic token refresh handling') . '
+                ' . $this->featureItem('Token expiration detection') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">User Session Management</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Token persistence in localStorage') . '
+                ' . $this->featureItem('Automatic token injection in API headers') . '
+                ' . $this->featureItem('Session state management with React hooks') . '
+                ' . $this->featureItem('User data caching and refresh') . '
+                ' . $this->featureItem('Logout with backend token revocation') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">22. Event & Accommodation Display</div>
+        <div class="subsection">
+            <div class="subsection-title">Event Listing & Navigation</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Homepage with events carousel/grid display') . '
+                ' . $this->featureItem('Event card components with images and details') . '
+                ' . $this->featureItem('Event search functionality') . '
+                ' . $this->featureItem('Event filtering and sorting') . '
+                ' . $this->featureItem('Dynamic event routing (/:eventSlug)') . '
+                ' . $this->featureItem('Event landing page with hero section') . '
+                ' . $this->featureItem('Event navigation menu (Conditions, FAQ, Info)') . '
+                ' . $this->featureItem('Event content pages (Conditions, FAQ, General Info)') . '
+                ' . $this->featureItem('Event breadcrumbs navigation') . '
+                ' . $this->featureItem('Event logo and banner display') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Event Content Management</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Rich text content rendering (sanitized HTML)') . '
+                ' . $this->featureItem('Multi-language content support') . '
+                ' . $this->featureItem('Event-specific content pages') . '
+                ' . $this->featureItem('Safe HTML rendering component (XSS protection)') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">23. Hotel Display & Booking</div>
+        <div class="subsection">
+            <div class="subsection-title">Hotel Browsing</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Hotel listing page (/:eventSlug/hotels)') . '
+                ' . $this->featureItem('Hotel card components with images') . '
+                ' . $this->featureItem('Hotel carousel display') . '
+                ' . $this->featureItem('Hotel grid/list view') . '
+                ' . $this->featureItem('Hotel details page (/:eventSlug/hotels/:hotelId)') . '
+                ' . $this->featureItem('Hotel image galleries with carousel') . '
+                ' . $this->featureItem('Hotel packages display') . '
+                ' . $this->featureItem('Hotel pricing information (HT/TTC)') . '
+                ' . $this->featureItem('Hotel availability display') . '
+                ' . $this->featureItem('Hotel location and description') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Hotel Booking System</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Booking form component with validation') . '
+                ' . $this->featureItem('Guest information capture (name, email, phone, company)') . '
+                ' . $this->featureItem('Check-in and check-out date selection') . '
+                ' . $this->featureItem('Guests count selection') . '
+                ' . $this->featureItem('Resident names input (up to 2 residents)') . '
+                ' . $this->featureItem('Special instructions/requests field') . '
+                ' . $this->featureItem('Flight information input (optional)') . '
+                ' . $this->featureItem('Booking reference linking (link to existing flight booking)') . '
+                ' . $this->featureItem('Booking confirmation page') . '
+                ' . $this->featureItem('Booking status display') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">24. Flight Display & Management</div>
+        <div class="subsection">
+            <div class="subsection-title">Flight Browsing</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Flight listing on event landing page') . '
+                ' . $this->featureItem('Flight carousel component (FlightsSection)') . '
+                ' . $this->featureItem('Flight card components with details') . '
+                ' . $this->featureItem('Flight details page (/:eventSlug/flights/:flightId)') . '
+                ' . $this->featureItem('Flight class display (economy, business, first)') . '
+                ' . $this->featureItem('Flight category display (one-way, round-trip)') . '
+                ' . $this->featureItem('Departure flight details (date, time, number, airports)') . '
+                ' . $this->featureItem('Return flight details (for round-trip)') . '
+                ' . $this->featureItem('eTicket link display') . '
+                ' . $this->featureItem('Flight reference display') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Flight Price Visibility</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Public price visibility toggle support') . '
+                ' . $this->featureItem('Conditional price display based on event settings') . '
+                ' . $this->featureItem('"Price on request" message when prices hidden') . '
+                ' . $this->featureItem('Price formatting (French currency: €)') . '
+                ' . $this->featureItem('Price visibility handling in carousel and details pages') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Flight Booking Integration</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Flight booking reference field in hotel booking form') . '
+                ' . $this->featureItem('Automatic flight details pre-filling from reference') . '
+                ' . $this->featureItem('Flight details optional when reference provided') . '
+                ' . $this->featureItem('Flight number validation') . '
+                ' . $this->featureItem('Flight booking linking functionality') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">25. Frontend Booking System</div>
+        <div class="subsection">
+            <div class="subsection-title">Booking Management</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Booking creation via API (authenticated users)') . '
+                ' . $this->featureItem('Booking form with comprehensive validation') . '
+                ' . $this->featureItem('Automatic booking reference display') . '
+                ' . $this->featureItem('Booking status tracking (pending, confirmed, paid, cancelled, refunded)') . '
+                ' . $this->featureItem('Guest information management') . '
+                ' . $this->featureItem('Date selection with validation') . '
+                ' . $this->featureItem('Guests count management') . '
+                ' . $this->featureItem('Resident names management') . '
+                ' . $this->featureItem('Special instructions field') . '
+                ' . $this->featureItem('Flight information integration') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Booking Form Features</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Real-time form validation') . '
+                ' . $this->featureItem('Input sanitization (OWASP compliant)') . '
+                ' . $this->featureItem('Required field indicators') . '
+                ' . $this->featureItem('Error message display') . '
+                ' . $this->featureItem('Success confirmation') . '
+                ' . $this->featureItem('Terms and conditions acceptance') . '
+                ' . $this->featureItem('Booking reference lookup') . '
+                ' . $this->featureItem('Flight details conditional requirement') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">26. User Dashboard</div>
+        <div class="subsection">
+            <div class="subsection-title">Dashboard Features</div>
+            <div class="feature-list">
+                ' . $this->featureItem('User profile display') . '
+                ' . $this->featureItem('Wallet balance display (French currency formatting)') . '
+                ' . $this->featureItem('Booking history listing') . '
+                ' . $this->featureItem('Booking status display') . '
+                ' . $this->featureItem('Booking details view') . '
+                ' . $this->featureItem('Voucher listing (paid bookings only)') . '
+                ' . $this->featureItem('Voucher download functionality') . '
+                ' . $this->featureItem('Document upload sections') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Document Upload System</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Payment document upload (Ordre de paiement)') . '
+                ' . $this->featureItem('Flight ticket upload') . '
+                ' . $this->featureItem('Image and PDF support') . '
+                ' . $this->featureItem('File validation (type, size)') . '
+                ' . $this->featureItem('Upload progress indication') . '
+                ' . $this->featureItem('Success/error feedback') . '
+                ' . $this->featureItem('Per-booking upload support') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">27. Admin Impersonation System</div>
+        <div class="subsection">
+            <div class="subsection-title">Impersonation Features</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Token detection from URL query parameter') . '
+                ' . $this->featureItem('Automatic authentication with impersonation token') . '
+                ' . $this->featureItem('Impersonation banner display (yellow warning banner)') . '
+                ' . $this->featureItem('Impersonated user name display') . '
+                ' . $this->featureItem('Stop impersonation functionality') . '
+                ' . $this->featureItem('Token removal from URL (security measure)') . '
+                ' . $this->featureItem('Backend redirect on stop impersonation') . '
+                ' . $this->featureItem('Impersonation status tracking') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">28. Frontend Security Features (OWASP Compliance)</div>
+        <div class="subsection">
+            <div class="subsection-title">Input Sanitization</div>
+            <div class="feature-list">
+                ' . $this->featureItem('String sanitization (HTML entities, null bytes, length limits)') . '
+                ' . $this->featureItem('Email sanitization (format validation, dangerous characters)') . '
+                ' . $this->featureItem('Phone sanitization (non-digit removal, length limits)') . '
+                ' . $this->featureItem('URL sanitization (dangerous characters, length limits)') . '
+                ' . $this->featureItem('Number sanitization (non-numeric removal, range validation)') . '
+                ' . $this->featureItem('Date sanitization (format validation, real date verification)') . '
+                ' . $this->featureItem('HTML sanitization (DOMPurify integration)') . '
+                ' . $this->featureItem('Form data sanitization (bulk sanitization with schema)') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Input Validation</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Email validation (format, domain)') . '
+                ' . $this->featureItem('Phone validation (format, length)') . '
+                ' . $this->featureItem('Password validation (strength requirements)') . '
+                ' . $this->featureItem('Date validation (format, range)') . '
+                ' . $this->featureItem('File validation (type, size, extension)') . '
+                ' . $this->featureItem('Form validation (client-side, real-time)') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">XSS Prevention</div>
+            <div class="feature-list">
+                ' . $this->featureItem('SafeHTML component (replaces dangerouslySetInnerHTML)') . '
+                ' . $this->featureItem('DOMPurify integration for HTML sanitization') . '
+                ' . $this->featureItem('Content Security Policy support') . '
+                ' . $this->featureItem('Automatic HTML escaping in forms') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">CSRF Protection</div>
+            <div class="feature-list">
+                ' . $this->featureItem('CSRFInitializer component for token management') . '
+                ' . $this->featureItem('Automatic CSRF cookie fetching') . '
+                ' . $this->featureItem('CSRF token injection in requests') . '
+                ' . $this->featureItem('Sanctum CSRF integration') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">29. Internationalization (i18n)</div>
+        <div class="subsection">
+            <div class="subsection-title">Multi-Language Support</div>
+            <div class="feature-list">
+                ' . $this->featureItem('French (fr) as default language') . '
+                ' . $this->featureItem('English (en) language support') . '
+                ' . $this->featureItem('Language switcher component in navbar') . '
+                ' . $this->featureItem('Dynamic content translation') . '
+                ' . $this->featureItem('Translation files (messages/fr.json, messages/en.json)') . '
+                ' . $this->featureItem('useI18n hook for translations') . '
+                ' . $this->featureItem('Locale persistence in localStorage') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">30. UI/UX Components</div>
+        <div class="subsection">
+            <div class="subsection-title">Layout Components</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Navbar with responsive design') . '
+                ' . $this->featureItem('Footer with links and information') . '
+                ' . $this->featureItem('MainLayout wrapper component') . '
+                ' . $this->featureItem('EventNavbar for event-specific navigation') . '
+                ' . $this->featureItem('Breadcrumbs navigation component') . '
+                ' . $this->featureItem('WhatsApp button (floating action button)') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Form Components</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Input component with validation') . '
+                ' . $this->featureItem('SearchField component with icons') . '
+                ' . $this->featureItem('DatePicker component') . '
+                ' . $this->featureItem('GuestsDropdown component') . '
+                ' . $this->featureItem('BookingForm component (comprehensive)') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Display Components</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Card components (Event, Hotel, Flight, Package)') . '
+                ' . $this->featureItem('Carousel components (Events, Hotels, Flights)') . '
+                ' . $this->featureItem('ImageCarousel for galleries') . '
+                ' . $this->featureItem('Badge component for status') . '
+                ' . $this->featureItem('Spinner loading component') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">31. API Integration</div>
+        <div class="subsection">
+            <div class="subsection-title">API Client</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Centralized API client (lib/api.js)') . '
+                ' . $this->featureItem('Axios-based HTTP client') . '
+                ' . $this->featureItem('Automatic token injection') . '
+                ' . $this->featureItem('CSRF cookie handling') . '
+                ' . $this->featureItem('Error handling and retry logic') . '
+                ' . $this->featureItem('Request/response interceptors') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">API Endpoints Integration</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Public event listing API') . '
+                ' . $this->featureItem('Event details API') . '
+                ' . $this->featureItem('Hotel listing API (by event)') . '
+                ' . $this->featureItem('Flight listing API (by event)') . '
+                ' . $this->featureItem('Authenticated booking API') . '
+                ' . $this->featureItem('User wallet API') . '
+                ' . $this->featureItem('Voucher API (paid bookings only)') . '
+                ' . $this->featureItem('Document upload API') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">32. Search & Filtering</div>
+        <div class="subsection">
+            <div class="subsection-title">Search Functionality</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Event search on homepage') . '
+                ' . $this->featureItem('Hotel search by event') . '
+                ' . $this->featureItem('Date range search (check-in, check-out)') . '
+                ' . $this->featureItem('Guests count selection') . '
+                ' . $this->featureItem('Search form with validation') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">33. Responsive Design</div>
+        <div class="subsection">
+            <div class="subsection-title">Device Support</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Responsive layouts for all pages') . '
+                ' . $this->featureItem('Mobile menu navigation') . '
+                ' . $this->featureItem('Touch-friendly components') . '
+                ' . $this->featureItem('Mobile-optimized forms') . '
+                ' . $this->featureItem('Responsive carousels') . '
+                ' . $this->featureItem('Tablet-optimized layouts') . '
+                ' . $this->featureItem('Desktop-optimized layouts') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">34. Performance Optimization</div>
+        <div class="subsection">
+            <div class="subsection-title">Optimization Features</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Code splitting with React Router') . '
+                ' . $this->featureItem('Bundle size optimization') . '
+                ' . $this->featureItem('Tree shaking (Vite)') . '
+                ' . $this->featureItem('Spinner components for loading') . '
+                ' . $this->featureItem('Progressive loading') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">35. Frontend Technology Stack</div>
+        <div class="subsection">
+            <div class="subsection-title">Frontend Framework</div>
+            <div class="feature-list">
+                ' . $this->featureItem('React 18.2+') . '
+                ' . $this->featureItem('React Router DOM 6.20+') . '
+                ' . $this->featureItem('Vite 5.0+') . '
+                ' . $this->featureItem('Axios (Latest)') . '
+                ' . $this->featureItem('DOMPurify (Latest)') . '
+                ' . $this->featureItem('React Helmet Async (Latest)') . '
+                ' . $this->featureItem('Embla Carousel (Latest)') . '
+                ' . $this->featureItem('TailwindCSS for styling') . '
+            </div>
+        </div>
     </div>';
     }
 
@@ -1121,6 +1549,406 @@ class GenerateFeaturesPDF extends Command
                 ' . $this->featureItem('Support des suppressions logiques') . '
                 ' . $this->featureItem('Suivi des horodatages') . '
                 ' . $this->featureItem('Support de colonnes JSON') . '
+            </div>
+        </div>
+    </div>
+
+    <div style="page-break-before: always; margin-top: 40px; border-top: 3px solid #00adf1; padding-top: 20px;">
+        <h2 style="color: #00adf1; text-align: center; font-size: 22pt; margin-bottom: 30px;">FONCTIONNALITÉS FRONTEND</h2>
+    </div>
+
+    <div class="section">
+        <div class="section-title">21. Authentification Frontend et Gestion des Utilisateurs</div>
+        <div class="subsection">
+            <div class="subsection-title">Système d\'Authentification</div>
+            <div class="feature-list">
+                ' . $this->featureItem('React Router DOM pour le routage côté client') . '
+                ' . $this->featureItem('Authentification par token Laravel Sanctum pour les requêtes API') . '
+                ' . $this->featureItem('Inscription utilisateur avec validation de formulaire') . '
+                ' . $this->featureItem('Connexion utilisateur avec stockage de token (localStorage)') . '
+                ' . $this->featureItem('Validation du mot de passe (min 8 caractères, majuscule, minuscule, chiffre)') . '
+                ' . $this->featureItem('Gestion des tokens (injection automatique dans les requêtes API)') . '
+                ' . $this->featureItem('Fonctionnalité de déconnexion avec révocation de token') . '
+                ' . $this->featureItem('Page de mise à jour du profil utilisateur') . '
+                ' . $this->featureItem('Fonctionnalité de changement de mot de passe') . '
+                ' . $this->featureItem('Routes protégées (authentification requise)') . '
+                ' . $this->featureItem('Gestion automatique du rafraîchissement de token') . '
+                ' . $this->featureItem('Détection d\'expiration de token') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Gestion de Session Utilisateur</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Persistance du token dans localStorage') . '
+                ' . $this->featureItem('Injection automatique du token dans les en-têtes API') . '
+                ' . $this->featureItem('Gestion de l\'état de session avec les hooks React') . '
+                ' . $this->featureItem('Mise en cache et rafraîchissement des données utilisateur') . '
+                ' . $this->featureItem('Déconnexion avec révocation du token backend') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">22. Affichage des Événements et Hébergements</div>
+        <div class="subsection">
+            <div class="subsection-title">Liste et Navigation des Événements</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Page d\'accueil avec carrousel/grille d\'événements') . '
+                ' . $this->featureItem('Composants de carte d\'événement avec images et détails') . '
+                ' . $this->featureItem('Fonctionnalité de recherche d\'événements') . '
+                ' . $this->featureItem('Filtrage et tri des événements') . '
+                ' . $this->featureItem('Routage dynamique des événements (/:eventSlug)') . '
+                ' . $this->featureItem('Page d\'atterrissage d\'événement avec section hero') . '
+                ' . $this->featureItem('Menu de navigation d\'événement (Conditions, FAQ, Info)') . '
+                ' . $this->featureItem('Pages de contenu d\'événement (Conditions, FAQ, Informations Générales)') . '
+                ' . $this->featureItem('Navigation par fil d\'Ariane') . '
+                ' . $this->featureItem('Affichage du logo et de la bannière d\'événement') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Gestion du Contenu des Événements</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Rendu de contenu texte enrichi (HTML sanitisé)') . '
+                ' . $this->featureItem('Support de contenu multilingue') . '
+                ' . $this->featureItem('Pages de contenu spécifiques aux événements') . '
+                ' . $this->featureItem('Composant de rendu HTML sécurisé (protection XSS)') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">23. Affichage et Réservation d\'Hôtels</div>
+        <div class="subsection">
+            <div class="subsection-title">Navigation des Hôtels</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Page de liste des hôtels (/:eventSlug/hotels)') . '
+                ' . $this->featureItem('Composants de carte d\'hôtel avec images') . '
+                ' . $this->featureItem('Affichage en carrousel d\'hôtels') . '
+                ' . $this->featureItem('Vue en grille/liste d\'hôtels') . '
+                ' . $this->featureItem('Page de détails d\'hôtel (/:eventSlug/hotels/:hotelId)') . '
+                ' . $this->featureItem('Galeries d\'images d\'hôtel avec carrousel') . '
+                ' . $this->featureItem('Affichage des forfaits hôteliers') . '
+                ' . $this->featureItem('Informations de tarification (HT/TTC)') . '
+                ' . $this->featureItem('Affichage de la disponibilité') . '
+                ' . $this->featureItem('Localisation et description de l\'hôtel') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Système de Réservation d\'Hôtel</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Composant de formulaire de réservation avec validation') . '
+                ' . $this->featureItem('Capture d\'informations client (nom, email, téléphone, entreprise)') . '
+                ' . $this->featureItem('Sélection des dates d\'arrivée et de départ') . '
+                ' . $this->featureItem('Sélection du nombre d\'invités') . '
+                ' . $this->featureItem('Saisie des noms des résidents (jusqu\'à 2 résidents)') . '
+                ' . $this->featureItem('Champ d\'instructions/requêtes spéciales') . '
+                ' . $this->featureItem('Saisie d\'informations de vol (optionnelle)') . '
+                ' . $this->featureItem('Liaison de référence de réservation (lien vers une réservation de vol existante)') . '
+                ' . $this->featureItem('Page de confirmation de réservation') . '
+                ' . $this->featureItem('Affichage du statut de réservation') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">24. Affichage et Gestion des Vols</div>
+        <div class="subsection">
+            <div class="subsection-title">Navigation des Vols</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Liste des vols sur la page d\'atterrissage d\'événement') . '
+                ' . $this->featureItem('Composant carrousel de vols (FlightsSection)') . '
+                ' . $this->featureItem('Composants de carte de vol avec détails') . '
+                ' . $this->featureItem('Page de détails de vol (/:eventSlug/flights/:flightId)') . '
+                ' . $this->featureItem('Affichage de la classe de vol (économique, affaires, première)') . '
+                ' . $this->featureItem('Affichage de la catégorie de vol (aller simple, aller-retour)') . '
+                ' . $this->featureItem('Détails du vol de départ (date, heure, numéro, aéroports)') . '
+                ' . $this->featureItem('Détails du vol de retour (pour aller-retour)') . '
+                ' . $this->featureItem('Affichage du lien eTicket') . '
+                ' . $this->featureItem('Affichage de la référence de vol') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Visibilité des Prix des Vols</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Support du basculement de visibilité des prix publics') . '
+                ' . $this->featureItem('Affichage conditionnel des prix selon les paramètres d\'événement') . '
+                ' . $this->featureItem('Message "Prix sur demande" lorsque les prix sont masqués') . '
+                ' . $this->featureItem('Formatage des prix (devise française: €)') . '
+                ' . $this->featureItem('Gestion de la visibilité des prix dans les carrousels et pages de détails') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Intégration de Réservation de Vol</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Champ de référence de réservation de vol dans le formulaire de réservation d\'hôtel') . '
+                ' . $this->featureItem('Pré-remplissage automatique des détails de vol depuis la référence') . '
+                ' . $this->featureItem('Détails de vol optionnels lorsque la référence est fournie') . '
+                ' . $this->featureItem('Validation du numéro de vol') . '
+                ' . $this->featureItem('Fonctionnalité de liaison de réservation de vol') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">25. Système de Réservation Frontend</div>
+        <div class="subsection">
+            <div class="subsection-title">Gestion des Réservations</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Création de réservation via API (utilisateurs authentifiés)') . '
+                ' . $this->featureItem('Formulaire de réservation avec validation complète') . '
+                ' . $this->featureItem('Affichage automatique de la référence de réservation') . '
+                ' . $this->featureItem('Suivi du statut de réservation (en attente, confirmée, payée, annulée, remboursée)') . '
+                ' . $this->featureItem('Gestion des informations client') . '
+                ' . $this->featureItem('Sélection de date avec validation') . '
+                ' . $this->featureItem('Gestion du nombre d\'invités') . '
+                ' . $this->featureItem('Gestion des noms des résidents') . '
+                ' . $this->featureItem('Champ d\'instructions spéciales') . '
+                ' . $this->featureItem('Intégration des informations de vol') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Fonctionnalités du Formulaire de Réservation</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Validation de formulaire en temps réel') . '
+                ' . $this->featureItem('Sanitisation des entrées (conforme OWASP)') . '
+                ' . $this->featureItem('Indicateurs de champs requis') . '
+                ' . $this->featureItem('Affichage des messages d\'erreur') . '
+                ' . $this->featureItem('Confirmation de succès') . '
+                ' . $this->featureItem('Acceptation des conditions générales') . '
+                ' . $this->featureItem('Recherche de référence de réservation') . '
+                ' . $this->featureItem('Exigence conditionnelle des détails de vol') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">26. Tableau de Bord Utilisateur</div>
+        <div class="subsection">
+            <div class="subsection-title">Fonctionnalités du Tableau de Bord</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Affichage du profil utilisateur') . '
+                ' . $this->featureItem('Affichage du solde du portefeuille (formatage de devise française)') . '
+                ' . $this->featureItem('Liste de l\'historique des réservations') . '
+                ' . $this->featureItem('Affichage du statut de réservation') . '
+                ' . $this->featureItem('Vue des détails de réservation') . '
+                ' . $this->featureItem('Liste des vouchers (réservations payées uniquement)') . '
+                ' . $this->featureItem('Fonctionnalité de téléchargement de voucher') . '
+                ' . $this->featureItem('Sections de téléchargement de documents') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Système de Téléchargement de Documents</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Téléchargement de document de paiement (Ordre de paiement)') . '
+                ' . $this->featureItem('Téléchargement de billet de vol') . '
+                ' . $this->featureItem('Support d\'images et PDF') . '
+                ' . $this->featureItem('Validation de fichier (type, taille)') . '
+                ' . $this->featureItem('Indication de progression du téléchargement') . '
+                ' . $this->featureItem('Retour de succès/erreur') . '
+                ' . $this->featureItem('Support de téléchargement par réservation') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">27. Système d\'Usurpation d\'Identité Admin</div>
+        <div class="subsection">
+            <div class="subsection-title">Fonctionnalités d\'Usurpation d\'Identité</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Détection de token depuis le paramètre de requête URL') . '
+                ' . $this->featureItem('Authentification automatique avec token d\'usurpation d\'identité') . '
+                ' . $this->featureItem('Affichage de bannière d\'usurpation d\'identité (bannière d\'avertissement jaune)') . '
+                ' . $this->featureItem('Affichage du nom d\'utilisateur usurpé') . '
+                ' . $this->featureItem('Fonctionnalité d\'arrêt d\'usurpation d\'identité') . '
+                ' . $this->featureItem('Suppression de token de l\'URL (mesure de sécurité)') . '
+                ' . $this->featureItem('Redirection backend lors de l\'arrêt d\'usurpation d\'identité') . '
+                ' . $this->featureItem('Suivi du statut d\'usurpation d\'identité') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">28. Fonctionnalités de Sécurité Frontend (Conformité OWASP)</div>
+        <div class="subsection">
+            <div class="subsection-title">Sanitisation des Entrées</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Sanitisation de chaîne (entités HTML, octets null, limites de longueur)') . '
+                ' . $this->featureItem('Sanitisation d\'email (validation de format, caractères dangereux)') . '
+                ' . $this->featureItem('Sanitisation de téléphone (suppression de non-chiffres, limites de longueur)') . '
+                ' . $this->featureItem('Sanitisation d\'URL (caractères dangereux, limites de longueur)') . '
+                ' . $this->featureItem('Sanitisation de nombre (suppression de non-numériques, validation de plage)') . '
+                ' . $this->featureItem('Sanitisation de date (validation de format, vérification de date réelle)') . '
+                ' . $this->featureItem('Sanitisation HTML (intégration DOMPurify)') . '
+                ' . $this->featureItem('Sanitisation de données de formulaire (sanitisation en masse avec schéma)') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Validation des Entrées</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Validation d\'email (format, domaine)') . '
+                ' . $this->featureItem('Validation de téléphone (format, longueur)') . '
+                ' . $this->featureItem('Validation de mot de passe (exigences de force)') . '
+                ' . $this->featureItem('Validation de date (format, plage)') . '
+                ' . $this->featureItem('Validation de fichier (type, taille, extension)') . '
+                ' . $this->featureItem('Validation de formulaire (côté client, en temps réel)') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Prévention XSS</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Composant SafeHTML (remplace dangerouslySetInnerHTML)') . '
+                ' . $this->featureItem('Intégration DOMPurify pour la sanitisation HTML') . '
+                ' . $this->featureItem('Support de Content Security Policy') . '
+                ' . $this->featureItem('Échappement HTML automatique dans les formulaires') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Protection CSRF</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Composant CSRFInitializer pour la gestion des tokens') . '
+                ' . $this->featureItem('Récupération automatique du cookie CSRF') . '
+                ' . $this->featureItem('Injection de token CSRF dans les requêtes') . '
+                ' . $this->featureItem('Intégration CSRF Sanctum') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">29. Internationalisation (i18n)</div>
+        <div class="subsection">
+            <div class="subsection-title">Support Multilingue</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Français (fr) comme langue par défaut') . '
+                ' . $this->featureItem('Support de la langue anglaise (en)') . '
+                ' . $this->featureItem('Composant de changement de langue dans la barre de navigation') . '
+                ' . $this->featureItem('Traduction de contenu dynamique') . '
+                ' . $this->featureItem('Fichiers de traduction (messages/fr.json, messages/en.json)') . '
+                ' . $this->featureItem('Hook useI18n pour les traductions') . '
+                ' . $this->featureItem('Persistance de locale dans localStorage') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">30. Composants UI/UX</div>
+        <div class="subsection">
+            <div class="subsection-title">Composants de Mise en Page</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Navbar avec design responsive') . '
+                ' . $this->featureItem('Footer avec liens et informations') . '
+                ' . $this->featureItem('MainLayout composant wrapper') . '
+                ' . $this->featureItem('EventNavbar pour la navigation spécifique aux événements') . '
+                ' . $this->featureItem('Breadcrumbs composant de navigation') . '
+                ' . $this->featureItem('Bouton WhatsApp (bouton d\'action flottant)') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Composants de Formulaire</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Input composant avec validation') . '
+                ' . $this->featureItem('SearchField composant avec icônes') . '
+                ' . $this->featureItem('DatePicker composant') . '
+                ' . $this->featureItem('GuestsDropdown composant') . '
+                ' . $this->featureItem('BookingForm composant (complet)') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Composants d\'Affichage</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Card composants (Événement, Hôtel, Vol, Forfait)') . '
+                ' . $this->featureItem('Carousel composants (Événements, Hôtels, Vols)') . '
+                ' . $this->featureItem('ImageCarousel pour les galeries') . '
+                ' . $this->featureItem('Badge composant pour le statut') . '
+                ' . $this->featureItem('Spinner composant de chargement') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">31. Intégration API</div>
+        <div class="subsection">
+            <div class="subsection-title">Client API</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Client API centralisé (lib/api.js)') . '
+                ' . $this->featureItem('Client HTTP basé sur Axios') . '
+                ' . $this->featureItem('Injection automatique de token') . '
+                ' . $this->featureItem('Gestion des cookies CSRF') . '
+                ' . $this->featureItem('Gestion d\'erreur et logique de nouvelle tentative') . '
+                ' . $this->featureItem('Intercepteurs de requête/réponse') . '
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="subsection-title">Intégration des Points de Terminaison API</div>
+            <div class="feature-list">
+                ' . $this->featureItem('API de liste d\'événements publics') . '
+                ' . $this->featureItem('API de détails d\'événement') . '
+                ' . $this->featureItem('API de liste d\'hôtels (par événement)') . '
+                ' . $this->featureItem('API de liste de vols (par événement)') . '
+                ' . $this->featureItem('API de réservation authentifiée') . '
+                ' . $this->featureItem('API de portefeuille utilisateur') . '
+                ' . $this->featureItem('API de voucher (réservations payées uniquement)') . '
+                ' . $this->featureItem('API de téléchargement de document') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">32. Recherche et Filtrage</div>
+        <div class="subsection">
+            <div class="subsection-title">Fonctionnalité de Recherche</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Recherche d\'événements sur la page d\'accueil') . '
+                ' . $this->featureItem('Recherche d\'hôtels par événement') . '
+                ' . $this->featureItem('Recherche de plage de dates (arrivée, départ)') . '
+                ' . $this->featureItem('Sélection du nombre d\'invités') . '
+                ' . $this->featureItem('Formulaire de recherche avec validation') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">33. Design Responsive</div>
+        <div class="subsection">
+            <div class="subsection-title">Support d\'Appareils</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Mises en page responsive pour toutes les pages') . '
+                ' . $this->featureItem('Menu mobile de navigation') . '
+                ' . $this->featureItem('Composants adaptés au tactile') . '
+                ' . $this->featureItem('Formulaires optimisés pour mobile') . '
+                ' . $this->featureItem('Carrousels responsive') . '
+                ' . $this->featureItem('Mises en page optimisées pour tablette') . '
+                ' . $this->featureItem('Mises en page optimisées pour desktop') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">34. Optimisation des Performances</div>
+        <div class="subsection">
+            <div class="subsection-title">Fonctionnalités d\'Optimisation</div>
+            <div class="feature-list">
+                ' . $this->featureItem('Division du code avec React Router') . '
+                ' . $this->featureItem('Optimisation de la taille du bundle') . '
+                ' . $this->featureItem('Tree shaking (Vite)') . '
+                ' . $this->featureItem('Composants Spinner pour le chargement') . '
+                ' . $this->featureItem('Chargement progressif') . '
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">35. Stack Technologique Frontend</div>
+        <div class="subsection">
+            <div class="subsection-title">Framework Frontend</div>
+            <div class="feature-list">
+                ' . $this->featureItem('React 18.2+') . '
+                ' . $this->featureItem('React Router DOM 6.20+') . '
+                ' . $this->featureItem('Vite 5.0+') . '
+                ' . $this->featureItem('Axios (Latest)') . '
+                ' . $this->featureItem('DOMPurify (Latest)') . '
+                ' . $this->featureItem('React Helmet Async (Latest)') . '
+                ' . $this->featureItem('Embla Carousel (Latest)') . '
+                ' . $this->featureItem('TailwindCSS pour le style') . '
             </div>
         </div>
     </div>';

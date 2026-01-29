@@ -75,6 +75,8 @@ class EventController extends Controller
             'commission_percentage' => 'nullable|numeric|min:0|max:100',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
+            'flights_sub_permissions' => 'nullable|array',
+            'flights_sub_permissions.*' => 'exists:users,id',
         ]);
 
         $event = new Accommodation();
@@ -126,13 +128,27 @@ class EventController extends Controller
         $event->save();
 
         // Handle sub-permissions (only for super-admin)
-        if (auth()->user()->isSuperAdmin() && isset($validated['sub_permissions'])) {
-            foreach ($validated['sub_permissions'] as $adminId) {
-                ResourcePermission::firstOrCreate([
-                    'resource_type' => 'event',
-                    'resource_id' => $event->id,
-                    'user_id' => $adminId,
-                ]);
+        if (auth()->user()->isSuperAdmin()) {
+            // Handle event sub-permissions
+            if (isset($validated['sub_permissions'])) {
+                foreach ($validated['sub_permissions'] as $adminId) {
+                    ResourcePermission::firstOrCreate([
+                        'resource_type' => 'event',
+                        'resource_id' => $event->id,
+                        'user_id' => $adminId,
+                    ]);
+                }
+            }
+            
+            // Handle flights sub-permissions
+            if (isset($validated['flights_sub_permissions'])) {
+                foreach ($validated['flights_sub_permissions'] as $adminId) {
+                    ResourcePermission::firstOrCreate([
+                        'resource_type' => 'flight',
+                        'resource_id' => $event->id,
+                        'user_id' => $adminId,
+                    ]);
+                }
             }
         }
 
@@ -193,12 +209,21 @@ class EventController extends Controller
             : collect();
 
         // Get current sub-permissions for this event
-        $subPermissions = $event->resourcePermissions()->pluck('user_id')->toArray();
+        $subPermissions = ResourcePermission::where('resource_type', 'event')
+            ->where('resource_id', $event->id)
+            ->pluck('user_id')
+            ->toArray();
+        
+        // Get current flights sub-permissions for this event
+        $flightsSubPermissions = ResourcePermission::where('resource_type', 'flight')
+            ->where('resource_id', $event->id)
+            ->pluck('user_id')
+            ->toArray();
         
         // Load organizer relationship
         $event->load('organizer');
         
-        return view('admin.events.edit', compact('event', 'admins', 'subPermissions'));
+        return view('admin.events.edit', compact('event', 'admins', 'subPermissions', 'flightsSubPermissions'));
     }
 
     /**
@@ -242,6 +267,8 @@ class EventController extends Controller
             'commission_percentage' => 'nullable|numeric|min:0|max:100',
             'sub_permissions' => 'nullable|array',
             'sub_permissions.*' => 'exists:users,id',
+            'flights_sub_permissions' => 'nullable|array',
+            'flights_sub_permissions.*' => 'exists:users,id',
         ]);
 
         $event->name = $validated['name'];
@@ -362,16 +389,32 @@ class EventController extends Controller
 
         // Handle sub-permissions (only for super-admin)
         if (auth()->user()->isSuperAdmin()) {
-            // Remove all existing sub-permissions for this event
+            // Remove all existing event sub-permissions for this event
             ResourcePermission::where('resource_type', 'event')
                 ->where('resource_id', $event->id)
                 ->delete();
 
-            // Add new sub-permissions
+            // Add new event sub-permissions
             if (isset($validated['sub_permissions'])) {
                 foreach ($validated['sub_permissions'] as $adminId) {
                     ResourcePermission::create([
                         'resource_type' => 'event',
+                        'resource_id' => $event->id,
+                        'user_id' => $adminId,
+                    ]);
+                }
+            }
+            
+            // Remove all existing flights sub-permissions for this event
+            ResourcePermission::where('resource_type', 'flight')
+                ->where('resource_id', $event->id)
+                ->delete();
+
+            // Add new flights sub-permissions
+            if (isset($validated['flights_sub_permissions'])) {
+                foreach ($validated['flights_sub_permissions'] as $adminId) {
+                    ResourcePermission::create([
+                        'resource_type' => 'flight',
                         'resource_id' => $event->id,
                         'user_id' => $adminId,
                     ]);

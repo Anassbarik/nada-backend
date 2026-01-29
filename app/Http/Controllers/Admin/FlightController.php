@@ -48,14 +48,46 @@ class FlightController extends Controller
     {
         $user = auth()->user();
 
-        // Basic permission check consistent with accommodation flights management
-        if (!$user->isSuperAdmin() && (!$user->isAdmin() || !$user->hasPermission('flights', 'view'))) {
+        // Super-admins can see all flights
+        if ($user->isSuperAdmin()) {
+            $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
+                ->latest()
+                ->paginate(20);
+            
+            return view('admin.flights.global-index', compact('flights'));
+        }
+
+        // Regular admins need either main permission or resource permissions
+        if (!$user->isAdmin()) {
             abort(403, 'You do not have permission to view flights.');
         }
 
-        $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
-            ->latest()
-            ->paginate(20);
+        $hasMainPermission = $user->hasPermission('flights', 'view');
+        
+        // If admin has main permission, show all flights
+        if ($hasMainPermission) {
+            $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
+                ->latest()
+                ->paginate(20);
+        } else {
+            // If admin doesn't have main permission, check for resource permissions
+            // Get accommodation IDs where user has resource permissions
+            $allowedAccommodationIds = \App\Models\ResourcePermission::where('user_id', $user->id)
+                ->where('resource_type', 'flight')
+                ->pluck('resource_id')
+                ->toArray();
+
+            if (empty($allowedAccommodationIds)) {
+                // No resource permissions either, deny access
+                abort(403, 'You do not have permission to view flights.');
+            }
+
+            // Show only flights for accommodations where user has resource permissions
+            $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
+                ->whereIn('accommodation_id', $allowedAccommodationIds)
+                ->latest()
+                ->paginate(20);
+        }
 
         return view('admin.flights.global-index', compact('flights'));
     }
@@ -432,6 +464,15 @@ class FlightController extends Controller
                     ->delete();
             }
 
+            // Check if this is a standalone request
+            $isStandalone = $request->has('_standalone') || request()->routeIs('admin.standalone.flights.*');
+            
+            if ($isStandalone) {
+                return redirect()->route('admin.standalone.flights.index')
+                    ->with('success', 'Flight created successfully.')
+                    ->with('credentials_pdf_url', $flight->credentials_pdf_url ?? null);
+            }
+            
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight created successfully.')
                 ->with('credentials_pdf_url', $flight->credentials_pdf_url ?? null);
@@ -508,7 +549,7 @@ class FlightController extends Controller
             abort(403, 'You do not have permission to edit flights.');
         }
 
-        $validated = $request->validate([
+        $validationRules = [
             'full_name' => 'required|string|max:255',
             'flight_class' => 'required|in:economy,business,first',
             'flight_category' => 'required|in:one_way,round_trip',
@@ -538,9 +579,28 @@ class FlightController extends Controller
             'show_flight_prices_organizer_dashboard' => 'nullable|boolean',
             'flights_sub_permissions' => 'nullable|array',
             'flights_sub_permissions.*' => 'exists:users,id',
-        ]);
+        ];
+
+        // Add accommodation_id validation if it's a standalone request
+        if (request()->routeIs('admin.standalone.flights.*')) {
+            $validationRules['accommodation_id'] = 'required|exists:accommodations,id';
+        }
+
+        $validated = $request->validate($validationRules);
 
         try {
+            // Handle accommodation_id change if provided (standalone route)
+            if (isset($validated['accommodation_id']) && $validated['accommodation_id'] != $accommodation->id) {
+                $newAccommodation = Accommodation::findOrFail($validated['accommodation_id']);
+                
+                if (!$newAccommodation->canManageFlightsBy(auth()->user())) {
+                    abort(403, 'You do not have permission to move flights to this accommodation.');
+                }
+                
+                $accommodation = $newAccommodation;
+                $flight->accommodation_id = $accommodation->id;
+            }
+
             $flight->full_name = $validated['full_name'];
             $flight->flight_class = $validated['flight_class'];
             $flight->flight_category = $validated['flight_category'];
@@ -631,6 +691,14 @@ class FlightController extends Controller
                 }
             }
 
+            // Check if we came from standalone route
+            $isStandalone = request()->routeIs('admin.standalone.flights.*') || $request->has('_standalone');
+            
+            if ($isStandalone) {
+                return redirect()->route('admin.standalone.flights.index')
+                    ->with('success', 'Flight updated successfully.');
+            }
+            
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight updated successfully.');
 
@@ -686,6 +754,14 @@ class FlightController extends Controller
             
             $duplicate->save();
 
+            // Check if we came from standalone route
+            $isStandalone = request()->routeIs('admin.standalone.flights.*');
+            
+            if ($isStandalone) {
+                return redirect()->route('admin.standalone.flights.index')
+                    ->with('success', 'Flight duplicated successfully. You can now modify it.');
+            }
+            
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight duplicated successfully. You can now modify it.');
 
@@ -728,6 +804,14 @@ class FlightController extends Controller
 
             $flight->delete();
 
+            // Check if we came from standalone route
+            $isStandalone = request()->routeIs('admin.standalone.flights.*');
+            
+            if ($isStandalone) {
+                return redirect()->route('admin.standalone.flights.index')
+                    ->with('success', 'Flight deleted successfully.');
+            }
+            
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight deleted successfully.');
 
@@ -746,6 +830,316 @@ class FlightController extends Controller
      * Download credentials PDF.
      */
     public function downloadCredentials(Accommodation $accommodation, Flight $flight)
+    {
+        if (!$flight->credentials_pdf_path) {
+            abort(404, 'Credentials PDF not found.');
+        }
+
+        $path = storage_path('app/public/' . $flight->credentials_pdf_path);
+        
+        if (!file_exists($path)) {
+            $path = public_path('storage/' . $flight->credentials_pdf_path);
+        }
+
+        if (!file_exists($path)) {
+            abort(404, 'Credentials PDF file not found.');
+        }
+
+        $filename = 'flight-credentials-' . $flight->reference . '.pdf';
+        
+        return response()->download($path, $filename);
+    }
+
+    /**
+     * Show the form for creating a new standalone flight (with event dropdown).
+     */
+    public function createStandalone()
+    {
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin()) {
+            if (!$user->isAdmin()) {
+                abort(403, 'You do not have permission to create flights.');
+            }
+
+            // Check if user has main permission OR resource permissions
+            $hasMainPermission = $user->hasPermission('flights', 'create');
+            $hasResourcePermissions = \App\Models\ResourcePermission::where('user_id', $user->id)
+                ->where('resource_type', 'flight')
+                ->exists();
+
+            if (!$hasMainPermission && !$hasResourcePermissions) {
+                abort(403, 'You do not have permission to create flights.');
+            }
+        }
+
+        // Get accommodations - filter based on permissions
+        if ($user->isSuperAdmin() || $user->hasPermission('flights', 'create')) {
+            // User has main permission, show all accommodations
+            $accommodations = Accommodation::orderBy('name')->get();
+        } else {
+            // User only has resource permissions, show only accommodations they have access to
+            $allowedAccommodationIds = \App\Models\ResourcePermission::where('user_id', $user->id)
+                ->where('resource_type', 'flight')
+                ->pluck('resource_id')
+                ->toArray();
+            
+            $accommodations = Accommodation::whereIn('id', $allowedAccommodationIds)
+                ->orderBy('name')
+                ->get();
+        }
+
+        // Get regular admins for flights sub-permissions assignment (only for super-admin)
+        $admins = $user->isSuperAdmin() 
+            ? User::where('role', 'admin')->orderBy('name')->get()
+            : collect();
+
+        return view('admin.flights.create-standalone', compact('accommodations', 'admins'));
+    }
+
+    /**
+     * Store a newly created standalone flight.
+     */
+    public function storeStandalone(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin()) {
+            if (!$user->isAdmin()) {
+                abort(403, 'You do not have permission to create flights.');
+            }
+
+            // The actual permission check happens in canManageFlightsBy when we get the accommodation
+            // So we don't need to check here - it will be checked in the store method
+        }
+
+        $validated = $request->validate([
+            'accommodation_id' => 'required|exists:accommodations,id',
+            'full_name' => 'required|string|max:255',
+            'flight_class' => 'required|in:economy,business,first',
+            'flight_category' => 'required|in:one_way,round_trip',
+            'departure_date' => 'required|date',
+            'departure_time' => 'required',
+            'arrival_date' => 'required|date|after_or_equal:departure_date',
+            'arrival_time' => 'required',
+            'departure_flight_number' => 'required|string|max:50',
+            'departure_airport' => 'required|string|max:100',
+            'arrival_airport' => 'required|string|max:100',
+            'departure_price_ttc' => 'required|numeric|min:0',
+            'return_date' => 'nullable|required_if:flight_category,round_trip|date|after_or_equal:arrival_date',
+            'return_departure_time' => 'nullable|required_if:flight_category,round_trip|required_with:return_date',
+            'return_arrival_date' => 'nullable|required_if:flight_category,round_trip|date|after_or_equal:return_date',
+            'return_arrival_time' => 'nullable|required_if:flight_category,round_trip|required_with:return_arrival_date',
+            'return_flight_number' => 'nullable|required_if:flight_category,round_trip|string|max:50',
+            'return_departure_airport' => 'nullable|required_if:flight_category,round_trip|string|max:100',
+            'return_arrival_airport' => 'nullable|required_if:flight_category,round_trip|string|max:100',
+            'return_price_ttc' => 'nullable|required_if:flight_category,round_trip|numeric|min:0',
+            'eticket' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+            'eticket_number' => 'nullable|string|max:255',
+            'ticket_reference' => 'nullable|string|max:255',
+            'beneficiary_type' => 'required|in:organizer,client',
+            'client_email' => 'nullable|required_if:beneficiary_type,client|email|max:255|unique:users,email',
+            'status' => 'required|in:pending,paid',
+            'payment_method' => 'nullable|in:wallet,bank,both',
+            'show_flight_prices_public' => 'nullable|boolean',
+            'show_flight_prices_client_dashboard' => 'nullable|boolean',
+            'show_flight_prices_organizer_dashboard' => 'nullable|boolean',
+            'flights_sub_permissions' => 'nullable|array',
+            'flights_sub_permissions.*' => 'exists:users,id',
+        ]);
+
+        $accommodation = Accommodation::findOrFail($validated['accommodation_id']);
+
+        // Check permissions
+        if (!$accommodation->canManageFlightsBy($user)) {
+            abort(403, 'You do not have permission to create flights for this accommodation.');
+        }
+
+        // Mark request as standalone for redirect handling
+        $request->merge(['_standalone' => true]);
+        
+        // Call the existing store method
+        $response = $this->store($request, $accommodation);
+        
+        // Override redirect if it was successful and we're in standalone mode
+        if ($response instanceof \Illuminate\Http\RedirectResponse) {
+            $session = $response->getSession();
+            if ($session && $session->has('success')) {
+                // Get the latest flight created by this user for this accommodation
+                $flight = Flight::where('accommodation_id', $accommodation->id)
+                    ->where('created_by', auth()->id())
+                    ->latest()
+                    ->first();
+                
+                return redirect()->route('admin.standalone.flights.index')
+                    ->with('success', 'Flight created successfully.')
+                    ->with('credentials_pdf_url', $flight->credentials_pdf_url ?? null);
+            }
+        }
+        
+        return $response;
+    }
+
+    /**
+     * Display the specified standalone flight.
+     */
+    public function showStandalone(Flight $flight)
+    {
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+            abort(403, 'You do not have permission to view flights.');
+        }
+
+        $accommodation = $flight->accommodation;
+        
+        if (!$accommodation) {
+            abort(404, 'Flight accommodation not found.');
+        }
+
+        // This checks both main permissions and resource permissions
+        if (!$accommodation->canManageFlightsBy($user)) {
+            abort(403, 'You do not have permission to view flights for this accommodation.');
+        }
+
+        $flight->load(['user', 'organizer', 'creator', 'bookings']);
+        return view('admin.flights.show-standalone', compact('flight', 'accommodation'));
+    }
+
+    /**
+     * Show the form for editing the specified standalone flight.
+     */
+    public function editStandalone(Flight $flight)
+    {
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin() && (!$user->isAdmin() || !$user->hasPermission('flights', 'edit'))) {
+            abort(403, 'You do not have permission to edit flights.');
+        }
+
+        $accommodation = $flight->accommodation;
+        
+        if (!$accommodation) {
+            abort(404, 'Flight accommodation not found.');
+        }
+
+        if (!$accommodation->canManageFlightsBy($user)) {
+            abort(403, 'You do not have permission to edit flights for this accommodation.');
+        }
+
+        // Get all accommodations for dropdown
+        $accommodations = Accommodation::orderBy('name')->get();
+
+        // Get regular admins for flights sub-permissions assignment (only for super-admin)
+        $admins = $user->isSuperAdmin() 
+            ? User::where('role', 'admin')->orderBy('name')->get()
+            : collect();
+
+        // Get current flights sub-permissions for this accommodation
+        $flightsSubPermissions = ResourcePermission::where('resource_type', 'flight')
+            ->where('resource_id', $accommodation->id)
+            ->pluck('user_id')
+            ->toArray();
+
+        return view('admin.flights.edit-standalone', compact('flight', 'accommodation', 'accommodations', 'admins', 'flightsSubPermissions'));
+    }
+
+    /**
+     * Update the specified standalone flight.
+     */
+    public function updateStandalone(Request $request, Flight $flight)
+    {
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+            abort(403, 'You do not have permission to edit flights.');
+        }
+
+        // The actual permission check happens in canManageFlightsBy when we get the accommodation
+        // So we don't need to check here - it will be checked in the update method
+
+        $accommodation = $flight->accommodation;
+        
+        if (!$accommodation) {
+            abort(404, 'Flight accommodation not found.');
+        }
+
+        // If accommodation_id is being changed, validate it
+        if ($request->has('accommodation_id') && $request->accommodation_id != $accommodation->id) {
+            $newAccommodation = Accommodation::findOrFail($request->accommodation_id);
+            
+            if (!$newAccommodation->canManageFlightsBy($user)) {
+                abort(403, 'You do not have permission to move flights to this accommodation.');
+            }
+            
+            $accommodation = $newAccommodation;
+        }
+
+        if (!$accommodation->canManageFlightsBy($user)) {
+            abort(403, 'You do not have permission to update flights for this accommodation.');
+        }
+
+        // Mark request as standalone for redirect handling
+        $request->merge(['_standalone' => true]);
+        
+        // Use the existing update method logic
+        return $this->update($request, $accommodation, $flight);
+    }
+
+    /**
+     * Duplicate a standalone flight.
+     */
+    public function duplicateStandalone(Flight $flight)
+    {
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin() && (!$user->isAdmin() || !$user->hasPermission('flights', 'create'))) {
+            abort(403, 'You do not have permission to create flights.');
+        }
+
+        $accommodation = $flight->accommodation;
+        
+        if (!$accommodation) {
+            abort(404, 'Flight accommodation not found.');
+        }
+
+        if (!$accommodation->canManageFlightsBy($user)) {
+            abort(403, 'You do not have permission to duplicate flights for this accommodation.');
+        }
+
+        // Use the existing duplicate method logic
+        return $this->duplicate($accommodation, $flight);
+    }
+
+    /**
+     * Remove the specified standalone flight.
+     */
+    public function destroyStandalone(Flight $flight)
+    {
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin() && (!$user->isAdmin() || !$user->hasPermission('flights', 'delete'))) {
+            abort(403, 'You do not have permission to delete flights.');
+        }
+
+        $accommodation = $flight->accommodation;
+        
+        if (!$accommodation) {
+            abort(404, 'Flight accommodation not found.');
+        }
+
+        if (!$accommodation->canManageFlightsBy($user)) {
+            abort(403, 'You do not have permission to delete flights for this accommodation.');
+        }
+
+        // Use the existing destroy method logic
+        return $this->destroy($accommodation, $flight);
+    }
+
+    /**
+     * Download credentials PDF for standalone flight.
+     */
+    public function downloadCredentialsStandalone(Flight $flight)
     {
         if (!$flight->credentials_pdf_path) {
             abort(404, 'Credentials PDF not found.');

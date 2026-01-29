@@ -12,7 +12,15 @@
             </p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.flights.exportAll') }}"
+            <a href="{{ route('admin.standalone.flights.create') }}"
+               class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white shadow-sm"
+               style="background-color: #00adf1;"
+               onmouseover="this.style.backgroundColor='#0099d8'"
+               onmouseout="this.style.backgroundColor='#00adf1'">
+                <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                Create Flight
+            </a>
+            <a href="{{ route('admin.standalone.flights.exportAll') }}"
                class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 shadow-sm">
                 <i data-lucide="download" class="w-4 h-4 mr-2"></i>
                 Export All to Excel
@@ -119,12 +127,12 @@
                                     <x-shadcn.table-cell class="text-right">
                                         @if($flight->accommodation)
                                             <div class="flex justify-end gap-2">
-                                                <a href="{{ route('admin.flights.show', [$flight->accommodation, $flight]) }}" 
+                                                <a href="{{ route('admin.standalone.flights.show', $flight) }}" 
                                                    class="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200">
                                                     View
                                                 </a>
                                                 @if(auth()->user()->hasPermission('flights', 'edit'))
-                                                    <a href="{{ route('admin.flights.edit', [$flight->accommodation, $flight]) }}" 
+                                                    <a href="{{ route('admin.standalone.flights.edit', $flight) }}" 
                                                        class="text-xs px-2 py-1 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200">
                                                         Edit
                                                     </a>
@@ -136,7 +144,7 @@
                                                     </a>
                                                 @endif
                                                 @if(auth()->user()->hasPermission('flights', 'create'))
-                                                    <form method="POST" action="{{ route('admin.flights.duplicate', [$flight->accommodation, $flight]) }}"
+                                                    <form method="POST" action="{{ route('admin.standalone.flights.duplicate', $flight) }}"
                                                           onsubmit="return confirm('Duplicate this flight?');">
                                                         @csrf
                                                         <button type="submit" 
@@ -146,7 +154,7 @@
                                                     </form>
                                                 @endif
                                                 @if(auth()->user()->hasPermission('flights', 'delete'))
-                                                    <form method="POST" action="{{ route('admin.flights.destroy', [$flight->accommodation, $flight]) }}"
+                                                    <form method="POST" action="{{ route('admin.standalone.flights.destroy', $flight) }}"
                                                           onsubmit="return confirm('Are you sure you want to delete this flight?');">
                                                         @csrf
                                                         @method('DELETE')
