@@ -29,19 +29,19 @@ class BookingController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        
+
         // Get bookings by user_id (primary) or email (fallback for legacy bookings)
-        $bookings = Booking::where(function($query) use ($user) {
-                $query->where('user_id', $user->id)
-                      ->orWhere(function($q) use ($user) {
-                          $q->whereNull('user_id')
-                            ->where(function($emailQuery) use ($user) {
-                                $emailQuery->where('guest_email', $user->email)
-                                          ->orWhere('email', $user->email);
-                            });
-                      });
-            })
-            ->with(['accommodation', 'hotel', 'package', 'user', 'flight'])
+        $bookings = Booking::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)
+                ->orWhere(function ($q) use ($user) {
+                    $q->whereNull('user_id')
+                        ->where(function ($emailQuery) use ($user) {
+                            $emailQuery->where('guest_email', $user->email)
+                                ->orWhere('email', $user->email);
+                        });
+                });
+        })
+            ->with(['accommodation', 'hotel', 'package', 'user', 'flight', 'transfer'])
             ->latest()
             ->get();
 
@@ -49,7 +49,7 @@ class BookingController extends Controller
         $formattedBookings = $bookings->map(function ($booking) {
             // Check if flight prices should be shown (client dashboard setting)
             $showFlightPrices = $booking->accommodation ? ($booking->accommodation->show_flight_prices_client_dashboard ?? true) : true;
-            
+
             // Format flight data conditionally
             $flightData = null;
             if ($booking->flight) {
@@ -73,12 +73,12 @@ class BookingController extends Controller
                     ],
                     'reference' => $booking->flight->reference,
                 ];
-                
+
                 // Conditionally include prices
                 if ($showFlightPrices) {
                     $flightData['departure']['price_ttc'] = (float) ($booking->flight->departure_price_ttc ?? 0);
                 }
-                
+
                 // Add return flight if exists
                 if ($booking->flight->return_date) {
                     $flightData['return'] = [
@@ -90,7 +90,7 @@ class BookingController extends Controller
                         'arrival_airport' => $booking->flight->return_arrival_airport,
                         'flight_number' => $booking->flight->return_flight_number,
                     ];
-                    
+
                     if ($showFlightPrices) {
                         $flightData['return']['price_ttc'] = (float) ($booking->flight->return_price_ttc ?? 0);
                         $flightData['total_price'] = $booking->flight->total_price;
@@ -99,7 +99,32 @@ class BookingController extends Controller
                     $flightData['total_price'] = (float) ($booking->flight->departure_price_ttc ?? 0);
                 }
             }
-            
+
+            // Format transfer data
+            $transferData = null;
+            if ($booking->transfer) {
+                // Check if transfer prices should be shown (client dashboard setting)
+                $showTransferPrices = $booking->accommodation ? ($booking->accommodation->show_transfer_prices_client_dashboard ?? true) : true;
+
+                $transferData = [
+                    'id' => $booking->transfer->id,
+                    'type' => $booking->transfer->transfer_type,
+                    'type_label' => $booking->transfer->transfer_type_label,
+                    'trip_type' => $booking->transfer->trip_type,
+                    'trip_type_label' => $booking->transfer->trip_type_label,
+                    'date' => $booking->transfer->transfer_date?->format('Y-m-d'),
+                    'time' => $booking->transfer->pickup_time,
+                    'pickup' => $booking->transfer->pickup_location,
+                    'dropoff' => $booking->transfer->dropoff_location,
+                    'vehicle' => $booking->transfer->vehicle_type,
+                    'vehicle_label' => $booking->transfer->vehicle_type_label,
+                ];
+
+                if ($showTransferPrices) {
+                    $transferData['price'] = (float) ($booking->transfer->price ?? 0);
+                }
+            }
+
             return [
                 'id' => $booking->id,
                 'booking_reference' => $booking->booking_reference,
@@ -123,6 +148,7 @@ class BookingController extends Controller
                 'flight_ticket_path' => $booking->flight_ticket_path,
                 'flight_ticket_url' => $booking->flight_ticket_url,
                 'flight' => $flightData,
+                'transfer' => $transferData,
                 'event' => $booking->accommodation ? [
                     'id' => $booking->accommodation->id,
                     'name' => $booking->accommodation->name,
@@ -135,6 +161,9 @@ class BookingController extends Controller
                     'show_flight_prices_public' => $booking->accommodation->show_flight_prices_public ?? true,
                     'show_flight_prices_client_dashboard' => $booking->accommodation->show_flight_prices_client_dashboard ?? true,
                     'show_flight_prices_organizer_dashboard' => $booking->accommodation->show_flight_prices_organizer_dashboard ?? true,
+                    'show_transfer_prices_public' => $booking->accommodation->show_transfer_prices_public ?? true,
+                    'show_transfer_prices_client_dashboard' => $booking->accommodation->show_transfer_prices_client_dashboard ?? true,
+                    'show_transfer_prices_organizer_dashboard' => $booking->accommodation->show_transfer_prices_organizer_dashboard ?? true,
                 ] : null,
                 'hotel' => $booking->hotel ? [
                     'id' => $booking->hotel->id,
@@ -212,14 +241,14 @@ class BookingController extends Controller
         $event = Accommodation::where('slug', $slug)
             ->where('status', 'published')
             ->first();
-        
+
         // If not found, try Event
         if (!$event) {
             $event = Event::where('slug', $slug)
                 ->where('status', 'published')
                 ->first();
         }
-        
+
         return $event;
     }
 
@@ -251,7 +280,9 @@ class BookingController extends Controller
         // Support both new field names and legacy field names
         $validationRules = [
             'booking_reference' => 'nullable|string|max:50', // For linking to existing flight booking
-            'package_id' => 'required|exists:hotel_packages,id',
+            'package_id' => 'nullable|exists:hotel_packages,id',
+            'transfer_id' => 'nullable|exists:transfers,id',
+            'flight_id' => 'nullable|exists:flights,id',
             // Flight fields - support both flight_number and flight_num
             // These will be conditionally required based on booking_reference
             'flight_number' => 'nullable|string|max:20',
@@ -277,6 +308,7 @@ class BookingController extends Controller
             'resident_name_3' => 'nullable|string|max:255',
             'terms_accepted' => 'nullable|accepted', // Made nullable for API calls
             'guests_count' => 'nullable|integer|min:1',
+            'luggages_count' => 'nullable|integer|min:0',
             // Price fields - support both price and total
             'price' => 'nullable|numeric|min:0',
             'total' => 'nullable|numeric|min:0.01', // Frontend may send this
@@ -290,6 +322,17 @@ class BookingController extends Controller
             // User ID (will be overridden by auth()->id())
             'user_id' => 'nullable|exists:users,id',
         ];
+
+        // Ensure at least one item is being booked or linked
+        if (!$request->filled('package_id') && !$request->filled('transfer_id') && !$request->filled('flight_id') && !$request->filled('booking_reference')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Veuillez sélectionner au moins un forfait, un transfert, un vol ou une référence de vol.',
+                'errors' => [
+                    'package_id' => ['Au moins un élément (forfait, transfert, vol ou référence de vol) est requis.'],
+                ],
+            ], 422);
+        }
 
         // Resolve event from slug if provided
         $event = null;
@@ -310,10 +353,42 @@ class BookingController extends Controller
             }
         }
 
-        // If using direct /bookings route, require event_id and hotel_id
-        if (!$event || !$hotel) {
+        // If using direct /bookings route, REQUIRE accommodation_id
+        if (!$event) {
             $validationRules['accommodation_id'] = 'required|exists:accommodations,id';
+        }
+
+        // hotel_id is only required if package_id is provided and hotel is not in route
+        if ($request->filled('package_id') && !$hotel) {
             $validationRules['hotel_id'] = 'required|exists:hotels,id';
+        }
+
+        // transfer_id validation - check compatibility with accommodation if both present
+        if ($request->filled('transfer_id') && ($event ?? $request->accommodation_id)) {
+            $accId = $event ? $event->id : $request->accommodation_id;
+            $validationRules['transfer_id'] = [
+                'nullable',
+                'exists:transfers,id',
+                function ($attribute, $value, $fail) use ($accId, $request) {
+                    $transfer = \App\Models\Transfer::with('vehicleType')->find($value);
+                    if ($transfer && $transfer->accommodation_id != $accId) {
+                        $fail('Le transfert sélectionné n\'appartient pas à cet événement.');
+                        return;
+                    }
+
+                    if ($transfer && $transfer->vehicleType) {
+                        $guests = (int) ($request->guests_count ?? 1);
+                        $luggages = (int) ($request->luggages_count ?? 0);
+
+                        if ($guests > $transfer->vehicleType->max_passengers) {
+                            $fail("Le type de véhicule sélectionné ({$transfer->vehicleType->name}) autorise un maximum de {$transfer->vehicleType->max_passengers} passagers.");
+                        }
+                        if ($luggages > $transfer->vehicleType->max_luggages) {
+                            $fail("Le type de véhicule sélectionné ({$transfer->vehicleType->name}) autorise un maximum de {$transfer->vehicleType->max_luggages} bagages.");
+                        }
+                    }
+                }
+            ];
         }
 
         // Conditional validation: If booking_reference is provided, check if it's valid
@@ -326,7 +401,7 @@ class BookingController extends Controller
                 ->whereNull('hotel_id')
                 ->whereNull('package_id')
                 ->first();
-            
+
             if ($existingBookingCheck) {
                 // If event is resolved, verify the booking belongs to the same accommodation
                 if ($event) {
@@ -359,7 +434,7 @@ class BookingController extends Controller
                 'errors' => $validator->errors()->toArray(),
                 'request_data' => $request->all(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed.',
@@ -368,10 +443,10 @@ class BookingController extends Controller
         }
 
         // Get package to determine conditional validation for resident names
-        $package = \App\Models\Package::findOrFail($request->package_id);
-        
+        $package = $request->filled('package_id') ? \App\Models\Package::find($request->package_id) : null;
+
         // Add conditional validation for resident names based on package occupants
-        $occupants = (int) $package->occupants;
+        $occupants = $package ? (int) $package->occupants : 1;
         $bookerIsResident = $request->boolean('booker_is_resident');
         $requiredNames = $occupants - ($bookerIsResident ? 1 : 0);
 
@@ -394,7 +469,7 @@ class BookingController extends Controller
                 'booker_is_resident' => $bookerIsResident,
                 'required_names' => $requiredNames,
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed.',
@@ -413,25 +488,29 @@ class BookingController extends Controller
                     'message' => 'Hotel does not belong to the specified event.',
                 ], 422);
             }
-        } else {
-            // Route: /bookings (using request parameters)
+        } elseif ($request->filled('package_id')) {
+            // Route: /bookings (using request parameters) with package
             $hotelId = $request->hotel_id;
-        $hotel = Hotel::findOrFail($hotelId);
+            $hotel = Hotel::findOrFail($hotelId);
             $event = Accommodation::findOrFail($request->accommodation_id);
 
             // Verify event_id matches the hotel's event
-        if ($hotel->event_id != $event->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hotel does not belong to the specified event.',
-            ], 422);
+            if ($hotel->accommodation_id != $event->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hotel does not belong to the specified event.',
+                ], 422);
+            }
+        } elseif ($request->filled('transfer_id')) {
+            // Standalone Transfer or Transfer + Flight info
+            $event = Accommodation::findOrFail($request->accommodation_id);
+            $hotel = null; // No hotel for standalone transfer
         }
-        }
-        
+
         // Package is already loaded from validation above
 
         // Check if package belongs to hotel
-        if ($package->hotel_id != $hotel->id) {
+        if ($package && $hotel && $package->hotel_id != $hotel->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Package does not belong to the specified hotel.',
@@ -439,7 +518,7 @@ class BookingController extends Controller
         }
 
         // Check if package is available
-        if (!$package->disponibilite) {
+        if ($package && !$package->disponibilite) {
             return response()->json([
                 'success' => false,
                 'message' => 'Package is not available.',
@@ -447,7 +526,7 @@ class BookingController extends Controller
         }
 
         // Check if there are rooms available
-        if ($package->chambres_restantes <= 0) {
+        if ($package && $package->chambres_restantes <= 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'No rooms available for this package.',
@@ -459,16 +538,62 @@ class BookingController extends Controller
         $phone = $request->phone ?? $request->guest_phone;
         $email = $request->email ?? $request->guest_email;
         $specialInstructions = $request->special_instructions ?? $request->special_requests;
-        
+
         // Support both flight_number and flight_num
         $flightNumber = $request->flight_number ?? $request->flight_num ?? null;
-        
+
         // Support both price and total
-        $total = $request->price ?? $request->total ?? $package->prix_ttc;
-        
-        // Support checkin/checkout dates from request or use package dates
-        $checkinDate = $request->checkin_date ? \Carbon\Carbon::parse($request->checkin_date) : $package->check_in;
-        $checkoutDate = $request->checkout_date ? \Carbon\Carbon::parse($request->checkout_date) : $package->check_out;
+        $total = $request->price ?? $request->total;
+
+        // Strict Pricing Validation
+        $calculatedTotal = 0;
+        if ($package) {
+            $calculatedTotal += (float) $package->prix_ttc;
+        }
+        if ($request->filled('flight_id')) {
+            $flight = \App\Models\Flight::find($request->flight_id);
+            if ($flight) {
+                $calculatedTotal += (float) ($flight->departure_price_ttc ?? 0);
+                if ($flight->flight_category === 'round_trip' && $flight->return_price_ttc) {
+                    $calculatedTotal += (float) $flight->return_price_ttc;
+                }
+            }
+        }
+        if ($request->filled('transfer_id')) {
+            $transfer = \App\Models\Transfer::find($request->transfer_id);
+            if ($transfer) {
+                $calculatedTotal += (float) $transfer->price;
+            }
+        }
+
+        // If total is provided by frontend (common for bundles), validate it
+        if ($total !== null && abs((float) $total - $calculatedTotal) > 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le montant total ne correspond pas à la somme des éléments sélectionnés.',
+                'errors' => [
+                    'total_amount' => ['Le montant attendu est ' . number_format($calculatedTotal, 2, '.', '') . ' MAD.'],
+                ],
+            ], 422);
+        }
+
+        // Set total if not provided
+        if ($total === null) {
+            $total = $calculatedTotal;
+        }
+
+        // Support checkin/checkout dates from request or use package dates or use flight dates or default
+        $flight = $request->filled('flight_id') ? \App\Models\Flight::find($request->flight_id) : null;
+
+        $checkinDate = $request->checkin_date ? \Carbon\Carbon::parse($request->checkin_date) :
+            ($package ? $package->check_in :
+                ($flight ? $flight->departure_date :
+                    ($event ? $event->start_date : null)));
+
+        $checkoutDate = $request->checkout_date ? \Carbon\Carbon::parse($request->checkout_date) :
+            ($package ? $package->check_out :
+                ($flight ? ($flight->return_arrival_date ?? $flight->arrival_date ?? $flight->departure_date) :
+                    ($event ? $event->end_date : null)));
 
         // Ensure we have required fields
         if (!$fullName) {
@@ -481,22 +606,22 @@ class BookingController extends Controller
 
         // SMART WALLET PAYMENT LOGIC
         $user = Auth::user();
-        
+
         // Ensure wallet exists and load it
         $wallet = \App\Models\Wallet::firstOrCreate(
             ['user_id' => $user->id],
             ['balance' => 0.00]
         );
-        
+
         $walletBalance = (float) $wallet->balance;
         $paymentMethod = $request->payment_method ?? 'bank'; // Default to bank if not specified
-        
+
         // Initialize payment amounts
         $walletAmount = 0;
         $bankAmount = 0;
         $paymentType = 'bank';
         $bookingStatus = $request->status ?? 'pending';
-        
+
         // Calculate payment split based on payment method
         switch ($paymentMethod) {
             case 'wallet':
@@ -514,12 +639,12 @@ class BookingController extends Controller
                     ], 422);
                 }
                 break;
-                
+
             case 'bank':
                 $bankAmount = $total;
                 $paymentType = 'bank';
                 break;
-                
+
             case 'both':
                 $walletAmount = min($walletBalance, $total);
                 $bankAmount = $total - $walletAmount;
@@ -539,7 +664,7 @@ class BookingController extends Controller
                 ->whereNull('hotel_id')
                 ->whereNull('package_id')
                 ->first();
-            
+
             if (!$existingBooking) {
                 return response()->json([
                     'success' => false,
@@ -549,7 +674,7 @@ class BookingController extends Controller
                     ],
                 ], 422);
             }
-            
+
             // Verify the booking belongs to the same accommodation
             if ($event && $existingBooking->accommodation_id != $event->id) {
                 return response()->json([
@@ -560,7 +685,7 @@ class BookingController extends Controller
                     ],
                 ], 422);
             }
-            
+
             // Verify booking is not already linked to a hotel
             if ($existingBooking->hotel_id || $existingBooking->package_id) {
                 return response()->json([
@@ -576,7 +701,7 @@ class BookingController extends Controller
         // TRANSACTION SAFETY: Create booking and deduct wallet in a transaction
         try {
             DB::beginTransaction();
-            
+
             // Deduct wallet amount if applicable
             if ($walletAmount > 0) {
                 // Refresh wallet to get latest balance
@@ -616,8 +741,9 @@ class BookingController extends Controller
                 // Update existing flight booking with hotel/package details
                 $existingBooking->update([
                     'user_id' => $user->id, // Link user account
-                    'hotel_id' => $hotel->id,
-                    'package_id' => $package->id,
+                    'hotel_id' => $hotel ? $hotel->id : $existingBooking->hotel_id,
+                    'package_id' => $package ? $package->id : $existingBooking->package_id,
+                    'transfer_id' => $request->transfer_id ?? $existingBooking->transfer_id,
                     'flight_number' => $flightNumber ?? $existingBooking->flight_number,
                     'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : $existingBooking->flight_date,
                     'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : $existingBooking->flight_time,
@@ -633,8 +759,9 @@ class BookingController extends Controller
                     'resident_name_3' => trim($request->resident_name_3 ?? '') ?: $existingBooking->resident_name_3,
                     'checkin_date' => $checkinDate,
                     'checkout_date' => $checkoutDate,
-                    'guests_count' => $package->occupants,
-                    'price' => ($existingBooking->price ?? 0) + $total, // Add hotel price to existing flight price (flight price already includes departure + return if round trip)
+                    'guests_count' => $request->guests_count ?? ($package ? $package->occupants : ($existingBooking->guests_count ?? 1)),
+                    'luggages_count' => $request->luggages_count ?? $existingBooking->luggages_count,
+                    'price' => ($existingBooking->price ?? 0) + $total,
                     'commission_amount' => $commissionAmount,
                     'payment_type' => $paymentType,
                     'wallet_amount' => ($existingBooking->wallet_amount ?? 0) + $walletAmount,
@@ -646,7 +773,7 @@ class BookingController extends Controller
                     'guest_phone' => $phone ?? $existingBooking->guest_phone,
                     'special_requests' => $specialInstructions ?? $existingBooking->special_requests,
                 ]);
-                
+
                 $booking = $existingBooking->fresh();
                 Log::info('Existing flight booking updated with hotel/package:', [
                     'booking_id' => $booking->id,
@@ -657,60 +784,68 @@ class BookingController extends Controller
                 ]);
             } else {
                 // Create new booking
-            $bookingData = [
-                'user_id' => $user->id,
-                'created_by' => $createdBy,
-                'accommodation_id' => $event->id,
-                'hotel_id' => $hotel->id,
-                'package_id' => $package->id,
-                'flight_number' => $flightNumber,
-                'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : null,
-                'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : null,
-                'airport' => $request->airport ?? null,
-                'full_name' => $fullName,
-                'company' => $request->company ?? null,
-                'phone' => $phone,
-                'email' => $email,
-                'special_instructions' => $specialInstructions,
-                'booker_is_resident' => (bool) ($request->booker_is_resident ?? true),
-                'resident_name_1' => trim($request->resident_name_1 ?? '') ?: null,
-                'resident_name_2' => trim($request->resident_name_2 ?? '') ?: null,
-                'resident_name_3' => trim($request->resident_name_3 ?? '') ?: null,
-                'checkin_date' => $checkinDate,
-                'checkout_date' => $checkoutDate,
-                'guests_count' => $package->occupants, // Total occupants (always equals package.occupants)
-                'price' => $total,
-                'commission_amount' => $commissionAmount,
-                'payment_type' => $paymentType,
-                'wallet_amount' => $walletAmount,
-                'bank_amount' => $bankAmount,
-                'status' => $bookingStatus,
-                // Legacy fields for backward compatibility
-                'guest_name' => $fullName,
-                'guest_email' => $email,
-                'guest_phone' => $phone,
-                'special_requests' => $specialInstructions,
-            ];
-            
-            Log::info('Booking data prepared:', $bookingData);
+                $bookingData = [
+                    'user_id' => $user->id,
+                    'created_by' => $createdBy,
+                    'accommodation_id' => $event->id,
+                    'hotel_id' => $hotel ? $hotel->id : null,
+                    'package_id' => $package ? $package->id : null,
+                    'flight_id' => $request->flight_id,
+                    'transfer_id' => $request->transfer_id,
+                    'flight_number' => $flightNumber,
+                    'flight_date' => $request->flight_date ? \Carbon\Carbon::parse($request->flight_date) : null,
+                    'flight_time' => $request->flight_time ? \Carbon\Carbon::parse($request->flight_time) : null,
+                    'airport' => $request->airport,
+                    'full_name' => $fullName,
+                    'company' => $request->company,
+                    'phone' => $phone,
+                    'email' => $email,
+                    'special_instructions' => $specialInstructions,
+                    'booker_is_resident' => (bool) ($request->booker_is_resident ?? true),
+                    'resident_name_1' => trim($request->resident_name_1 ?? '') ?: null,
+                    'resident_name_2' => trim($request->resident_name_2 ?? '') ?: null,
+                    'resident_name_3' => trim($request->resident_name_3 ?? '') ?: null,
+                    'checkin_date' => $checkinDate,
+                    'checkout_date' => $checkoutDate,
+                    'guests_count' => $request->guests_count ?? ($package ? $package->occupants : 1),
+                    'luggages_count' => $request->luggages_count ?? 0,
+                    'price' => $total,
+                    'commission_amount' => $commissionAmount,
+                    'payment_type' => $paymentType,
+                    'wallet_amount' => $walletAmount,
+                    'bank_amount' => $bankAmount,
+                    'status' => $bookingStatus,
+                    // Legacy fields for backward compatibility
+                    'guest_name' => $fullName,
+                    'guest_email' => $email,
+                    'guest_phone' => $phone,
+                    'special_requests' => $specialInstructions,
+                ];
 
-            $booking = Booking::create($bookingData);
+                Log::info('Booking data prepared:', $bookingData);
+
+                $booking = Booking::create($bookingData);
             }
 
-            // Decrease available rooms
-            $package->chambres_restantes = max(0, $package->chambres_restantes - 1);
-            $package->disponibilite = $package->chambres_restantes > 0;
-            $package->save();
-            
+            // Reload booking to get relationships (including transfer)
+            $booking->load(['event', 'hotel', 'package', 'flight', 'transfer']);
+
+            if ($package) {
+                // Decrease available rooms
+                $package->chambres_restantes = max(0, $package->chambres_restantes - 1);
+                $package->disponibilite = $package->chambres_restantes > 0;
+                $package->save();
+            }
+
             DB::commit();
-            
+
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Booking creation failed:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la création de la réservation.',
@@ -720,7 +855,7 @@ class BookingController extends Controller
 
         // Auto-create invoice and generate PDF (best-effort; do not block booking)
         try {
-            $booking->loadMissing(['event', 'hotel', 'package', 'flight']);
+            $booking->loadMissing(['event', 'hotel', 'package', 'flight', 'transfer']);
 
             // Set created_by if booking was created by an admin
             $createdBy = null;
@@ -749,7 +884,7 @@ class BookingController extends Controller
 
         // Auto-create voucher and generate PDF (best-effort; do not block booking)
         try {
-            $booking->loadMissing(['event', 'hotel', 'package', 'user', 'flight']);
+            $booking->loadMissing(['event', 'hotel', 'package', 'user', 'flight', 'transfer']);
 
             // Generate unique voucher number
             $voucherNumber = 'VOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
@@ -792,13 +927,13 @@ class BookingController extends Controller
         $adminEmail = null;
         try {
             $adminEmail = config('mail.admin_email');
-            
+
             // Fallback to from address if admin_email is not set
             if (empty($adminEmail)) {
                 $adminEmail = config('mail.from.address');
                 Log::warning('MAIL_ADMIN_EMAIL not configured, using MAIL_FROM_ADDRESS: ' . $adminEmail);
             }
-            
+
             // Ensure we have a valid email address
             if (empty($adminEmail)) {
                 Log::error('No admin email configured. Booking created but email not sent.', [
@@ -854,7 +989,7 @@ class BookingController extends Controller
 
         // Reload wallet to get updated balance
         $wallet->refresh();
-        
+
         return response()->json([
             'success' => true,
             'message' => $walletAmount > 0 ? 'Réservation payée avec succès.' : 'Réservation créée avec succès.',
@@ -876,7 +1011,7 @@ class BookingController extends Controller
                     'total' => number_format($total, 2, '.', ''),
                     'wallet_amount' => number_format($walletAmount, 2, '.', ''),
                     'bank_amount' => number_format($bankAmount, 2, '.', ''),
-                    'wallet_balance_after' => number_format((float)$wallet->balance, 2, '.', ''),
+                    'wallet_balance_after' => number_format((float) $wallet->balance, 2, '.', ''),
                 ],
                 'invoice' => $booking->invoice ? [
                     'id' => $booking->invoice->id,
@@ -907,14 +1042,14 @@ class BookingController extends Controller
             ], 403);
         }
 
-        $booking->load(['accommodation', 'hotel', 'package', 'flight']);
-        
+        $booking->load(['accommodation', 'hotel', 'package', 'flight', 'transfer']);
+
         // Check if flight prices should be shown (client dashboard setting)
         $showFlightPrices = $booking->accommodation ? ($booking->accommodation->show_flight_prices_client_dashboard ?? true) : true;
-        
+
         // Format booking data
         $bookingData = $booking->toArray();
-        
+
         // Format flight data conditionally
         if ($booking->flight) {
             $flightData = [
@@ -937,12 +1072,12 @@ class BookingController extends Controller
                 ],
                 'reference' => $booking->flight->reference,
             ];
-            
+
             // Conditionally include prices
             if ($showFlightPrices) {
                 $flightData['departure']['price_ttc'] = (float) ($booking->flight->departure_price_ttc ?? 0);
             }
-            
+
             // Add return flight if exists
             if ($booking->flight->return_date) {
                 $flightData['return'] = [
@@ -954,7 +1089,7 @@ class BookingController extends Controller
                     'arrival_airport' => $booking->flight->return_arrival_airport,
                     'flight_number' => $booking->flight->return_flight_number,
                 ];
-                
+
                 if ($showFlightPrices) {
                     $flightData['return']['price_ttc'] = (float) ($booking->flight->return_price_ttc ?? 0);
                     $flightData['total_price'] = $booking->flight->total_price;
@@ -962,15 +1097,43 @@ class BookingController extends Controller
             } elseif ($showFlightPrices) {
                 $flightData['total_price'] = (float) ($booking->flight->departure_price_ttc ?? 0);
             }
-            
+
             $bookingData['flight'] = $flightData;
         }
-        
+
+        // Format transfer data
+        if ($booking->transfer) {
+            $showTransferPrices = $booking->accommodation ? ($booking->accommodation->show_transfer_prices_client_dashboard ?? true) : true;
+
+            $transferData = [
+                'id' => $booking->transfer->id,
+                'type' => $booking->transfer->transfer_type,
+                'type_label' => $booking->transfer->transfer_type_label,
+                'trip_type' => $booking->transfer->trip_type,
+                'trip_type_label' => $booking->transfer->trip_type_label,
+                'date' => $booking->transfer->transfer_date?->format('Y-m-d'),
+                'time' => $booking->transfer->pickup_time,
+                'pickup' => $booking->transfer->pickup_location,
+                'dropoff' => $booking->transfer->dropoff_location,
+                'vehicle' => $booking->transfer->vehicle_type,
+                'vehicle_label' => $booking->transfer->vehicle_type_label,
+            ];
+
+            if ($showTransferPrices) {
+                $transferData['price'] = (float) ($booking->transfer->price ?? 0);
+            }
+
+            $bookingData['transfer'] = $transferData;
+        }
+
         // Add flight price visibility settings to accommodation data
         if ($booking->accommodation) {
             $bookingData['accommodation']['show_flight_prices_public'] = $booking->accommodation->show_flight_prices_public ?? true;
             $bookingData['accommodation']['show_flight_prices_client_dashboard'] = $booking->accommodation->show_flight_prices_client_dashboard ?? true;
             $bookingData['accommodation']['show_flight_prices_organizer_dashboard'] = $booking->accommodation->show_flight_prices_organizer_dashboard ?? true;
+            $bookingData['accommodation']['show_transfer_prices_public'] = $booking->accommodation->show_transfer_prices_public ?? true;
+            $bookingData['accommodation']['show_transfer_prices_client_dashboard'] = $booking->accommodation->show_transfer_prices_client_dashboard ?? true;
+            $bookingData['accommodation']['show_transfer_prices_organizer_dashboard'] = $booking->accommodation->show_transfer_prices_organizer_dashboard ?? true;
         }
 
         return response()->json([
@@ -1020,9 +1183,11 @@ class BookingController extends Controller
     {
         // Ensure user can only upload documents for their own bookings
         $user = $request->user();
-        if ($booking->user_id !== $user->id && 
-            $booking->email !== $user->email && 
-            $booking->guest_email !== $user->email) {
+        if (
+            $booking->user_id !== $user->id &&
+            $booking->email !== $user->email &&
+            $booking->guest_email !== $user->email
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized.',
@@ -1051,7 +1216,7 @@ class BookingController extends Controller
             $file = $request->file('payment_document');
             $filename = 'booking-' . $booking->id . '-ordre-paiement-' . time() . '.' . $file->getClientOriginalExtension();
             $path = DualStorageService::store($file, 'payment-documents', 'public');
-            
+
             // Rename the file to our desired format
             $newPath = 'payment-documents/' . $filename;
             if (Storage::disk('public')->exists($path)) {
@@ -1097,9 +1262,11 @@ class BookingController extends Controller
     {
         // Ensure user can only upload documents for their own bookings
         $user = $request->user();
-        if ($booking->user_id !== $user->id && 
-            $booking->email !== $user->email && 
-            $booking->guest_email !== $user->email) {
+        if (
+            $booking->user_id !== $user->id &&
+            $booking->email !== $user->email &&
+            $booking->guest_email !== $user->email
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized.',
@@ -1128,7 +1295,7 @@ class BookingController extends Controller
             $file = $request->file('flight_ticket');
             $filename = 'booking-' . $booking->id . '-flight-ticket-' . time() . '.' . $file->getClientOriginalExtension();
             $path = DualStorageService::store($file, 'flight-tickets', 'public');
-            
+
             // Rename the file to our desired format
             $newPath = 'flight-tickets/' . $filename;
             if (Storage::disk('public')->exists($path)) {

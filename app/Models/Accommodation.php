@@ -7,11 +7,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $slug
+ * @property \Illuminate\Support\Carbon|null $start_date
+ * @property \Illuminate\Support\Carbon|null $end_date
+ * @property int|null $organizer_id
+ * @property int|null $created_by
+ */
 class Accommodation extends Model
 {
     protected $table = 'accommodations';
-    
+
     protected $fillable = [
         'name',
         'slug',
@@ -35,6 +43,9 @@ class Accommodation extends Model
         'created_by',
         'organizer_id',
         'commission_percentage',
+        'show_transfer_prices_public',
+        'show_transfer_prices_client_dashboard',
+        'show_transfer_prices_organizer_dashboard',
     ];
 
     protected $casts = [
@@ -45,6 +56,9 @@ class Accommodation extends Model
         'show_flight_prices_client_dashboard' => 'boolean',
         'show_flight_prices_organizer_dashboard' => 'boolean',
         'commission_percentage' => 'decimal:2',
+        'show_transfer_prices_public' => 'boolean',
+        'show_transfer_prices_client_dashboard' => 'boolean',
+        'show_transfer_prices_organizer_dashboard' => 'boolean',
     ];
 
     protected static function boot()
@@ -54,7 +68,7 @@ class Accommodation extends Model
         static::creating(function ($accommodation) {
             if (empty($accommodation->slug)) {
                 $accommodation->slug = Str::slug($accommodation->name);
-                
+
                 // Ensure uniqueness
                 $originalSlug = $accommodation->slug;
                 $count = 1;
@@ -70,10 +84,10 @@ class Accommodation extends Model
             $referenceAccommodation = static::where('slug', 'seafood4africa')
                 ->orWhere('name', 'LIKE', '%Seafood%')
                 ->first();
-            
+
             if ($referenceAccommodation) {
                 $referenceContents = $referenceAccommodation->contents;
-                
+
                 foreach ($referenceContents as $referenceContent) {
                     // Copy the content structure with both English and French translations
                     AccommodationContent::create([
@@ -93,7 +107,7 @@ class Accommodation extends Model
         static::updating(function ($accommodation) {
             if ($accommodation->isDirty('name')) {
                 $accommodation->slug = Str::slug($accommodation->name);
-                
+
                 // Ensure uniqueness
                 $originalSlug = $accommodation->slug;
                 $count = 1;
@@ -128,6 +142,11 @@ class Accommodation extends Model
     public function flights(): HasMany
     {
         return $this->hasMany(Flight::class);
+    }
+
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(Transfer::class);
     }
 
     /**
@@ -256,8 +275,59 @@ class Accommodation extends Model
                     return $user->hasResourcePermission('flight', $this->id);
                 }
             }
-            
+
             // Regular admins can manage flights for accommodations they created
+            return $this->created_by === $user->id;
+        }
+
+        // No permission (neither main nor resource)
+        return false;
+    }
+
+    /**
+     * Check if a user can manage transfers for this accommodation.
+     * 
+     * Rules:
+     * - Super-admins can manage all transfers
+     * - Regular admins need transfers permissions AND (created the accommodation OR have sub-permission)
+     */
+    public function canManageTransfersBy(User $user): bool
+    {
+        // Super-admin can manage everything
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        // Non-admins cannot manage transfers
+        if (!$user->isAdmin()) {
+            return false;
+        }
+
+        // If accommodation was created by a super admin, check sub-permissions first
+        // Resource permissions can grant access even without main transfers.view permission
+        if ($this->created_by) {
+            $creator = $this->creator;
+            if ($creator && $creator->isSuperAdmin()) {
+                // If user has resource permission for this accommodation, they can manage transfers
+                if ($user->hasResourcePermission('transfer', $this->id)) {
+                    return true;
+                }
+            }
+        }
+
+        // Check if user has transfers permissions (main permission check)
+        // Note: Assuming 'transfers' permission resource exists or will be added
+        if ($user->hasPermission('transfers', 'view')) {
+            // If accommodation was created by a super admin and user has main permission,
+            // they can manage if they also have resource permission
+            if ($this->created_by) {
+                $creator = $this->creator;
+                if ($creator && $creator->isSuperAdmin()) {
+                    return $user->hasResourcePermission('transfer', $this->id);
+                }
+            }
+
+            // Regular admins can manage transfers for accommodations they created
             return $this->created_by === $user->id;
         }
 
@@ -319,7 +389,7 @@ class Accommodation extends Model
         if (!$this->logo_path) {
             return null;
         }
-        
+
         return \App\Services\DualStorageService::url($this->logo_path);
     }
 
@@ -331,7 +401,7 @@ class Accommodation extends Model
         if (!$this->banner_path) {
             return null;
         }
-        
+
         return \App\Services\DualStorageService::url($this->banner_path);
     }
 
@@ -343,7 +413,7 @@ class Accommodation extends Model
         if (!$this->organizer_logo) {
             return null;
         }
-        
+
         return \App\Services\DualStorageService::url($this->organizer_logo);
     }
 }

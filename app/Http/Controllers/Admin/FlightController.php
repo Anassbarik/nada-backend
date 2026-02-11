@@ -53,7 +53,7 @@ class FlightController extends Controller
             $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
                 ->latest()
                 ->paginate(20);
-            
+
             return view('admin.flights.global-index', compact('flights'));
         }
 
@@ -63,7 +63,7 @@ class FlightController extends Controller
         }
 
         $hasMainPermission = $user->hasPermission('flights', 'view');
-        
+
         // If admin has main permission, show all flights
         if ($hasMainPermission) {
             $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
@@ -157,7 +157,7 @@ class FlightController extends Controller
         }
 
         // Get regular admins for flights sub-permissions assignment (only for super-admin)
-        $admins = auth()->user()->isSuperAdmin() 
+        $admins = auth()->user()->isSuperAdmin()
             ? User::where('role', 'admin')->orderBy('name')->get()
             : collect();
 
@@ -283,7 +283,7 @@ class FlightController extends Controller
                 $file = $request->file('eticket');
                 $filename = 'flight-' . time() . '-' . Str::random(8) . '.' . $file->getClientOriginalExtension();
                 $path = DualStorageService::store($file, 'flights/etickets', 'public');
-                
+
                 // Rename to desired format
                 $newPath = 'flights/etickets/' . $filename;
                 if (\Storage::disk('public')->exists($path)) {
@@ -306,7 +306,7 @@ class FlightController extends Controller
             if ($validated['flight_category'] === 'round_trip' && !empty($validated['return_price_ttc'])) {
                 $flightPrice += (float) $validated['return_price_ttc'];
             }
-            
+
             // Combine date and time for flight_time datetime field
             $flightDateTime = \Carbon\Carbon::parse($validated['departure_date'] . ' ' . $validated['departure_time']);
 
@@ -349,7 +349,7 @@ class FlightController extends Controller
                 $accommodation->load('organizer');
                 $guestEmail = $accommodation->organizer->email ?? null;
             }
-            
+
             // Last resort: generate placeholder email (DB requires non-null)
             // Flight is already saved at this point, so reference should exist
             if (!$guestEmail) {
@@ -388,7 +388,7 @@ class FlightController extends Controller
                         'user' => $user,
                         'password' => $password,
                     ]);
-                    
+
                     DualStorageService::makeDirectory('flights/credentials');
                     $relativePath = "flights/credentials/{$flight->id}-credentials.pdf";
                     DualStorageService::put($relativePath, $pdf->output(), 'public');
@@ -428,6 +428,25 @@ class FlightController extends Controller
                     ]);
                     // Don't fail the request if email fails
                 }
+            } else {
+                // If it's an existing client (not a new user), send a standard booking confirmation email
+                if ($validated['beneficiary_type'] === 'client' && $user && !$password) {
+                    try {
+                        Mail::to($user->email)->send(new \App\Mail\BookingConfirmation($booking));
+                        Log::info('Booking confirmation email sent to existing client for flight', [
+                            'flight_id' => $flight->id,
+                            'booking_id' => $booking->id,
+                            'booking_reference' => $booking->booking_reference,
+                            'user_email' => $user->email,
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to send booking confirmation email to existing client for flight', [
+                            'flight_id' => $flight->id,
+                            'user_email' => $user->email,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
             }
 
             // Update accommodation's flight price visibility settings
@@ -466,13 +485,13 @@ class FlightController extends Controller
 
             // Check if this is a standalone request
             $isStandalone = $request->has('_standalone') || request()->routeIs('admin.standalone.flights.*');
-            
+
             if ($isStandalone) {
                 return redirect()->route('admin.standalone.flights.index')
                     ->with('success', 'Flight created successfully.')
                     ->with('credentials_pdf_url', $flight->credentials_pdf_url ?? null);
             }
-            
+
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight created successfully.')
                 ->with('credentials_pdf_url', $flight->credentials_pdf_url ?? null);
@@ -521,7 +540,7 @@ class FlightController extends Controller
         }
 
         // Get regular admins for flights sub-permissions assignment (only for super-admin)
-        $admins = auth()->user()->isSuperAdmin() 
+        $admins = auth()->user()->isSuperAdmin()
             ? User::where('role', 'admin')->orderBy('name')->get()
             : collect();
 
@@ -592,11 +611,11 @@ class FlightController extends Controller
             // Handle accommodation_id change if provided (standalone route)
             if (isset($validated['accommodation_id']) && $validated['accommodation_id'] != $accommodation->id) {
                 $newAccommodation = Accommodation::findOrFail($validated['accommodation_id']);
-                
+
                 if (!$newAccommodation->canManageFlightsBy(auth()->user())) {
                     abort(403, 'You do not have permission to move flights to this accommodation.');
                 }
-                
+
                 $accommodation = $newAccommodation;
                 $flight->accommodation_id = $accommodation->id;
             }
@@ -624,7 +643,7 @@ class FlightController extends Controller
             $flight->ticket_reference = $validated['ticket_reference'] ?? null;
             $flight->status = $validated['status'];
             $flight->payment_method = $validated['payment_method'] ?? null;
-            
+
             // Update booking price if exists
             if ($flight->booking) {
                 $flightPrice = (float) $validated['departure_price_ttc'];
@@ -645,7 +664,7 @@ class FlightController extends Controller
                 $file = $request->file('eticket');
                 $filename = 'flight-' . time() . '-' . Str::random(8) . '.' . $file->getClientOriginalExtension();
                 $path = DualStorageService::store($file, 'flights/etickets', 'public');
-                
+
                 $newPath = 'flights/etickets/' . $filename;
                 if (\Storage::disk('public')->exists($path)) {
                     \Storage::disk('public')->move($path, $newPath);
@@ -693,12 +712,12 @@ class FlightController extends Controller
 
             // Check if we came from standalone route
             $isStandalone = request()->routeIs('admin.standalone.flights.*') || $request->has('_standalone');
-            
+
             if ($isStandalone) {
                 return redirect()->route('admin.standalone.flights.index')
                     ->with('success', 'Flight updated successfully.');
             }
-            
+
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight updated successfully.');
 
@@ -736,7 +755,7 @@ class FlightController extends Controller
             $duplicate->reference = null; // Let the model generate a new one
             $duplicate->accommodation_id = $accommodation->id;
             $duplicate->created_by = auth()->id();
-            
+
             // Reset client/organizer-specific fields (will be set when creating new client/organizer if needed)
             $duplicate->user_id = null;
             $duplicate->organizer_id = null;
@@ -746,22 +765,22 @@ class FlightController extends Controller
             $duplicate->client_password_generated = false;
             // Reset status to pending for new flight
             $duplicate->status = 'pending';
-            
+
             // Copy eTicket file if it exists
             if ($flight->eticket_path) {
                 $duplicate->eticket_path = DualStorageService::copy($flight->eticket_path, 'flights/etickets', 'public');
             }
-            
+
             $duplicate->save();
 
             // Check if we came from standalone route
             $isStandalone = request()->routeIs('admin.standalone.flights.*');
-            
+
             if ($isStandalone) {
                 return redirect()->route('admin.standalone.flights.index')
                     ->with('success', 'Flight duplicated successfully. You can now modify it.');
             }
-            
+
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight duplicated successfully. You can now modify it.');
 
@@ -806,12 +825,12 @@ class FlightController extends Controller
 
             // Check if we came from standalone route
             $isStandalone = request()->routeIs('admin.standalone.flights.*');
-            
+
             if ($isStandalone) {
                 return redirect()->route('admin.standalone.flights.index')
                     ->with('success', 'Flight deleted successfully.');
             }
-            
+
             return redirect()->route('admin.flights.index', $accommodation)
                 ->with('success', 'Flight deleted successfully.');
 
@@ -836,7 +855,7 @@ class FlightController extends Controller
         }
 
         $path = storage_path('app/public/' . $flight->credentials_pdf_path);
-        
+
         if (!file_exists($path)) {
             $path = public_path('storage/' . $flight->credentials_pdf_path);
         }
@@ -846,7 +865,7 @@ class FlightController extends Controller
         }
 
         $filename = 'flight-credentials-' . $flight->reference . '.pdf';
-        
+
         return response()->download($path, $filename);
     }
 
@@ -883,14 +902,14 @@ class FlightController extends Controller
                 ->where('resource_type', 'flight')
                 ->pluck('resource_id')
                 ->toArray();
-            
+
             $accommodations = Accommodation::whereIn('id', $allowedAccommodationIds)
                 ->orderBy('name')
                 ->get();
         }
 
         // Get regular admins for flights sub-permissions assignment (only for super-admin)
-        $admins = $user->isSuperAdmin() 
+        $admins = $user->isSuperAdmin()
             ? User::where('role', 'admin')->orderBy('name')->get()
             : collect();
 
@@ -957,10 +976,10 @@ class FlightController extends Controller
 
         // Mark request as standalone for redirect handling
         $request->merge(['_standalone' => true]);
-        
+
         // Call the existing store method
         $response = $this->store($request, $accommodation);
-        
+
         // Override redirect if it was successful and we're in standalone mode
         if ($response instanceof \Illuminate\Http\RedirectResponse) {
             $session = $response->getSession();
@@ -970,13 +989,13 @@ class FlightController extends Controller
                     ->where('created_by', auth()->id())
                     ->latest()
                     ->first();
-                
+
                 return redirect()->route('admin.standalone.flights.index')
                     ->with('success', 'Flight created successfully.')
                     ->with('credentials_pdf_url', $flight->credentials_pdf_url ?? null);
             }
         }
-        
+
         return $response;
     }
 
@@ -992,7 +1011,7 @@ class FlightController extends Controller
         }
 
         $accommodation = $flight->accommodation;
-        
+
         if (!$accommodation) {
             abort(404, 'Flight accommodation not found.');
         }
@@ -1018,7 +1037,7 @@ class FlightController extends Controller
         }
 
         $accommodation = $flight->accommodation;
-        
+
         if (!$accommodation) {
             abort(404, 'Flight accommodation not found.');
         }
@@ -1031,7 +1050,7 @@ class FlightController extends Controller
         $accommodations = Accommodation::orderBy('name')->get();
 
         // Get regular admins for flights sub-permissions assignment (only for super-admin)
-        $admins = $user->isSuperAdmin() 
+        $admins = $user->isSuperAdmin()
             ? User::where('role', 'admin')->orderBy('name')->get()
             : collect();
 
@@ -1059,7 +1078,7 @@ class FlightController extends Controller
         // So we don't need to check here - it will be checked in the update method
 
         $accommodation = $flight->accommodation;
-        
+
         if (!$accommodation) {
             abort(404, 'Flight accommodation not found.');
         }
@@ -1067,11 +1086,11 @@ class FlightController extends Controller
         // If accommodation_id is being changed, validate it
         if ($request->has('accommodation_id') && $request->accommodation_id != $accommodation->id) {
             $newAccommodation = Accommodation::findOrFail($request->accommodation_id);
-            
+
             if (!$newAccommodation->canManageFlightsBy($user)) {
                 abort(403, 'You do not have permission to move flights to this accommodation.');
             }
-            
+
             $accommodation = $newAccommodation;
         }
 
@@ -1081,7 +1100,7 @@ class FlightController extends Controller
 
         // Mark request as standalone for redirect handling
         $request->merge(['_standalone' => true]);
-        
+
         // Use the existing update method logic
         return $this->update($request, $accommodation, $flight);
     }
@@ -1098,7 +1117,7 @@ class FlightController extends Controller
         }
 
         $accommodation = $flight->accommodation;
-        
+
         if (!$accommodation) {
             abort(404, 'Flight accommodation not found.');
         }
@@ -1123,7 +1142,7 @@ class FlightController extends Controller
         }
 
         $accommodation = $flight->accommodation;
-        
+
         if (!$accommodation) {
             abort(404, 'Flight accommodation not found.');
         }
@@ -1146,7 +1165,7 @@ class FlightController extends Controller
         }
 
         $path = storage_path('app/public/' . $flight->credentials_pdf_path);
-        
+
         if (!file_exists($path)) {
             $path = public_path('storage/' . $flight->credentials_pdf_path);
         }
@@ -1156,7 +1175,7 @@ class FlightController extends Controller
         }
 
         $filename = 'flight-credentials-' . $flight->reference . '.pdf';
-        
+
         return response()->download($path, $filename);
     }
 }

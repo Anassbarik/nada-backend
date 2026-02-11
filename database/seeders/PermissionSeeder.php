@@ -59,6 +59,12 @@ class PermissionSeeder extends Seeder
             ['resource' => 'flights', 'action' => 'create', 'name' => 'Create Flights', 'description' => 'Can create new flights'],
             ['resource' => 'flights', 'action' => 'edit', 'name' => 'Edit Flights', 'description' => 'Can edit existing flights'],
             ['resource' => 'flights', 'action' => 'delete', 'name' => 'Delete Flights', 'description' => 'Can delete flights'],
+
+            // Transfers
+            ['resource' => 'transfers', 'action' => 'view', 'name' => 'View Transfers', 'description' => 'Can view transfers list'],
+            ['resource' => 'transfers', 'action' => 'create', 'name' => 'Create Transfers', 'description' => 'Can create new transfers'],
+            ['resource' => 'transfers', 'action' => 'edit', 'name' => 'Edit Transfers', 'description' => 'Can edit existing transfers'],
+            ['resource' => 'transfers', 'action' => 'delete', 'name' => 'Delete Transfers', 'description' => 'Can delete transfers'],
         ];
 
         foreach ($permissions as $permission) {

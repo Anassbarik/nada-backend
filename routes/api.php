@@ -32,6 +32,10 @@ Route::get('/events/{slug}/airports', [\App\Http\Controllers\Api\AirportControll
 Route::get('/events/{slug}/flights', [\App\Http\Controllers\Api\FlightController::class, 'index'])->middleware('throttle:120,1'); // List flights for an event
 Route::get('/events/{slug}/flights/{flight}', [\App\Http\Controllers\Api\FlightController::class, 'show'])->middleware('throttle:120,1'); // Flight details within event context
 
+// Transfers by event slug
+Route::get('/events/{slug}/transfers', [\App\Http\Controllers\Api\TransferController::class, 'index'])->middleware('throttle:120,1');
+Route::get('/events/{slug}/transfers/{transfer}', [\App\Http\Controllers\Api\TransferController::class, 'show'])->middleware('throttle:120,1');
+
 // Event by slug (generic route - must come after specific routes)
 Route::get('/events/{slug}', [EventController::class, 'show'])->middleware('throttle:120,1');
 
@@ -56,7 +60,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::put('/user', [AuthController::class, 'update']);
     Route::put('/user/password', [AuthController::class, 'updatePassword'])->middleware('throttle:5,1');
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+
     // Impersonation routes
     Route::post('/impersonate/stop', [AuthController::class, 'stopImpersonation'])->name('api.impersonate.stop');
 

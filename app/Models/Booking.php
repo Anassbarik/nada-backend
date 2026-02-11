@@ -16,6 +16,7 @@ class Booking extends Model
         'hotel_id',
         'package_id',
         'flight_id',
+        'transfer_id',
         'flight_number',
         'flight_date',
         'flight_time',
@@ -37,6 +38,7 @@ class Booking extends Model
         'checkin_date',
         'checkout_date',
         'guests_count',
+        'luggages_count',
         'price',
         'commission_amount',
         'status',
@@ -55,6 +57,8 @@ class Booking extends Model
         'checkout_date' => 'date',
         'flight_date' => 'date',
         'flight_time' => 'datetime',
+        'guests_count' => 'integer',
+        'luggages_count' => 'integer',
         'price' => 'decimal:2',
         'commission_amount' => 'decimal:2',
         'wallet_amount' => 'decimal:2',
@@ -71,7 +75,7 @@ class Booking extends Model
         static::creating(function ($booking) {
             if (empty($booking->booking_reference)) {
                 $booking->booking_reference = 'BOOK-' . now()->format('Ymd') . '-' . strtoupper(Str::random(3));
-                
+
                 // Ensure uniqueness
                 while (static::where('booking_reference', $booking->booking_reference)->exists()) {
                     $booking->booking_reference = 'BOOK-' . now()->format('Ymd') . '-' . strtoupper(Str::random(3));
@@ -123,7 +127,7 @@ class Booking extends Model
                     // Get refund amount (check if refund_amount is being set in this update)
                     // If refund_amount is in the dirty attributes, use it; otherwise use booking price
                     $refundAmount = $booking->getDirty()['refund_amount'] ?? $booking->refund_amount ?? $booking->price ?? ($package->prix_ttc ?? 0);
-                    
+
                     // Credit wallet
                     $booking->user->wallet->increment('balance', $refundAmount);
                 }
@@ -205,6 +209,11 @@ class Booking extends Model
     public function flight(): BelongsTo
     {
         return $this->belongsTo(Flight::class);
+    }
+
+    public function transfer(): BelongsTo
+    {
+        return $this->belongsTo(Transfer::class);
     }
 
     /**
