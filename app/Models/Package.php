@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Package extends Model
 {
     protected $table = 'hotel_packages';
-    
+
     protected $fillable = [
         'hotel_id',
         'nom_package',
@@ -40,6 +40,11 @@ class Package extends Model
     public function hotel(): BelongsTo
     {
         return $this->belongsTo(Hotel::class);
+    }
+
+    public function bookings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Booking::class);
     }
 
     /**
@@ -91,6 +96,25 @@ class Package extends Model
             if ($package->isDirty('chambres_restantes') || $package->chambres_restantes !== null) {
                 $package->disponibilite = $package->chambres_restantes > 0;
             }
+        });
+
+        static::deleting(function ($package) {
+            $package->bookings()->each(function ($booking) {
+                // Check if the booking has other components
+                $hasOtherComponents = $booking->flight_id || $booking->transfer_id;
+
+                if ($hasOtherComponents) {
+                    // Just remove the package, hotel and accommodation from the booking
+                    $booking->update([
+                        'package_id' => null,
+                        'hotel_id' => null,
+                        'accommodation_id' => null,
+                    ]);
+                } else {
+                    // Only package was in this booking, remove it completely
+                    $booking->delete();
+                }
+            });
         });
     }
 

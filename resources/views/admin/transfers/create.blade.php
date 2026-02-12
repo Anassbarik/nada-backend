@@ -20,14 +20,32 @@
                     enctype="multipart/form-data">
                     @csrf
 
+                    {{-- Beneficiary Selection --}}
+                    <div class="mb-6 p-4 border border-gray-300 rounded-md bg-blue-50">
+                        <h3 class="text-lg font-semibold mb-4">Beneficier (Beneficiary)</h3>
+
+                        <div class="mb-4">
+                            <x-input-label for="beneficiary_type" :value="__('Select Beneficiary')" />
+                            <select id="beneficiary_type" name="beneficiary_type"
+                                class="block mt-1 w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm"
+                                required onchange="toggleClientEmail()">
+                                <option value="organizer" {{ old('beneficiary_type', 'organizer') === 'organizer' ? 'selected' : '' }}>
+                                    Event Organizer</option>
+                                <option value="client" {{ old('beneficiary_type') === 'client' ? 'selected' : '' }}>Client
+                                </option>
+                            </select>
+                            <x-input-error :messages="$errors->get('beneficiary_type')" class="mt-2" />
+                        </div>
+                    </div>
+
                     {{-- Client Information --}}
-                    <div class="mb-6">
+                    <div id="client-info-section" class="mb-6" style="display: {{ old('beneficiary_type', 'organizer') === 'client' ? 'block' : 'none' }};">
                         <h3 class="text-lg font-semibold mb-4">Client Information</h3>
 
                         <div class="mb-4">
                             <x-input-label for="client_name" :value="__('Nom complet de client')" />
                             <x-text-input id="client_name" class="block mt-1 w-full" type="text" name="client_name"
-                                :value="old('client_name')" required autofocus />
+                                :value="old('client_name')" autofocus />
                             <x-input-error :messages="$errors->get('client_name')" class="mt-2" />
                         </div>
 
@@ -35,7 +53,7 @@
                             <div>
                                 <x-input-label for="client_phone" :value="__('Téléphone')" />
                                 <x-text-input id="client_phone" class="block mt-1 w-full" type="text" name="client_phone"
-                                    :value="old('client_phone')" required />
+                                    :value="old('client_phone')" />
                                 <x-input-error :messages="$errors->get('client_phone')" class="mt-2" />
                             </div>
                             <div>
@@ -154,9 +172,17 @@
                             <div>
                                 <x-input-label for="passengers" :value="__('Nombre de passagers')" />
                                 <x-text-input id="passengers" class="block mt-1 w-full" type="number" name="passengers"
-                                    min="1" :value="old('passengers', 1)" required />
+                                    min="1" :value="old('passengers', 1)" required oninput="updateAdditionalPassengers()" />
                                 <p id="passenger-limit-msg" class="mt-1 text-xs text-gray-500 hidden"></p>
                                 <x-input-error :messages="$errors->get('passengers')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        {{-- Additional Passengers Names --}}
+                        <div id="additional-passengers-container" class="mb-6 p-4 border border-dashed border-gray-300 rounded-md bg-gray-50 hidden">
+                            <h4 class="text-sm font-semibold mb-3 text-gray-700">Information des passagers additionnels (Optionnel)</h4>
+                            <div id="additional-passengers-list" class="space-y-3">
+                                {{-- Dynamic inputs will be injected here --}}
                             </div>
                         </div>
 
@@ -165,6 +191,25 @@
                             <x-text-input id="price" class="block mt-1 w-full" type="number" name="price" step="0.01"
                                 min="0" :value="old('price', 0)" required />
                             <x-input-error :messages="$errors->get('price')" class="mt-2" />
+                        </div>
+                    </div>
+
+                    {{-- Driver Information --}}
+                    <div class="p-4 border border-gray-300 rounded-md bg-gray-50 mb-6">
+                        <h3 class="text-lg font-semibold mb-4">Informations Chauffeur (Driver)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="driver_name" :value="__('Nom de chauffeur')" />
+                                <x-text-input id="driver_name" class="block mt-1 w-full" type="text" name="driver_name"
+                                    :value="old('driver_name')" placeholder="Ex: Ahmed" />
+                                <x-input-error :messages="$errors->get('driver_name')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="driver_phone" :value="__('Téléphone de chauffeur')" />
+                                <x-text-input id="driver_phone" class="block mt-1 w-full" type="text" name="driver_phone"
+                                    :value="old('driver_phone')" placeholder="Ex: +212 600..." />
+                                <x-input-error :messages="$errors->get('driver_phone')" class="mt-2" />
+                            </div>
                         </div>
                     </div>
 
@@ -262,25 +307,6 @@
                         </div>
                     </div>
 
-                    {{-- Beneficiary Selection --}}
-                    <div class="mb-6 p-4 border border-gray-300 rounded-md bg-blue-50">
-                        <h3 class="text-lg font-semibold mb-4">Beneficier (Beneficiary)</h3>
-
-                        <div class="mb-4">
-                            <x-input-label for="beneficiary_type" :value="__('Select Beneficiary')" />
-                            <select id="beneficiary_type" name="beneficiary_type"
-                                class="block mt-1 w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm"
-                                required onchange="toggleClientEmail()">
-                                <option value="organizer" {{ old('beneficiary_type') === 'organizer' ? 'selected' : '' }}>
-                                    Event Organizer</option>
-                                <option value="client" {{ old('beneficiary_type') === 'client' ? 'selected' : '' }}>Client
-                                </option>
-                            </select>
-                            <x-input-error :messages="$errors->get('beneficiary_type')" class="mt-2" />
-                        </div>
-
-                        {{-- Logic handled via script below --}}
-                    </div>
 
         {{-- Transfers Sub-Permissions --}}
         @if(auth()->user()->isSuperAdmin() && isset($admins) && $admins->count() > 0)
@@ -380,8 +406,29 @@
     @push('scripts')
         <script>
             function toggleClientEmail() {
-                // Basic beneficiary logic similar to flights
+                const beneficiaryType = document.getElementById('beneficiary_type').value;
+                const clientInfoSection = document.getElementById('client-info-section');
+                const clientInputs = clientInfoSection.querySelectorAll('input');
+
+                if (beneficiaryType === 'client') {
+                    clientInfoSection.style.display = 'block';
+                    clientInputs.forEach(input => {
+                        if (input.id !== 'client_email') {
+                            input.setAttribute('required', 'required');
+                        }
+                    });
+                } else {
+                    clientInfoSection.style.display = 'none';
+                    clientInputs.forEach(input => {
+                        input.removeAttribute('required');
+                    });
+                }
             }
+
+            // Initial call
+            document.addEventListener('DOMContentLoaded', function () {
+                toggleClientEmail();
+            });
 
             document.addEventListener('DOMContentLoaded', function () {
                 if (typeof lucide !== 'undefined') {
@@ -404,10 +451,90 @@
                         limitMsg.classList.add('hidden');
                         passengersInput.removeAttribute('max');
                     }
+                    // Re-calculate additional passengers when limit changes
+                    if (typeof updateAdditionalPassengers === 'function') {
+                        updateAdditionalPassengers();
+                    }
                 }
 
                 vehicleSelect.addEventListener('change', updateLimit);
                 updateLimit(); // Initial state
+            });
+
+            function updateAdditionalPassengers() {
+                const passengersInput = document.getElementById('passengers');
+                const vehicleSelect = document.getElementById('vehicle_type_id');
+                const container = document.getElementById('additional-passengers-container');
+                const list = document.getElementById('additional-passengers-list');
+                
+                const enteredCount = parseInt(passengersInput.value) || 1;
+                
+                // Get max passengers from selected vehicle
+                const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
+                const maxPassengers = selectedOption && selectedOption.value 
+                    ? parseInt(selectedOption.getAttribute('data-max-passengers')) 
+                    : enteredCount; // Default to entered count if no vehicle selected
+
+                // Only render inputs for passengers that fit in the vehicle
+                const effectiveCount = Math.min(enteredCount, maxPassengers);
+                const neededCount = Math.max(0, effectiveCount - 1);
+                
+                const existingInputs = list.querySelectorAll('div[data-passenger-index]');
+                const existingCount = existingInputs.length;
+
+                if (neededCount > 0) {
+                    container.classList.remove('hidden');
+                    
+                    // Add missing inputs
+                    if (neededCount > existingCount) {
+                        for (let i = existingCount; i < neededCount; i++) {
+                            const index = i;
+                            const div = document.createElement('div');
+                            div.setAttribute('data-passenger-index', index);
+                            div.className = 'flex flex-col space-y-1';
+                            
+                            const label = document.createElement('label');
+                            label.className = 'text-xs font-medium text-gray-600';
+                            label.textContent = `Nom du passager ${index + 2}`;
+                            
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.name = `additional_passengers[${index}]`;
+                            input.className = 'block w-full border-gray-300 rounded-md shadow-sm text-sm p-2';
+                            input.placeholder = 'Nom complet';
+                            
+                            div.appendChild(label);
+                            div.appendChild(input);
+                            list.appendChild(div);
+                        }
+                    } 
+                    // Remove extra inputs
+                    else if (neededCount < existingCount) {
+                        for (let i = existingCount - 1; i >= neededCount; i--) {
+                            const lastInput = list.querySelector(`div[data-passenger-index="${i}"]`);
+                            if (lastInput) lastInput.remove();
+                        }
+                    }
+                } else {
+                    container.classList.add('hidden');
+                    list.innerHTML = '';
+                }
+            }
+
+            // Initial call on load to handle old input
+            document.addEventListener('DOMContentLoaded', function() {
+                updateAdditionalPassengers();
+                
+                // If there's old data, it might not be perfect with this dynamic logic 
+                // but usually handled by form state if needed.
+                @if(old('additional_passengers'))
+                    const list = document.getElementById('additional-passengers-list');
+                    const oldData = @json(old('additional_passengers'));
+                    const inputs = list.querySelectorAll('input[name^="additional_passengers"]');
+                    inputs.forEach((input, index) => {
+                        if (oldData[index]) input.value = oldData[index];
+                    });
+                @endif
             });
         </script>
     @endpush

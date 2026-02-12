@@ -48,12 +48,15 @@ class TransfersExport implements FromCollection, WithHeadings, WithMapping
             'Flight Time',
             'Vehicle Type',
             'Passengers',
+            'Additional Passengers',
             'Price (MAD)',
             'Return Date',
             'Return Time',
             'Status',
             'Payment Method',
             'Booking Reference',
+            'Driver Name',
+            'Driver Phone',
             'Created At',
         ];
     }
@@ -75,12 +78,15 @@ class TransfersExport implements FromCollection, WithHeadings, WithMapping
             $transfer->flight_time ? $transfer->flight_time->format('H:i') : null,
             $transfer->vehicle_type_label,
             $transfer->passengers,
+            is_array($transfer->additional_passengers) ? implode(', ', array_filter($transfer->additional_passengers)) : '',
             $transfer->price,
             optional($transfer->return_date)->format('Y-m-d'),
             $transfer->return_time,
             $transfer->status_label,
             $transfer->payment_method_label,
             $transfer->booking?->booking_reference,
+            $transfer->driver_name,
+            $transfer->driver_phone,
             optional($transfer->created_at)->format('Y-m-d H:i:s'),
         ];
     }

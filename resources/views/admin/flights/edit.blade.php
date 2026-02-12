@@ -19,13 +19,34 @@
         @csrf
         @method('PATCH')
 
+        {{-- Beneficiary Selection --}}
+        <div class="mb-6 p-4 border border-gray-300 rounded-md bg-blue-50">
+          <h3 class="text-lg font-semibold mb-4">Beneficier (Beneficiary)</h3>
+          
+          <div class="mb-4">
+            <x-input-label for="beneficiary_type" :value="__('Select Beneficiary')" />
+            <select id="beneficiary_type" name="beneficiary_type" class="block mt-1 w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm" required onchange="toggleClientEmail()">
+              <option value="organizer" {{ old('beneficiary_type', $flight->beneficiary_type) === 'organizer' ? 'selected' : '' }}>Event Organizer</option>
+              <option value="client" {{ old('beneficiary_type', $flight->beneficiary_type) === 'client' ? 'selected' : '' }}>Client</option>
+            </select>
+            <x-input-error :messages="$errors->get('beneficiary_type')" class="mt-2" />
+          </div>
+
+          <div id="client_email_field" class="mb-4" style="display: {{ old('beneficiary_type', $flight->beneficiary_type) === 'client' ? 'block' : 'none' }};">
+            <x-input-label for="client_email" :value="__('Client Email')" />
+            <x-text-input id="client_email" class="block mt-1 w-full" type="email" name="client_email" :value="old('client_email', $flight->client_email)" />
+            <p class="mt-1 text-sm text-gray-500">A user account will be created with this email and credentials will be sent.</p>
+            <x-input-error :messages="$errors->get('client_email')" class="mt-2" />
+          </div>
+        </div>
+
         {{-- Client Information --}}
-        <div class="mb-6">
+        <div id="client-info-section" class="mb-6" style="display: {{ old('beneficiary_type', $flight->beneficiary_type) === 'client' ? 'block' : 'none' }};">
           <h3 class="text-lg font-semibold mb-4">Client Information</h3>
           
           <div class="mb-4">
             <x-input-label for="full_name" :value="__('Nom complet de client')" />
-            <x-text-input id="full_name" class="block mt-1 w-full" type="text" name="full_name" :value="old('full_name', $flight->full_name)" required autofocus />
+            <x-text-input id="full_name" class="block mt-1 w-full" type="text" name="full_name" :value="old('full_name', $flight->full_name)" />
             <x-input-error :messages="$errors->get('full_name')" class="mt-2" />
           </div>
         </div>
@@ -342,5 +363,36 @@
     </x-shadcn.card-content>
   </x-shadcn.card>
 </div>
+@push('scripts')
+<script>
+  function toggleClientEmail() {
+    const beneficiaryType = document.getElementById('beneficiary_type').value;
+    const clientEmailField = document.getElementById('client_email_field');
+    const clientEmailInput = document.getElementById('client_email');
+    const clientInfoSection = document.getElementById('client-info-section');
+    const fullNameInput = document.getElementById('full_name');
+    
+    if (beneficiaryType === 'client') {
+      clientEmailField.style.display = 'block';
+      clientEmailInput.setAttribute('required', 'required');
+      clientInfoSection.style.display = 'block';
+      fullNameInput.setAttribute('required', 'required');
+    } else {
+      clientEmailField.style.display = 'none';
+      clientEmailInput.removeAttribute('required');
+      clientInfoSection.style.display = 'none';
+      fullNameInput.removeAttribute('required');
+    }
+  }
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    toggleClientEmail();
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  });
+</script>
+@endpush
 @endsection
 

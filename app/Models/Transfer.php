@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use App\Services\DualStorageService;
 
@@ -37,6 +37,9 @@ class Transfer extends Model
         'user_id',
         'created_by',
         'luggages',
+        'driver_name',
+        'driver_phone',
+        'additional_passengers',
     ];
 
     protected $casts = [
@@ -46,15 +49,27 @@ class Transfer extends Model
         'passengers' => 'integer',
         'luggages' => 'integer',
         'flight_time' => 'datetime', // Cast flight_time as time/datetime if needed, but schema is time
+        'additional_passengers' => 'array',
     ];
 
     protected static function boot()
     {
         parent::boot();
 
-        // No reference field in the schema provided in the prompt, 
-        // but Flight has one. If we need one later we can add it.
-        // For now, following the schema strictly.
+        static::deleting(function ($transfer) {
+            $transfer->bookings()->each(function ($booking) {
+                // Check if the booking has other components
+                $hasOtherComponents = $booking->package_id || $booking->flight_id;
+
+                if ($hasOtherComponents) {
+                    // Just remove the transfer from the booking
+                    $booking->update(['transfer_id' => null]);
+                } else {
+                    // Only transfer was in this booking, remove it completely
+                    $booking->delete();
+                }
+            });
+        });
     }
 
     public function accommodation(): BelongsTo
@@ -77,9 +92,14 @@ class Transfer extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function booking(): HasOne
+    public function booking(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Booking::class);
+    }
+
+    public function bookings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Booking::class);
     }
 
     public function vehicleType(): BelongsTo

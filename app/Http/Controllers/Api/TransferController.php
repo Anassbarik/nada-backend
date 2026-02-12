@@ -89,6 +89,9 @@ class TransferController extends Controller
                     'status' => $transfer->status,
                     'eticket_url' => $transfer->eticket_url,
                     'beneficiary_type' => $transfer->beneficiary_type,
+                    'driver_name' => $transfer->driver_name,
+                    'driver_phone' => $transfer->driver_phone,
+                    'additional_passengers' => $transfer->additional_passengers,
                 ];
             })
         ]);
@@ -142,6 +145,9 @@ class TransferController extends Controller
                 'status' => $transfer->status,
                 'eticket_url' => $transfer->eticket_url,
                 'beneficiary_type' => $transfer->beneficiary_type,
+                'driver_name' => $transfer->driver_name,
+                'driver_phone' => $transfer->driver_phone,
+                'additional_passengers' => $transfer->additional_passengers,
             ]
         ]);
     }

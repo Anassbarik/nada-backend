@@ -61,12 +61,27 @@ class Flight extends Model
         static::creating(function ($flight) {
             if (empty($flight->reference)) {
                 $flight->reference = 'FLIGHT-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
-                
+
                 // Ensure uniqueness
                 while (static::where('reference', $flight->reference)->exists()) {
                     $flight->reference = 'FLIGHT-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
                 }
             }
+        });
+
+        static::deleting(function ($flight) {
+            $flight->bookings()->each(function ($booking) {
+                // Check if the booking has other components
+                $hasOtherComponents = $booking->package_id || $booking->transfer_id;
+
+                if ($hasOtherComponents) {
+                    // Just remove the flight from the booking
+                    $booking->update(['flight_id' => null]);
+                } else {
+                    // Only flight was in this booking, remove it completely
+                    $booking->delete();
+                }
+            });
         });
     }
 
@@ -122,7 +137,7 @@ class Flight extends Model
      */
     public function getFlightClassLabelAttribute(): string
     {
-        return match($this->flight_class) {
+        return match ($this->flight_class) {
             'economy' => 'Economy',
             'business' => 'Business',
             'first' => 'First Class',
@@ -135,7 +150,7 @@ class Flight extends Model
      */
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'paid' => 'Paid',
             'pending' => 'Pending',
             default => ucfirst($this->status ?? 'pending'),
@@ -150,8 +165,8 @@ class Flight extends Model
         if (!$this->payment_method) {
             return null;
         }
-        
-        return match($this->payment_method) {
+
+        return match ($this->payment_method) {
             'wallet' => 'Portefeuille',
             'bank' => 'Virement Bancaire',
             'both' => 'Mixte (Portefeuille + Virement)',
@@ -164,7 +179,7 @@ class Flight extends Model
      */
     public function getFlightCategoryLabelAttribute(): string
     {
-        return match($this->flight_category ?? 'one_way') {
+        return match ($this->flight_category ?? 'one_way') {
             'one_way' => 'Aller Simple (One Way)',
             'round_trip' => 'Aller-Retour (Round Trip)',
             default => ucfirst($this->flight_category ?? 'one_way'),

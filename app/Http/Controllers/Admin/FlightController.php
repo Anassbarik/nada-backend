@@ -299,155 +299,130 @@ class FlightController extends Controller
 
             $flight->save();
 
-            // Create booking FIRST (before PDF generation so booking reference is available)
-            // If no user_id, fill guest fields with flight client info
-            // Calculate total flight price
-            $flightPrice = (float) $validated['departure_price_ttc'];
-            if ($validated['flight_category'] === 'round_trip' && !empty($validated['return_price_ttc'])) {
-                $flightPrice += (float) $validated['return_price_ttc'];
-            }
+            // Create booking ONLY if beneficiary is client
+            if ($validated['beneficiary_type'] === 'client') {
+                // Create booking FIRST (before PDF generation so booking reference is available)
+                // If no user_id, fill guest fields with flight client info
+                // Calculate total flight price
+                $flightPrice = (float) $validated['departure_price_ttc'];
+                if ($validated['flight_category'] === 'round_trip' && !empty($validated['return_price_ttc'])) {
+                    $flightPrice += (float) $validated['return_price_ttc'];
+                }
 
-            // Combine date and time for flight_time datetime field
-            $flightDateTime = \Carbon\Carbon::parse($validated['departure_date'] . ' ' . $validated['departure_time']);
+                // Combine date and time for flight_time datetime field
+                $flightDateTime = \Carbon\Carbon::parse($validated['departure_date'] . ' ' . $validated['departure_time']);
 
-            $bookingData = [
-                'user_id' => $user->id ?? null, // Nullable - no user account if beneficiary is not client
-                'created_by' => auth()->id(),
-                'accommodation_id' => $accommodation->id,
-                'flight_id' => $flight->id,
-                'hotel_id' => null,
-                'package_id' => null,
-                'full_name' => $validated['full_name'],
-                'flight_number' => $validated['departure_flight_number'],
-                'flight_date' => $validated['departure_date'],
-                'flight_time' => $flightDateTime,
-                'status' => 'confirmed',
-                'price' => $flightPrice, // Total flight price (departure + return if round trip)
-                // Ensure compatibility with non-nullable legacy columns
-                'checkin_date' => $validated['departure_date'] ?? now()->toDateString(),
-                'checkout_date' => $validated['return_arrival_date']
-                    ?? $validated['arrival_date']
-                    ?? $validated['departure_date']
-                    ?? now()->toDateString(),
-                'guests_count' => 1,
-            ];
-
-            // Calculate commission amount
-            $commissionAmount = null;
-            if ($accommodation->commission_percentage && $accommodation->commission_percentage > 0) {
-                $commissionAmount = round(($flightPrice * $accommodation->commission_percentage) / 100, 2);
-            }
-            $bookingData['commission_amount'] = $commissionAmount;
-
-            // Fill guest fields - guest_email is required in DB, so provide fallback if missing
-            $guestEmail = null;
-            if ($user) {
-                $guestEmail = $user->email;
-            } elseif ($validated['beneficiary_type'] === 'client' && !empty($validated['client_email'])) {
-                $guestEmail = $validated['client_email'];
-            } elseif ($validated['beneficiary_type'] === 'organizer' && $accommodation->organizer_id) {
-                $accommodation->load('organizer');
-                $guestEmail = $accommodation->organizer->email ?? null;
-            }
-
-            // Last resort: generate placeholder email (DB requires non-null)
-            // Flight is already saved at this point, so reference should exist
-            if (!$guestEmail) {
-                $guestEmail = 'flight-' . strtolower($flight->reference ?? 'temp-' . time()) . '@noreply.local';
-            }
-
-            $bookingData['guest_name'] = $validated['full_name'];
-            $bookingData['guest_email'] = $guestEmail;
-            $bookingData['email'] = $guestEmail;
-
-            try {
-                $booking = Booking::create($bookingData);
-                Log::info('Flight booking created successfully', [
-                    'booking_id' => $booking->id,
-                    'booking_reference' => $booking->booking_reference,
+                $bookingData = [
+                    'user_id' => $user->id ?? null, // Nullable - no user account if beneficiary is not client
+                    'created_by' => auth()->id(),
+                    'accommodation_id' => $accommodation->id,
                     'flight_id' => $flight->id,
-                ]);
-            } catch (\Throwable $e) {
-                Log::error('Failed to create flight booking', [
-                    'flight_id' => $flight->id,
-                    'booking_data' => $bookingData,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-                throw $e; // Re-throw to trigger rollback
-            }
+                    'hotel_id' => null,
+                    'package_id' => null,
+                    'full_name' => $validated['full_name'],
+                    'flight_number' => $validated['departure_flight_number'],
+                    'flight_date' => $validated['departure_date'],
+                    'flight_time' => $flightDateTime,
+                    'status' => 'confirmed',
+                    'price' => $flightPrice, // Total flight price (departure + return if round trip)
+                    // Ensure compatibility with non-nullable legacy columns
+                    'checkin_date' => $validated['departure_date'] ?? now()->toDateString(),
+                    'checkout_date' => $validated['return_arrival_date']
+                        ?? $validated['arrival_date']
+                        ?? $validated['departure_date']
+                        ?? now()->toDateString(),
+                    'guests_count' => 1,
+                    // Ensure payment_type is set (not 'other' as seen in transfers)
+                    'payment_type' => in_array($validated['payment_method'] ?? null, ['wallet', 'bank', 'both']) ? $validated['payment_method'] : 'bank',
+                ];
 
-            // Generate credentials PDF if client (after booking creation so booking reference is available)
-            if ($validated['beneficiary_type'] === 'client' && $user && $password) {
+                // Calculate commission amount
+                $commissionAmount = null;
+                if ($accommodation->commission_percentage && $accommodation->commission_percentage > 0) {
+                    $commissionAmount = round(($flightPrice * $accommodation->commission_percentage) / 100, 2);
+                }
+                $bookingData['commission_amount'] = $commissionAmount;
+
+                // Fill guest fields - guest_email is required in DB, so provide fallback if missing
+                $guestEmail = null;
+                if ($user) {
+                    $guestEmail = $user->email;
+                } elseif (!empty($validated['client_email'])) {
+                    $guestEmail = $validated['client_email'];
+                }
+
+                // Last resort: generate placeholder email (DB requires non-null)
+                if (!$guestEmail) {
+                    $guestEmail = 'flight-' . strtolower($flight->reference ?? 'temp-' . time()) . '@noreply.local';
+                }
+
+                $bookingData['guest_name'] = $validated['full_name'];
+                $bookingData['guest_email'] = $guestEmail;
+                $bookingData['email'] = $guestEmail;
+
                 try {
-                    // Reload flight with booking relationship
-                    $flight->load('booking');
-                    $pdf = Pdf::loadView('admin.flights.credentials', [
-                        'flight' => $flight,
-                        'booking' => $booking,
-                        'user' => $user,
-                        'password' => $password,
-                    ]);
-
-                    DualStorageService::makeDirectory('flights/credentials');
-                    $relativePath = "flights/credentials/{$flight->id}-credentials.pdf";
-                    DualStorageService::put($relativePath, $pdf->output(), 'public');
-                    $flight->credentials_pdf_path = $relativePath;
-                    $flight->save();
-                } catch (\Throwable $e) {
-                    Log::error('Failed to generate flight credentials PDF', [
+                    $booking = Booking::create($bookingData);
+                    Log::info('Flight booking created successfully', [
+                        'booking_id' => $booking->id,
+                        'booking_reference' => $booking->booking_reference,
                         'flight_id' => $flight->id,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
                     ]);
+                } catch (\Throwable $e) {
+                    Log::error('Failed to create flight booking', [
+                        'flight_id' => $flight->id,
+                        'booking_data' => $bookingData,
+                        'error' => $e->getMessage(),
+                    ]);
+                    throw $e; // Re-throw to trigger rollback
+                }
+
+                // Generate credentials PDF if client (after booking creation so booking reference is available)
+                if ($user && $password) {
+                    try {
+                        // Reload flight with booking relationship
+                        $flight->load('bookings'); // It's HasMany in model
+                        $booking = $flight->bookings()->latest()->first();
+
+                        $pdf = Pdf::loadView('admin.flights.credentials', [
+                            'flight' => $flight,
+                            'booking' => $booking,
+                            'user' => $user,
+                            'password' => $password,
+                        ]);
+
+                        DualStorageService::makeDirectory('flights/credentials');
+                        $relativePath = "flights/credentials/{$flight->id}-credentials.pdf";
+                        DualStorageService::put($relativePath, $pdf->output(), 'public');
+                        $flight->credentials_pdf_path = $relativePath;
+                        $flight->save();
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to generate flight credentials PDF', [
+                            'flight_id' => $flight->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
+                // Send emails...
+                if ($user && $password) {
+                    try {
+                        $flight->refresh();
+                        $booking->refresh();
+                        Mail::to($user->email)->send(new \App\Mail\FlightCredentialsMail($flight, $user, $password, $booking));
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to send flight credentials email', ['error' => $e->getMessage()]);
+                    }
+                } elseif ($user && !$password) {
+                    try {
+                        Mail::to($user->email)->send(new \App\Mail\BookingConfirmation($booking));
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to send booking confirmation email', ['error' => $e->getMessage()]);
+                    }
                 }
             }
 
             DB::commit();
 
-            // Send email to client if created (after commit to avoid blocking)
-            if ($validated['beneficiary_type'] === 'client' && $user && $password) {
-                try {
-                    // Reload flight and booking to get latest data including credentials_pdf_path
-                    $flight->refresh();
-                    $booking->refresh();
-                    Mail::to($user->email)->send(new \App\Mail\FlightCredentialsMail($flight, $user, $password, $booking));
-                    Log::info('Flight credentials email sent successfully', [
-                        'flight_id' => $flight->id,
-                        'booking_id' => $booking->id,
-                        'booking_reference' => $booking->booking_reference,
-                        'user_email' => $user->email,
-                    ]);
-                } catch (\Throwable $e) {
-                    Log::error('Failed to send flight credentials email', [
-                        'flight_id' => $flight->id,
-                        'booking_id' => $booking->id ?? null,
-                        'user_email' => $user->email,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
-                    ]);
-                    // Don't fail the request if email fails
-                }
-            } else {
-                // If it's an existing client (not a new user), send a standard booking confirmation email
-                if ($validated['beneficiary_type'] === 'client' && $user && !$password) {
-                    try {
-                        Mail::to($user->email)->send(new \App\Mail\BookingConfirmation($booking));
-                        Log::info('Booking confirmation email sent to existing client for flight', [
-                            'flight_id' => $flight->id,
-                            'booking_id' => $booking->id,
-                            'booking_reference' => $booking->booking_reference,
-                            'user_email' => $user->email,
-                        ]);
-                    } catch (\Throwable $e) {
-                        Log::error('Failed to send booking confirmation email to existing client for flight', [
-                            'flight_id' => $flight->id,
-                            'user_email' => $user->email,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
 
             // Update accommodation's flight price visibility settings
             if ($request->has('show_flight_prices_public')) {
@@ -591,6 +566,8 @@ class FlightController extends Controller
             'eticket' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
             'eticket_number' => 'nullable|string|max:255',
             'ticket_reference' => 'nullable|string|max:255',
+            'beneficiary_type' => 'required|in:organizer,client',
+            'client_email' => 'nullable|required_if:beneficiary_type,client|email|max:255',
             'status' => 'required|in:pending,paid',
             'payment_method' => 'nullable|in:wallet,bank,both',
             'show_flight_prices_public' => 'nullable|boolean',
@@ -644,14 +621,81 @@ class FlightController extends Controller
             $flight->status = $validated['status'];
             $flight->payment_method = $validated['payment_method'] ?? null;
 
-            // Update booking price if exists
-            if ($flight->booking) {
+            // Handle beneficiary change
+            if ($request->has('beneficiary_type')) {
+                $oldBeneficiaryType = $flight->beneficiary_type;
+                $newBeneficiaryType = $validated['beneficiary_type'];
+                $flight->beneficiary_type = $newBeneficiaryType;
+
+                if ($oldBeneficiaryType === 'client' && $newBeneficiaryType === 'organizer') {
+                    // Delete associated bookings
+                    $flight->bookings()->delete();
+                    $flight->user_id = null;
+                    $flight->client_email = null;
+                    $flight->organizer_id = $accommodation->organizer_id;
+                    $flight->user_id = $accommodation->organizer_id;
+                } elseif ($oldBeneficiaryType === 'organizer' && $newBeneficiaryType === 'client') {
+                    // We might need to create a user if client_email is provided
+                    if (!empty($validated['client_email'])) {
+                        $user = User::where('email', $validated['client_email'])->first();
+                        if (!$user) {
+                            $password = Str::random(12);
+                            $user = User::create([
+                                'name' => $validated['full_name'],
+                                'email' => $validated['client_email'],
+                                'password' => Hash::make($password),
+                                'role' => 'user',
+                                'email_verified_at' => now(),
+                            ]);
+                            // Send credentials? (Maybe later or manual)
+                        }
+                        $flight->user_id = $user->id;
+                        $flight->client_email = $validated['client_email'];
+                    }
+                    $flight->organizer_id = null;
+                }
+            }
+
+            // Update or Create Booking ONLY if beneficiary is client
+            if ($flight->beneficiary_type === 'client') {
+                $booking = $flight->bookings()->latest()->first();
+
                 $flightPrice = (float) $validated['departure_price_ttc'];
                 if ($validated['flight_category'] === 'round_trip' && !empty($validated['return_price_ttc'])) {
                     $flightPrice += (float) $validated['return_price_ttc'];
                 }
-                $flight->booking->price = $flightPrice;
-                $flight->booking->save();
+
+                $flightDateTime = \Carbon\Carbon::parse($validated['departure_date'] . ' ' . $validated['departure_time']);
+
+                $bookingData = [
+                    'user_id' => $flight->user_id,
+                    'created_by' => auth()->id(),
+                    'accommodation_id' => $accommodation->id,
+                    'flight_id' => $flight->id,
+                    'full_name' => $validated['full_name'],
+                    'flight_number' => $validated['departure_flight_number'],
+                    'flight_date' => $validated['departure_date'],
+                    'flight_time' => $flightDateTime,
+                    'price' => $flightPrice,
+                    'checkin_date' => $validated['departure_date'] ?? now()->toDateString(),
+                    'checkout_date' => $validated['return_arrival_date']
+                        ?? $validated['arrival_date']
+                        ?? $validated['departure_date']
+                        ?? now()->toDateString(),
+                    'guest_name' => $validated['full_name'],
+                    'guest_email' => $flight->client_email ?? ($flight->user->email ?? 'flight-' . $flight->reference . '@noreply.local'),
+                    'email' => $flight->client_email ?? ($flight->user->email ?? 'flight-' . $flight->reference . '@noreply.local'),
+                    'payment_type' => in_array($validated['payment_method'] ?? null, ['wallet', 'bank', 'both']) ? $validated['payment_method'] : 'bank',
+                ];
+
+                if ($booking) {
+                    /** @var \App\Models\Booking $booking */
+                    $booking->update($bookingData);
+                } else {
+                    $bookingData['status'] = 'confirmed';
+                    $bookingData['guests_count'] = 1;
+                    $booking = Booking::create($bookingData);
+                }
             }
 
             // Handle eTicket upload

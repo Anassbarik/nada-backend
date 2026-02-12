@@ -44,6 +44,7 @@
                             <th class="px-6 py-3">Type</th>
                             <th class="px-6 py-3">Date</th>
                             <th class="px-6 py-3">Vehicle</th>
+                            <th class="px-6 py-3">Driver</th>
                             <th class="px-6 py-3">Status</th>
                             <th class="px-6 py-3 text-right">Actions</th>
                         </tr>
@@ -57,6 +58,12 @@
                                 <td class="px-6 py-4">
                                     <div class="font-medium text-gray-900">{{ $transfer->client_name }}</div>
                                     <div class="text-gray-500 text-xs">{{ $transfer->client_phone }}</div>
+                                    @if($transfer->additional_passengers && count(array_filter($transfer->additional_passengers)) > 0)
+                                        <div class="text-xs text-blue-600 mt-1 cursor-help"
+                                            title="Additional Passengers: {{ implode(', ', array_filter($transfer->additional_passengers)) }}">
+                                            + {{ count(array_filter($transfer->additional_passengers)) }} more passengers
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     <span
@@ -72,6 +79,14 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     {{ $transfer->vehicle_type_label }}
+                                </td>
+                                <td class="px-6 py-4 text-xs">
+                                    @if($transfer->driver_name)
+                                        <div class="font-medium text-gray-900">{{ $transfer->driver_name }}</div>
+                                        <div class="text-gray-500">{{ $transfer->driver_phone }}</div>
+                                    @else
+                                        <span class="text-gray-400 italic">Not Assigned</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     @php
@@ -110,7 +125,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                                     <p>No transfers found.</p>
                                 </td>
                             </tr>

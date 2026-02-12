@@ -44,6 +44,7 @@
                             <th class="px-6 py-3">Date/Time</th>
                             <th class="px-6 py-3">Route</th>
                             <th class="px-6 py-3">Vehicle</th>
+                            <th class="px-6 py-3">Driver</th>
                             <th class="px-6 py-3">Price</th>
                             <th class="px-6 py-3">Status</th>
                             <th class="px-6 py-3 text-right">Actions</th>
@@ -55,6 +56,12 @@
                                 <td class="px-6 py-4">
                                     <div class="font-medium text-gray-900">{{ $transfer->client_name }}</div>
                                     <div class="text-gray-500 text-xs">{{ $transfer->client_phone }}</div>
+                                    @if($transfer->additional_passengers && count(array_filter($transfer->additional_passengers)) > 0)
+                                        <div class="text-xs text-blue-600 mt-1 cursor-help"
+                                            title="Additional Passengers: {{ implode(', ', array_filter($transfer->additional_passengers)) }}">
+                                            + {{ count(array_filter($transfer->additional_passengers)) }} more passengers
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     <span
@@ -81,8 +88,16 @@
                                     <div class="text-gray-900">{{ $transfer->vehicle_type_label }}</div>
                                     <div class="text-gray-500 text-xs">{{ $transfer->passengers }} pax</div>
                                 </td>
+                                <td class="px-6 py-4">
+                                    @if($transfer->driver_name)
+                                        <div class="text-gray-900">{{ $transfer->driver_name }}</div>
+                                        <div class="text-gray-500 text-xs">{{ $transfer->driver_phone }}</div>
+                                    @else
+                                        <span class="text-gray-400 italic">Not Assigned</span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 font-medium text-gray-900">
-                                    {{ number_format($transfer->price, 2) }} €
+                                    {{ number_format($transfer->price, 2) }} MAD
                                 </td>
                                 <td class="px-6 py-4">
                                     @php
@@ -149,7 +164,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="9" class="px-6 py-12 text-center text-gray-500">
                                     <i data-lucide="car" class="w-12 h-12 mx-auto text-gray-300 mb-3"></i>
                                     <p class="text-lg font-medium text-gray-900">No transfers found</p>
                                     <p class="mb-4">Get started by creating a new transfer for this event.</p>

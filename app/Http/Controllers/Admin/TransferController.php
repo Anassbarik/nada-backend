@@ -146,8 +146,8 @@ class TransferController extends Controller
         }
 
         $validated = $request->validate([
-            'client_name' => 'required|string|max:255',
-            'client_phone' => 'required|string|max:20',
+            'client_name' => 'required_if:beneficiary_type,client|nullable|string|max:255',
+            'client_phone' => 'required_if:beneficiary_type,client|nullable|string|max:20',
             'client_email' => 'nullable|email|max:255',
             'transfer_type' => 'required|in:airport_hotel,hotel_airport,hotel_event,event_hotel,city_transfer',
             'trip_type' => 'required|in:one_way,round_trip',
@@ -172,6 +172,10 @@ class TransferController extends Controller
             'show_transfer_prices_organizer_dashboard' => 'nullable|boolean',
             'transfers_sub_permissions' => 'nullable|array',
             'transfers_sub_permissions.*' => 'exists:users,id',
+            'driver_name' => 'nullable|string|max:255',
+            'driver_phone' => 'nullable|string|max:255',
+            'additional_passengers' => 'nullable|array',
+            'additional_passengers.*' => 'nullable|string|max:255',
         ]);
 
         // Strict Passenger and Luggage Validation against Vehicle Type
@@ -180,6 +184,7 @@ class TransferController extends Controller
             return back()->withInput()->withErrors(['passengers' => "The selected vehicle type ({$vehicleType->name}) allows a maximum of {$vehicleType->max_passengers} passengers."]);
         }
         if ($validated['luggages'] > $vehicleType->max_luggages) {
+            \Illuminate\Support\Facades\Log::info('Luggage check failed', ['luggages' => $validated['luggages'], 'max' => $vehicleType->max_luggages]);
             return back()->withInput()->withErrors(['luggages' => "The selected vehicle type ({$vehicleType->name}) allows a maximum of {$vehicleType->max_luggages} luggages."]);
         }
 
@@ -201,6 +206,12 @@ class TransferController extends Controller
                 // but typically organizer_id is enough for that context.
                 // Logic mirrors FlightController: 
                 // "If beneficiary is organizer, we attribute it to the accommodation organizer"
+
+                // Set default client info if organizer
+                $organizer = $accommodation->organizer ?? User::find($organizerId);
+                $validated['client_name'] = $validated['client_name'] ?? ($organizer->name ?? 'Organizer');
+                $validated['client_phone'] = $validated['client_phone'] ?? ($organizer->phone ?? '');
+                $validated['client_email'] = $validated['client_email'] ?? ($organizer->email ?? '');
             } else {
                 // Client beneficiary
                 // Check if user exists by email, or create new
@@ -213,7 +224,7 @@ class TransferController extends Controller
                             'name' => $validated['client_name'],
                             'email' => $validated['client_email'],
                             'phone' => $validated['client_phone'],
-                            'role' => 'client', // Assuming 'client' role exists or 'user'
+                            'role' => 'user', // Changed from 'client' to 'user' as 'client' is not in database ENUM
                             'password' => Hash::make($password),
                         ]);
 
@@ -235,8 +246,8 @@ class TransferController extends Controller
                 'pickup_time' => $validated['pickup_time'],
                 'pickup_location' => $validated['pickup_location'],
                 'dropoff_location' => $validated['dropoff_location'],
-                'flight_number' => $validated['flight_number'],
-                'flight_time' => $validated['flight_time'],
+                'flight_number' => $validated['flight_number'] ?? null,
+                'flight_time' => $validated['flight_time'] ?? null,
                 'vehicle_type' => $vehicleType->name,
                 'vehicle_type_id' => $validated['vehicle_type_id'],
                 'passengers' => $validated['passengers'],
@@ -246,56 +257,61 @@ class TransferController extends Controller
                 'return_time' => $validated['return_time'] ?? null,
                 'eticket_path' => $eticketPath,
                 'status' => $validated['status'],
-                'payment_method' => $validated['payment_method'],
+                'payment_method' => $validated['payment_method'] ?? null,
                 'beneficiary_type' => $validated['beneficiary_type'],
                 'organizer_id' => $organizerId,
                 'user_id' => $userId,
                 'created_by' => auth()->id(),
+                'driver_name' => $validated['driver_name'] ?? null,
+                'driver_phone' => $validated['driver_phone'] ?? null,
+                'additional_passengers' => $validated['additional_passengers'] ?? null,
             ]);
 
-            // Create Booking
-            $booking = Booking::create([
-                'user_id' => $userId, // Can be null
-                'created_by' => auth()->id(),
-                'accommodation_id' => $accommodation->id,
-                'event_id' => $accommodation->id,
-                'transfer_id' => $transfer->id,
-                'guest_name' => $validated['client_name'],
-                'guest_email' => $validated['client_email'],
-                'guest_phone' => $validated['client_phone'],
-                'full_name' => $validated['client_name'],
-                'phone' => $validated['client_phone'],
-                'email' => $validated['client_email'],
+            \Illuminate\Support\Facades\Log::info('Transfer created in store', ['id' => $transfer->id]);
 
-                'checkin_date' => $validated['transfer_date'], // Use transfer date as checkin
-                'checkout_date' => ($validated['trip_type'] === 'round_trip' && !empty($validated['return_date'])) ? $validated['return_date'] : $validated['transfer_date'],
-                'guests_count' => $validated['passengers'],
+            // Create Booking only if NOT organizer beneficiary
+            if ($validated['beneficiary_type'] !== 'organizer') {
+                $booking = Booking::create([
+                    'user_id' => $userId, // Can be null
+                    'created_by' => auth()->id(),
+                    'accommodation_id' => $accommodation->id,
+                    'event_id' => $accommodation->id,
+                    'transfer_id' => $transfer->id,
+                    'guest_name' => $validated['client_name'],
+                    'guest_email' => $validated['client_email'],
+                    'guest_phone' => $validated['client_phone'],
+                    'full_name' => $validated['client_name'],
+                    'phone' => $validated['client_phone'],
+                    'email' => $validated['client_email'],
 
-                'flight_number' => $validated['flight_number'] ?? null,
-                'flight_date' => $validated['transfer_date'],
-                'flight_time' => $validated['flight_time'] ?? null,
+                    'checkin_date' => $validated['transfer_date'], // Use transfer date as checkin
+                    'checkout_date' => ($validated['trip_type'] === 'round_trip' && !empty($validated['return_date'])) ? $validated['return_date'] : $validated['transfer_date'],
+                    'guests_count' => $validated['passengers'],
 
-                'price' => $validated['price'],
-                'status' => in_array($validated['status'], ['pending', 'confirmed', 'paid', 'cancelled']) ? $validated['status'] : 'pending',
-                'payment_type' => $validated['payment_method'] === 'wallet' ? 'wallet' : 'other',
-            ]);
+                    'flight_number' => $validated['flight_number'] ?? null,
+                    'flight_date' => $validated['transfer_date'],
+                    'flight_time' => $validated['flight_time'] ?? null,
 
-            DB::commit();
+                    'price' => $validated['price'],
+                    'status' => in_array($validated['status'], ['pending', 'confirmed', 'paid', 'cancelled']) ? $validated['status'] : 'pending',
+                    'payment_type' => in_array($validated['payment_method'] ?? null, ['wallet', 'bank', 'both']) ? $validated['payment_method'] : 'bank',
+                ]);
 
-            // Send confirmation email to client if email is provided
-            if (!empty($validated['client_email'])) {
-                try {
-                    Mail::to($validated['client_email'])->send(new \App\Mail\BookingConfirmation($booking));
-                    Log::info('Booking confirmation email sent to client for transfer', [
-                        'booking_id' => $booking->id,
-                        'booking_reference' => $booking->booking_reference,
-                        'client_email' => $validated['client_email'],
-                    ]);
-                } catch (\Exception $e) {
-                    Log::error('Failed to send booking confirmation email for transfer', [
-                        'booking_id' => $booking->id,
-                        'error' => $e->getMessage(),
-                    ]);
+                // Send confirmation email to client if email is provided
+                if (!empty($validated['client_email'])) {
+                    try {
+                        Mail::to($validated['client_email'])->send(new \App\Mail\BookingConfirmation($booking));
+                        Log::info('Booking confirmation email sent to client for transfer', [
+                            'booking_id' => $booking->id,
+                            'booking_reference' => $booking->booking_reference,
+                            'client_email' => $validated['client_email'],
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send booking confirmation email for transfer', [
+                            'booking_id' => $booking->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
             }
 
@@ -326,6 +342,8 @@ class TransferController extends Controller
                     ]);
                 }
             }
+
+            DB::commit();
 
             // Check if this is a standalone request
             $isStandalone = $request->has('_standalone') || request()->routeIs('admin.transfers.store-standalone');
@@ -373,8 +391,8 @@ class TransferController extends Controller
         }
 
         $validated = $request->validate([
-            'client_name' => 'required|string|max:255',
-            'client_phone' => 'required|string|max:20',
+            'client_name' => 'required_if:beneficiary_type,client|nullable|string|max:255',
+            'client_phone' => 'required_if:beneficiary_type,client|nullable|string|max:20',
             'client_email' => 'nullable|email|max:255',
             'transfer_type' => 'required|in:airport_hotel,hotel_airport,hotel_event,event_hotel,city_transfer',
             'trip_type' => 'required|in:one_way,round_trip',
@@ -392,12 +410,17 @@ class TransferController extends Controller
             'return_time' => 'nullable|required_if:trip_type,round_trip',
             'status' => 'required|in:pending,paid,confirmed,completed,cancelled',
             'payment_method' => 'nullable|in:wallet,bank,both',
+            'beneficiary_type' => 'required|in:organizer,client',
             'eticket' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
             'show_transfer_prices_public' => 'nullable|boolean',
             'show_transfer_prices_client_dashboard' => 'nullable|boolean',
             'show_transfer_prices_organizer_dashboard' => 'nullable|boolean',
             'transfers_sub_permissions' => 'nullable|array',
             'transfers_sub_permissions.*' => 'exists:users,id',
+            'driver_name' => 'nullable|string|max:255',
+            'driver_phone' => 'nullable|string|max:255',
+            'additional_passengers' => 'nullable|array',
+            'additional_passengers.*' => 'nullable|string|max:255',
         ]);
 
         // Strict Passenger Validation against Vehicle Type
@@ -417,6 +440,37 @@ class TransferController extends Controller
                 $transfer->eticket_path = DualStorageService::store($request->file('eticket'), 'transfers/etickets');
             }
 
+            $userId = $transfer->user_id;
+            $organizerId = $transfer->organizer_id;
+
+            if ($validated['beneficiary_type'] === 'organizer') {
+                $organizerId = $accommodation->organizer_id;
+                $userId = null; // Clear user_id if switching to organizer
+
+                // Set default client info if organizer and currently null
+                $organizer = $accommodation->organizer ?? User::find($organizerId);
+                $validated['client_name'] = $validated['client_name'] ?? ($organizer->name ?? 'Organizer');
+                $validated['client_phone'] = $validated['client_phone'] ?? ($organizer->phone ?? '');
+                $validated['client_email'] = $validated['client_email'] ?? ($organizer->email ?? '');
+            } else {
+                // Client beneficiary - handle potential new user creation or lookup
+                $organizerId = null; // Clear organizer_id if switching to client
+                if (!empty($validated['client_email'])) {
+                    $user = User::where('email', $validated['client_email'])->first();
+                    if (!$user) {
+                        $password = Str::random(10);
+                        $user = User::create([
+                            'name' => $validated['client_name'],
+                            'email' => $validated['client_email'],
+                            'phone' => $validated['client_phone'],
+                            'role' => 'user',
+                            'password' => Hash::make($password),
+                        ]);
+                    }
+                    $userId = $user->id;
+                }
+            }
+
             $transfer->update([
                 'client_name' => $validated['client_name'],
                 'client_phone' => $validated['client_phone'],
@@ -427,36 +481,75 @@ class TransferController extends Controller
                 'pickup_time' => $validated['pickup_time'],
                 'pickup_location' => $validated['pickup_location'],
                 'dropoff_location' => $validated['dropoff_location'],
-                'flight_number' => $validated['flight_number'],
-                'flight_time' => $validated['flight_time'],
+                'flight_number' => $validated['flight_number'] ?? null,
+                'flight_time' => $validated['flight_time'] ?? null,
                 'vehicle_type' => $vehicleType->name,
                 'vehicle_type_id' => $validated['vehicle_type_id'],
                 'passengers' => $validated['passengers'],
                 'luggages' => $validated['luggages'],
                 'price' => $validated['price'],
-                'return_date' => $validated['return_date'],
-                'return_time' => $validated['return_time'],
+                'return_date' => $validated['return_date'] ?? null,
+                'return_time' => $validated['return_time'] ?? null,
                 'status' => $validated['status'],
-                'payment_method' => $validated['payment_method'],
+                'payment_method' => $validated['payment_method'] ?? null,
+                'beneficiary_type' => $validated['beneficiary_type'],
+                'organizer_id' => $organizerId,
+                'user_id' => $userId,
+                'driver_name' => $validated['driver_name'] ?? null,
+                'driver_phone' => $validated['driver_phone'] ?? null,
+                'additional_passengers' => $validated['additional_passengers'] ?? null,
             ]);
 
-            // Update associated Booking
-            if ($transfer->booking) {
-                $transfer->booking->update([
-                    'guest_name' => $validated['client_name'],
-                    'full_name' => $validated['client_name'],
-                    'guest_phone' => $validated['client_phone'],
-                    'phone' => $validated['client_phone'],
-                    'guest_email' => $validated['client_email'],
-                    'email' => $validated['client_email'],
-                    'checkin_date' => $validated['transfer_date'],
-                    'checkout_date' => $validated['trip_type'] === 'round_trip' ? $validated['return_date'] : $validated['transfer_date'],
-                    'guests_count' => $validated['passengers'],
-                    'price' => $validated['price'],
-                    'flight_number' => $validated['flight_number'],
-                    'flight_date' => $validated['transfer_date'],
-                    'flight_time' => $validated['flight_time'],
-                ]);
+            // Manage associated Booking
+            if ($validated['beneficiary_type'] === 'organizer') {
+                // Delete booking if it exists (organizer transfers don't have bookings)
+                if ($transfer->booking) {
+                    $transfer->booking->delete();
+                }
+            } else {
+                // Client beneficiary - update or create booking
+                if ($transfer->booking) {
+                    $transfer->booking->update([
+                        'user_id' => $userId,
+                        'guest_name' => $validated['client_name'],
+                        'full_name' => $validated['client_name'],
+                        'guest_phone' => $validated['client_phone'],
+                        'phone' => $validated['client_phone'],
+                        'guest_email' => $validated['client_email'],
+                        'email' => $validated['client_email'],
+                        'checkin_date' => $validated['transfer_date'],
+                        'checkout_date' => $validated['trip_type'] === 'round_trip' ? $validated['return_date'] : $validated['transfer_date'],
+                        'guests_count' => $validated['passengers'],
+                        'price' => $validated['price'],
+                        'flight_number' => $validated['flight_number'],
+                        'flight_date' => $validated['transfer_date'],
+                        'flight_time' => $validated['flight_time'],
+                    ]);
+                } else {
+                    // Create booking if missing
+                    Booking::create([
+                        'user_id' => $userId,
+                        'created_by' => auth()->id(),
+                        'accommodation_id' => $accommodation->id,
+                        'event_id' => $accommodation->id,
+                        'transfer_id' => $transfer->id,
+                        'guest_name' => $validated['client_name'],
+                        'guest_email' => $validated['client_email'],
+                        'guest_phone' => $validated['client_phone'],
+                        'full_name' => $validated['client_name'],
+                        'phone' => $validated['client_phone'],
+                        'email' => $validated['client_email'],
+                        'checkin_date' => $validated['transfer_date'],
+                        'checkout_date' => ($validated['trip_type'] === 'round_trip' && !empty($validated['return_date'])) ? $validated['return_date'] : $validated['transfer_date'],
+                        'guests_count' => $validated['passengers'],
+                        'flight_number' => $validated['flight_number'] ?? null,
+                        'flight_date' => $validated['transfer_date'],
+                        'flight_time' => $validated['flight_time'] ?? null,
+                        'price' => $validated['price'],
+                        'status' => in_array($validated['status'], ['pending', 'confirmed', 'paid', 'cancelled']) ? $validated['status'] : 'pending',
+                        'payment_type' => in_array($validated['payment_method'] ?? null, ['wallet', 'bank', 'both']) ? $validated['payment_method'] : 'bank',
+                    ]);
+                }
             }
 
             DB::commit();
