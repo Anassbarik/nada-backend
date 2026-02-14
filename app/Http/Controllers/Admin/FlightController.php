@@ -39,22 +39,26 @@ class FlightController extends Controller
 
         return view('admin.flights.index', compact('accommodation', 'flights'));
     }
-
     /**
      * Display a global listing of flights across all accommodations.
      * Used for the main Flights link in the admin sidebar.
      */
-    public function globalIndex()
+    public function globalIndex(Request $request)
     {
         $user = auth()->user();
+        $query = Flight::with(['accommodation', 'user', 'organizer', 'creator'])->latest();
+
+        // Apply accommodation filter
+        if ($request->has('accommodation_id') && $request->accommodation_id !== '') {
+            $query->where('accommodation_id', $request->accommodation_id);
+        }
 
         // Super-admins can see all flights
         if ($user->isSuperAdmin()) {
-            $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
-                ->latest()
-                ->paginate(20);
+            $flights = $query->paginate(20);
+            $accommodations = Accommodation::orderBy('name')->get();
 
-            return view('admin.flights.global-index', compact('flights'));
+            return view('admin.flights.global-index', compact('flights', 'accommodations'));
         }
 
         // Regular admins need either main permission or resource permissions
@@ -66,9 +70,8 @@ class FlightController extends Controller
 
         // If admin has main permission, show all flights
         if ($hasMainPermission) {
-            $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
-                ->latest()
-                ->paginate(20);
+            $flights = $query->paginate(20);
+            $accommodations = Accommodation::orderBy('name')->get();
         } else {
             // If admin doesn't have main permission, check for resource permissions
             // Get accommodation IDs where user has resource permissions
@@ -83,13 +86,15 @@ class FlightController extends Controller
             }
 
             // Show only flights for accommodations where user has resource permissions
-            $flights = Flight::with(['accommodation', 'user', 'organizer', 'creator'])
-                ->whereIn('accommodation_id', $allowedAccommodationIds)
-                ->latest()
+            $flights = $query->whereIn('accommodation_id', $allowedAccommodationIds)
                 ->paginate(20);
+
+            $accommodations = Accommodation::whereIn('id', $allowedAccommodationIds)
+                ->orderBy('name')
+                ->get();
         }
 
-        return view('admin.flights.global-index', compact('flights'));
+        return view('admin.flights.global-index', compact('flights', 'accommodations'));
     }
 
     /**

@@ -79,11 +79,12 @@ class AuthController extends Controller
                     'phone' => $user->phone,
                     'company' => $user->company,
                     'role' => $user->role ?? 'user',
+                    'status' => $user->is_active ? 'active' : 'inactive',
                     'email_verified_at' => $user->email_verified_at?->toISOString(),
                     'wallet' => [
                         'id' => $user->wallet->id,
-                        'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
-                        'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
+                        'balance' => number_format((float) $user->wallet->balance, 2, '.', ''),
+                        'balance_formatted' => number_format((float) $user->wallet->balance, 2, ',', ' ') . ' MAD',
                     ],
                 ],
             ],
@@ -141,11 +142,12 @@ class AuthController extends Controller
                     'phone' => $user->phone,
                     'company' => $user->company,
                     'role' => $user->role ?? 'user',
+                    'status' => $user->is_active ? 'active' : 'inactive',
                     'email_verified_at' => $user->email_verified_at?->toISOString(),
                     'wallet' => [
                         'id' => $user->wallet->id,
-                        'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
-                        'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
+                        'balance' => number_format((float) $user->wallet->balance, 2, '.', ''),
+                        'balance_formatted' => number_format((float) $user->wallet->balance, 2, ',', ' ') . ' MAD',
                     ],
                 ],
             ],
@@ -176,7 +178,7 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         $user = $request->user();
-        
+
         // Ensure wallet exists (for legacy users who might not have one)
         if (!$user->wallet) {
             $user->wallet()->create(['balance' => 0.00]);
@@ -189,7 +191,7 @@ class AuthController extends Controller
         // Frontend impersonation uses tokens, so we check if there's an impersonation token in session
         $isImpersonated = session()->has('impersonator_id') || session()->has('impersonation_token');
         $impersonator = null;
-        
+
         if ($isImpersonated && session()->has('impersonator_id')) {
             $impersonatorId = session()->get('impersonator_id');
             $impersonator = \App\Models\User::find($impersonatorId);
@@ -204,11 +206,12 @@ class AuthController extends Controller
                 'phone' => $user->phone,
                 'company' => $user->company,
                 'role' => $user->role ?? 'user',
+                'status' => $user->is_active ? 'active' : 'inactive',
                 'email_verified_at' => $user->email_verified_at?->toISOString(),
                 'wallet' => [
                     'id' => $user->wallet->id,
-                    'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
-                    'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
+                    'balance' => number_format((float) $user->wallet->balance, 2, '.', ''),
+                    'balance_formatted' => number_format((float) $user->wallet->balance, 2, ',', ' ') . ' MAD',
                 ],
             ],
         ];
@@ -238,7 +241,7 @@ class AuthController extends Controller
         // Check both session and token-based impersonation
         $hasSessionImpersonation = session()->has('impersonator_id');
         $hasTokenImpersonation = session()->has('impersonation_token');
-        
+
         if (!$hasSessionImpersonation && !$hasTokenImpersonation) {
             return response()->json([
                 'success' => false,
@@ -249,7 +252,7 @@ class AuthController extends Controller
         $impersonatedUser = $request->user();
         $impersonatorId = null;
         $impersonator = null;
-        
+
         if ($hasSessionImpersonation) {
             $impersonatorId = session()->get('impersonator_id');
             $impersonator = \App\Models\User::findOrFail($impersonatorId);
@@ -295,22 +298,22 @@ class AuthController extends Controller
         // Get backend admin URL from APP_URL config
         // APP_URL should be set to the backend base URL (e.g., https://seminairexpo.com/admin/public)
         $backendUrl = config('app.url');
-        
+
         // If APP_URL is not configured, fall back to constructing from request
         if (!$backendUrl || $backendUrl === 'http://localhost') {
             $scheme = $request->getScheme();
             $host = $request->getHost();
             $port = $request->getPort();
-            
+
             $backendUrl = $scheme . '://' . $host;
             if ($port && !in_array($port, [80, 443])) {
                 $backendUrl .= ':' . $port;
             }
         }
-        
+
         // Remove trailing slash
         $backendUrl = rtrim($backendUrl, '/');
-        
+
         // Construct admin panel URL
         // APP_URL should already include the full backend path (e.g., /admin/public)
         // So we just append the admin route
@@ -386,11 +389,12 @@ class AuthController extends Controller
                     'phone' => $user->phone,
                     'company' => $user->company,
                     'role' => $user->role ?? 'user',
+                    'status' => $user->is_active ? 'active' : 'inactive',
                     'email_verified_at' => $user->email_verified_at?->toISOString(),
                     'wallet' => [
                         'id' => $user->wallet->id,
-                        'balance' => number_format((float)$user->wallet->balance, 2, '.', ''),
-                        'balance_formatted' => number_format((float)$user->wallet->balance, 2, ',', ' ') . ' MAD',
+                        'balance' => number_format((float) $user->wallet->balance, 2, '.', ''),
+                        'balance_formatted' => number_format((float) $user->wallet->balance, 2, ',', ' ') . ' MAD',
                     ],
                 ],
             ],
@@ -453,7 +457,7 @@ class AuthController extends Controller
         // If at or above limit, delete oldest tokens (keep most recent)
         if ($tokenCount >= self::MAX_TOKENS_PER_USER) {
             $tokensToDelete = $tokenCount - self::MAX_TOKENS_PER_USER + 1; // +1 for the new token we're creating
-            
+
             // Delete oldest tokens (ordered by created_at ascending)
             $user->tokens()
                 ->orderBy('created_at', 'asc')

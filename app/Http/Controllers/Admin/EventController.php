@@ -35,13 +35,13 @@ class EventController extends Controller
     public function create()
     {
         // Get regular admins for sub-permissions assignment (only for super-admin)
-        $admins = auth()->user()->isSuperAdmin() 
+        $admins = auth()->user()->isSuperAdmin()
             ? User::where('role', 'admin')->orderBy('name')->get()
             : collect();
 
         // Get current sub-permissions (empty for create)
-        $subPermissions = collect();
-        $flightsSubPermissions = collect();
+        $subPermissions = [];
+        $flightsSubPermissions = [];
 
         return view('admin.events.create', compact('admins', 'subPermissions', 'flightsSubPermissions'));
     }
@@ -77,6 +77,9 @@ class EventController extends Controller
             'sub_permissions.*' => 'exists:users,id',
             'flights_sub_permissions' => 'nullable|array',
             'flights_sub_permissions.*' => 'exists:users,id',
+            'has_hotel_package' => 'nullable|boolean',
+            'has_flights' => 'nullable|boolean',
+            'has_transfers' => 'nullable|boolean',
         ]);
 
         $event = new Accommodation();
@@ -96,6 +99,9 @@ class EventController extends Controller
         $event->show_flight_prices_client_dashboard = $request->has('show_flight_prices_client_dashboard') ? (bool) $request->input('show_flight_prices_client_dashboard') : true;
         $event->show_flight_prices_organizer_dashboard = $request->has('show_flight_prices_organizer_dashboard') ? (bool) $request->input('show_flight_prices_organizer_dashboard') : true;
         $event->commission_percentage = isset($validated['commission_percentage']) ? (float) $validated['commission_percentage'] : null;
+        $event->has_hotel_package = $request->has('has_hotel_package') ? (bool) $request->input('has_hotel_package') : true;
+        $event->has_flights = $request->has('has_flights') ? (bool) $request->input('has_flights') : true;
+        $event->has_transfers = $request->has('has_transfers') ? (bool) $request->input('has_transfers') : true;
         $event->created_by = auth()->id();
 
         // Generate password for organizer
@@ -139,7 +145,7 @@ class EventController extends Controller
                     ]);
                 }
             }
-            
+
             // Handle flights sub-permissions
             if (isset($validated['flights_sub_permissions'])) {
                 foreach ($validated['flights_sub_permissions'] as $adminId) {
@@ -159,11 +165,11 @@ class EventController extends Controller
                 'organizer' => $organizer,
                 'password' => $organizerPassword,
             ]);
-            
+
             DualStorageService::makeDirectory('organizers');
             $relativePath = "organizers/{$organizer->id}-credentials.pdf";
             DualStorageService::put($relativePath, $pdf->output(), 'public');
-            
+
             return redirect()->route('admin.events.index')
                 ->with('success', 'Event created successfully.')
                 ->with('organizer_pdf_url', route('admin.organizers.download-credentials', $organizer));
@@ -172,7 +178,7 @@ class EventController extends Controller
                 'organizer_id' => $organizer->id,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return redirect()->route('admin.events.index')
                 ->with('success', 'Event created successfully. Organizer created but PDF generation failed.')
                 ->with('organizer_password', $organizerPassword)
@@ -189,7 +195,7 @@ class EventController extends Controller
         if (!$event->canBeViewedBy(auth()->user())) {
             abort(403, 'You do not have permission to view this event.');
         }
-        
+
         return view('admin.events.show', compact('event'));
     }
 
@@ -202,9 +208,9 @@ class EventController extends Controller
         if (!$event->canBeEditedBy(auth()->user())) {
             abort(403, 'You do not have permission to edit this event. Events created by super administrators can only be edited by super administrators.');
         }
-        
+
         // Get regular admins for sub-permissions assignment (only for super-admin)
-        $admins = auth()->user()->isSuperAdmin() 
+        $admins = auth()->user()->isSuperAdmin()
             ? User::where('role', 'admin')->orderBy('name')->get()
             : collect();
 
@@ -213,16 +219,16 @@ class EventController extends Controller
             ->where('resource_id', $event->id)
             ->pluck('user_id')
             ->toArray();
-        
+
         // Get current flights sub-permissions for this event
         $flightsSubPermissions = ResourcePermission::where('resource_type', 'flight')
             ->where('resource_id', $event->id)
             ->pluck('user_id')
             ->toArray();
-        
+
         // Load organizer relationship
         $event->load('organizer');
-        
+
         return view('admin.events.edit', compact('event', 'admins', 'subPermissions', 'flightsSubPermissions'));
     }
 
@@ -269,6 +275,9 @@ class EventController extends Controller
             'sub_permissions.*' => 'exists:users,id',
             'flights_sub_permissions' => 'nullable|array',
             'flights_sub_permissions.*' => 'exists:users,id',
+            'has_hotel_package' => 'nullable|boolean',
+            'has_flights' => 'nullable|boolean',
+            'has_transfers' => 'nullable|boolean',
         ]);
 
         $event->name = $validated['name'];
@@ -287,6 +296,9 @@ class EventController extends Controller
         $event->show_flight_prices_client_dashboard = $request->has('show_flight_prices_client_dashboard') ? (bool) $request->input('show_flight_prices_client_dashboard') : true;
         $event->show_flight_prices_organizer_dashboard = $request->has('show_flight_prices_organizer_dashboard') ? (bool) $request->input('show_flight_prices_organizer_dashboard') : true;
         $event->commission_percentage = isset($validated['commission_percentage']) ? (float) $validated['commission_percentage'] : null;
+        $event->has_hotel_package = $request->has('has_hotel_package') ? (bool) $request->input('has_hotel_package') : true;
+        $event->has_flights = $request->has('has_flights') ? (bool) $request->input('has_flights') : true;
+        $event->has_transfers = $request->has('has_transfers') ? (bool) $request->input('has_transfers') : true;
 
         if ($request->hasFile('organizer_logo')) {
             if ($event->organizer_logo) {
@@ -314,24 +326,24 @@ class EventController extends Controller
         // Handle organizer creation/update
         $organizerPassword = null;
         $organizerCreated = false;
-        
+
         if (!empty($validated['organizer_name']) && !empty($validated['organizer_email'])) {
             if ($event->organizer) {
                 // Update existing organizer
                 $organizer = $event->organizer;
                 $emailChanged = $organizer->email !== $validated['organizer_email'];
-                
+
                 $organizer->name = $validated['organizer_name'];
                 $organizer->email = $validated['organizer_email'];
-                
+
                 // Generate new password if email changed
                 if ($emailChanged) {
                     $organizerPassword = Str::random(12);
                     $organizer->password = Hash::make($organizerPassword);
                 }
-                
+
                 $organizer->save();
-                
+
                 // Generate new credentials PDF if email changed
                 if ($emailChanged && $organizerPassword) {
                     try {
@@ -340,7 +352,7 @@ class EventController extends Controller
                             'organizer' => $organizer,
                             'password' => $organizerPassword,
                         ]);
-                        
+
                         DualStorageService::makeDirectory('organizers');
                         $relativePath = "organizers/{$organizer->id}-credentials.pdf";
                         DualStorageService::put($relativePath, $pdf->output(), 'public');
@@ -354,7 +366,7 @@ class EventController extends Controller
             } else {
                 // Create new organizer
                 $organizerPassword = Str::random(12);
-                
+
                 $organizer = User::create([
                     'name' => $validated['organizer_name'],
                     'email' => $validated['organizer_email'],
@@ -362,11 +374,11 @@ class EventController extends Controller
                     'role' => 'organizer',
                     'email_verified_at' => now(),
                 ]);
-                
+
                 $event->organizer_id = $organizer->id;
                 $event->save();
                 $organizerCreated = true;
-                
+
                 // Generate organizer credentials PDF
                 try {
                     $pdf = Pdf::loadView('admin.organizers.credentials', [
@@ -374,7 +386,7 @@ class EventController extends Controller
                         'organizer' => $organizer,
                         'password' => $organizerPassword,
                     ]);
-                    
+
                     DualStorageService::makeDirectory('organizers');
                     $relativePath = "organizers/{$organizer->id}-credentials.pdf";
                     DualStorageService::put($relativePath, $pdf->output(), 'public');
@@ -404,7 +416,7 @@ class EventController extends Controller
                     ]);
                 }
             }
-            
+
             // Remove all existing flights sub-permissions for this event
             ResourcePermission::where('resource_type', 'flight')
                 ->where('resource_id', $event->id)
@@ -470,7 +482,7 @@ class EventController extends Controller
         if (!$event->canBeViewedBy(auth()->user())) {
             abort(403, 'You do not have permission to view this event.');
         }
-        
+
         $duplicate = $event->replicate();
         $duplicate->name = $event->name . ' (Copy)';
         // Append -duplicated to slug to ensure uniqueness

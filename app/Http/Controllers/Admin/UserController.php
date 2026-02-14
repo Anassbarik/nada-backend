@@ -30,9 +30,9 @@ class UserController extends Controller
             $search = \App\Services\InputSanitizer::sanitizeSearch($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('company', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('company', 'like', "%{$search}%");
             });
         }
 
@@ -56,6 +56,43 @@ class UserController extends Controller
         $user->load(['bookings.accommodation', 'bookings.hotel', 'bookings.package', 'wallet']);
 
         return view('admin.users.show', compact('user'));
+    }
+
+    /**
+     * Remove the specified user.
+     */
+    public function destroy(User $user)
+    {
+        $this->authorize('delete', $user);
+
+        // Ensure we're deleting a regular user or organizer
+        if (!in_array($user->role, ['user', 'organizer'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $user->delete();
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Toggle the active status of a user.
+     */
+    public function toggleActive(User $user)
+    {
+        $this->authorize('update', $user);
+
+        // Ensure we're toggling a regular user or organizer
+        if (!in_array($user->role, ['user', 'organizer'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        $status = $user->is_active ? 'activated' : 'deactivated';
+        return back()->with('success', "User account has been {$status}.");
     }
 }
 

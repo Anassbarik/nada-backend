@@ -45,7 +45,11 @@ class Accommodation extends Model
         'commission_percentage',
         'show_transfer_prices_public',
         'show_transfer_prices_client_dashboard',
+        'show_transfer_prices_client_dashboard',
         'show_transfer_prices_organizer_dashboard',
+        'has_hotel_package',
+        'has_flights',
+        'has_transfers',
     ];
 
     protected $casts = [
@@ -59,6 +63,9 @@ class Accommodation extends Model
         'show_transfer_prices_public' => 'boolean',
         'show_transfer_prices_client_dashboard' => 'boolean',
         'show_transfer_prices_organizer_dashboard' => 'boolean',
+        'has_hotel_package' => 'boolean',
+        'has_flights' => 'boolean',
+        'has_transfers' => 'boolean',
     ];
 
     protected static function boot()

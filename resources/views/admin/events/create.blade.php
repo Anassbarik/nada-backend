@@ -75,6 +75,29 @@
                         @endif
 
 
+
+                        <div class="mb-6 p-4 border border-gray-300 rounded-md bg-gray-50">
+                            <h3 class="text-lg font-semibold mb-4">{{ __('Event Components') }}</h3>
+                            <p class="mb-4 text-sm text-gray-600">Select which components are available for this event.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="flex items-center space-x-3">
+                                    <input type="checkbox" name="has_hotel_package" value="1" {{ old('has_hotel_package', 1) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                    <span class="text-gray-700 font-medium">{{ __('Hotel Package') }}</span>
+                                </label>
+                                
+                                <label class="flex items-center space-x-3">
+                                    <input type="checkbox" name="has_flights" value="1" {{ old('has_flights', 1) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                    <span class="text-gray-700 font-medium">{{ __('Flights') }}</span>
+                                </label>
+                                
+                                <label class="flex items-center space-x-3">
+                                    <input type="checkbox" name="has_transfers" value="1" {{ old('has_transfers', 1) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                    <span class="text-gray-700 font-medium">{{ __('Transfers') }}</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="mb-4">
                             <x-input-label for="name" :value="__('name')" />
                             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus />

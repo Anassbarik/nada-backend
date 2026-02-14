@@ -36,19 +36,33 @@ class BookingController extends Controller
             $search = \App\Services\InputSanitizer::sanitizeSearch($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('booking_reference', 'like', "%{$search}%")
-                  ->orWhere('full_name', 'like', "%{$search}%")
-                  ->orWhere('guest_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('guest_email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('guest_phone', 'like', "%{$search}%")
-                  ->orWhere('company', 'like', "%{$search}%")
-                  ->orWhere('flight_number', 'like', "%{$search}%");
+                    ->orWhere('full_name', 'like', "%{$search}%")
+                    ->orWhere('guest_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('guest_email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('guest_phone', 'like', "%{$search}%")
+                    ->orWhere('company', 'like', "%{$search}%")
+                    ->orWhere('flight_number', 'like', "%{$search}%");
             });
         }
 
         $bookings = $query->paginate(20);
-        $accommodations = \App\Models\Accommodation::all();
+
+        $user = auth()->user();
+        if ($user->isSuperAdmin()) {
+            $accommodations = \App\Models\Accommodation::orderBy('name')->get();
+        } else {
+            // Get accommodations user has access to (simplified check similar to others)
+            $allowedAccommodationIds = \App\Models\ResourcePermission::where('user_id', $user->id)
+                ->pluck('resource_id')
+                ->toArray();
+
+            $accommodations = \App\Models\Accommodation::whereIn('id', $allowedAccommodationIds)
+                ->orWhere('created_by', $user->id)
+                ->orderBy('name')
+                ->get();
+        }
 
         return view('admin.bookings.index', compact('bookings', 'accommodations'));
     }
@@ -71,7 +85,7 @@ class BookingController extends Controller
         DB::transaction(function () use ($booking, $validated) {
             // Ensure package is loaded for room availability restoration when status changes
             $booking->loadMissing('package');
-            
+
             $oldStatus = $booking->status;
             $booking->status = $validated['status'];
             $booking->save(); // Model event will handle package room count update
@@ -81,7 +95,7 @@ class BookingController extends Controller
             if ($validated['status'] === 'paid' && $oldStatus !== 'paid') {
                 try {
                     $booking->loadMissing(['accommodation', 'hotel', 'package', 'user']);
-                    
+
                     // Generate voucher if it doesn't exist
                     if (!$booking->voucher) {
                         $voucherNumber = 'VOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
@@ -110,20 +124,20 @@ class BookingController extends Controller
                             $relativePath = "vouchers/{$voucher->id}.pdf";
                             DualStorageService::put($relativePath, $pdf->output(), 'public');
                             $voucher->update(['pdf_path' => $relativePath]);
-                            
+
                             $booking->load('voucher');
                         }
                     }
-                    
+
                     // Send voucher email if voucher exists
                     if ($booking->voucher) {
                         $booking->loadMissing(['user', 'voucher', 'accommodation', 'hotel', 'package']);
-                        
+
                         $email = $booking->user->email ?? $booking->email ?? $booking->guest_email ?? null;
                         if ($email) {
                             Mail::to($email)
                                 ->send(new VoucherMail($booking));
-                            
+
                             $booking->voucher->update(['emailed' => true]);
                         }
                     }
@@ -183,7 +197,7 @@ class BookingController extends Controller
         DB::transaction(function () use ($booking, $validated) {
             // Ensure package is loaded for room availability restoration
             $booking->loadMissing('package');
-            
+
             $booking->update([
                 'status' => 'refunded',
                 'refund_amount' => $validated['amount'],
@@ -211,7 +225,7 @@ class BookingController extends Controller
         }
 
         $path = storage_path('app/public/' . $booking->payment_document_path);
-        
+
         // Also check public storage
         if (!file_exists($path)) {
             $path = public_path('storage/' . $booking->payment_document_path);
@@ -222,7 +236,7 @@ class BookingController extends Controller
         }
 
         $filename = 'ordre-paiement-booking-' . $booking->booking_reference . '.' . pathinfo($booking->payment_document_path, PATHINFO_EXTENSION);
-        
+
         return response()->download($path, $filename);
     }
 
@@ -236,7 +250,7 @@ class BookingController extends Controller
         }
 
         $path = storage_path('app/public/' . $booking->flight_ticket_path);
-        
+
         // Also check public storage
         if (!file_exists($path)) {
             $path = public_path('storage/' . $booking->flight_ticket_path);
@@ -247,7 +261,7 @@ class BookingController extends Controller
         }
 
         $filename = 'billet-avion-booking-' . $booking->booking_reference . '.' . pathinfo($booking->flight_ticket_path, PATHINFO_EXTENSION);
-        
+
         return response()->download($path, $filename);
     }
 }

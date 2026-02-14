@@ -13,11 +13,34 @@ use Illuminate\Support\Facades\Storage;
 
 class InvoiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $invoices = Invoice::with('booking')->latest()->paginate(20);
+        $query = Invoice::query()->with('booking.accommodation');
 
-        return view('admin.invoices.index', compact('invoices'));
+        if ($request->has('accommodation_id') && $request->accommodation_id !== '') {
+            $query->whereHas('booking', function ($q) use ($request) {
+                $q->where('accommodation_id', $request->accommodation_id);
+            });
+        }
+
+        $invoices = $query->latest()->paginate(20);
+
+        $user = auth()->user();
+        if ($user->isSuperAdmin()) {
+            $accommodations = \App\Models\Accommodation::orderBy('name')->get();
+        } else {
+            // Respect permissions for the dropdown list
+            $allowedAccommodationIds = \App\Models\ResourcePermission::where('user_id', $user->id)
+                ->pluck('resource_id')
+                ->toArray();
+
+            $accommodations = \App\Models\Accommodation::whereIn('id', $allowedAccommodationIds)
+                ->orWhere('created_by', $user->id)
+                ->orderBy('name')
+                ->get();
+        }
+
+        return view('admin.invoices.index', compact('invoices', 'accommodations'));
     }
 
     public function show(Invoice $invoice)

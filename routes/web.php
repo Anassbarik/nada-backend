@@ -205,10 +205,15 @@ Route::middleware('auth')->group(function () {
         // Admins (only super-admin can manage)
         Route::middleware('role:super-admin')->group(function () {
             Route::resource('admins', \App\Http\Controllers\Admin\AdminController::class);
+            Route::patch('admins/{admin}/toggle-active', [\App\Http\Controllers\Admin\AdminController::class, 'toggleActive'])->name('admins.toggle-active');
             Route::post('admins/{admin}/impersonate', [\App\Http\Controllers\Admin\AdminController::class, 'impersonate'])->name('admins.impersonate');
             Route::get('organizers/{organizer}/credentials', [EventController::class, 'downloadOrganizerCredentials'])->name('organizers.download-credentials');
             Route::get('logs', [AdminLogController::class, 'index'])->name('logs.index');
             Route::get('logs/{log}', [AdminLogController::class, 'show'])->name('logs.show');
+
+            // Users management (super-admin only)
+            Route::delete('users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
+            Route::patch('users/{user}/toggle-active', [\App\Http\Controllers\Admin\UserController::class, 'toggleActive'])->name('users.toggle-active');
 
             // Newsletter (only super-admin can manage)
             Route::get('newsletter', [\App\Http\Controllers\Admin\NewsletterController::class, 'index'])->name('newsletter.index');

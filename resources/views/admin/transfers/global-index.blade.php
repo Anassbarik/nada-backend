@@ -34,6 +34,39 @@
             </div>
         </div>
 
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <form action="{{ route('admin.transfers.global-index') }}" method="GET"
+                class="flex flex-col md:flex-row items-end gap-4">
+                <div class="flex-1 w-full">
+                    <label for="accommodation_id" class="block text-sm font-medium text-gray-700 mb-1">Filter by
+                        Event</label>
+                    <select name="accommodation_id" id="accommodation_id"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-logo-primary focus:ring-logo-primary sm:text-sm">
+                        <option value="">All Events</option>
+                        @foreach($accommodations as $acc)
+                            <option value="{{ $acc->id }}" {{ request('accommodation_id') == $acc->id ? 'selected' : '' }}>
+                                {{ $acc->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-logo-primary hover:bg-logo-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-logo-primary w-full md:w-auto justify-center"
+                        style="background-color: #00adf1;">
+                        <i data-lucide="filter" class="w-4 h-4 mr-2"></i>
+                        Filter
+                    </button>
+                    @if(request('accommodation_id'))
+                        <a href="{{ route('admin.transfers.global-index') }}"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-logo-primary w-full md:w-auto justify-center">
+                            Clear
+                        </a>
+                    @endif
+                </div>
+            </form>
+        </div>
+
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">

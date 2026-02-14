@@ -35,37 +35,48 @@ class TransferController extends Controller
         return view('admin.transfers.index', compact('accommodation', 'transfers'));
     }
 
-    public function globalIndex()
+    public function globalIndex(Request $request)
     {
+        $user = auth()->user();
+
         // For sidebar link "Transfers"
-        if (!auth()->user()->isAdmin() && !auth()->user()->isSuperAdmin()) {
+        if (!$user->isAdmin() && !$user->isSuperAdmin()) {
             abort(403);
         }
 
         // Filter based on permissions
         $query = Transfer::query()->with(['accommodation', 'booking']);
 
-        if (!auth()->user()->isSuperAdmin()) {
+        // Apply accommodation filter
+        if ($request->has('accommodation_id') && $request->accommodation_id !== '') {
+            $query->where('accommodation_id', $request->accommodation_id);
+        }
+
+        if (!$user->isSuperAdmin()) {
             // Regular admins only see what they can manage
-            // This can be complex with the permission rules, simplistically:
-            // 1. Created by them
-            // 2. Or they have resource permission on the accommodation
-            $userId = auth()->id();
-            $query->where(function ($q) use ($userId) {
+            $userId = $user->id;
+
+            // Get allowed accommodation IDs for this user
+            $allowedAccommodationIds = \App\Models\ResourcePermission::where('user_id', $userId)
+                ->where('resource_type', 'transfer')
+                ->pluck('resource_id')
+                ->toArray();
+
+            $query->where(function ($q) use ($userId, $allowedAccommodationIds) {
                 $q->where('created_by', $userId)
-                    ->orWhereHas('accommodation', function ($aq) use ($userId) {
-                        $aq->where('created_by', $userId) // They created the accommodation
-                            ->orWhereHas('resourcePermissions', function ($rpq) use ($userId) {
-                                $rpq->where('user_id', $userId)
-                                    ->where('resource_type', 'transfer'); // Assuming transfer resource type
-                            });
-                    });
+                    ->orWhereIn('accommodation_id', $allowedAccommodationIds);
             });
+
+            $accommodations = Accommodation::whereIn('id', $allowedAccommodationIds)
+                ->orderBy('name')
+                ->get();
+        } else {
+            $accommodations = Accommodation::orderBy('name')->get();
         }
 
         $transfers = $query->latest()->paginate(15);
 
-        return view('admin.transfers.global-index', compact('transfers'));
+        return view('admin.transfers.global-index', compact('transfers', 'accommodations'));
     }
 
     /**

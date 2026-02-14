@@ -218,14 +218,14 @@ class AdminController extends Controller
             // For regular users, generate a Sanctum token for frontend access
             $token = $user->createToken('impersonation-token', ['*'], now()->addHours(24))->plainTextToken;
             session()->put('impersonation_token', $token);
-            
+
             // Log in as the user (for backend session)
             auth()->login($user);
-            
+
             // Redirect to frontend with token
             $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
             $redirectUrl = $frontendUrl . '/dashboard?impersonation_token=' . $token;
-            
+
             return redirect($redirectUrl);
         } elseif ($user->role === 'organizer') {
             // For organizers, log in and redirect to organizer dashboard
@@ -305,5 +305,29 @@ class AdminController extends Controller
 
         return redirect()->route('admin.admins.index')
             ->with('success', 'You have stopped impersonating and returned to your account.');
+    }
+
+    /**
+     * Toggle the active status of an admin.
+     */
+    public function toggleActive(User $admin)
+    {
+        $this->authorize('update', $admin);
+
+        // Prevent toggling super-admin if current user is not super-admin
+        if ($admin->isSuperAdmin() && !auth()->user()->isSuperAdmin()) {
+            abort(403, 'You cannot toggle status for super-admin users.');
+        }
+
+        // Prevent toggling yourself
+        if ($admin->id === auth()->id()) {
+            return back()->with('error', 'You cannot deactivate your own account.');
+        }
+
+        $admin->is_active = !$admin->is_active;
+        $admin->save();
+
+        $status = $admin->is_active ? 'activated' : 'deactivated';
+        return back()->with('success', "Admin account has been {$status}.");
     }
 }
